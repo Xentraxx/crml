@@ -7,7 +7,7 @@ This guide walks you from **zero** to running your **first CRML model**.
 ## 1. Install the CRML runtime
 
 ```bash
-pip install crml
+pip install crml-lang
 ```
 
 Or, if you're working from the source repo:

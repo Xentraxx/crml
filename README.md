@@ -89,5 +89,5 @@ MIT License — see [`LICENSE`](LICENSE) for details.
 
 ---
 
-**Maintained by Zeron Research Labs** | [Website](https://zeron.com) | [Contact](mailto:contact@zeron.com)
+**Maintained by Zeron Research Labs** | [Website](https://zeron.one) | [Contact](mailto:research@zeron.one)
 

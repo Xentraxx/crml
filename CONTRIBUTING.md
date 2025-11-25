@@ -182,7 +182,7 @@ We especially welcome contributions in these areas:
 
 - **General questions**: [Open a discussion](https://github.com/Faux16/crml/discussions)
 - **Bug reports**: [Open an issue](https://github.com/Faux16/crml/issues)
-- **Security issues**: Email security@zeron.com (do not open public issues)
+- **Security issues**: Email research@zeron.one (do not open public issues)
 
 ## 📜 Code of Conduct
 
