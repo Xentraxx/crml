@@ -13,37 +13,49 @@ nav:
   - Home: index.md
 
   - Getting Started:
-    - Introduction: getting-started.md
+    - Quick Start (5 min): quickstart.md
+    - Installation: installation.md
+    - Writing CRML Models: writing-crml.md
+    - Understanding Parameters: understanding-parameters.md
     - Specification: specification.md
     - Schema: schema/crml_schema.md
 
-  - Mathematical Foundations:
-    - Deep Mathematics: math/deep_math.md
+  - Examples:
+    - By Industry: examples/by-industry.md
+    - Full Model Examples: examples/full_examples.md
+    - FAIR Baseline Model: models/example-fair-baseline.md
+    - QBER Enterprise Model: models/example-qber-enterprise.md
+
+  - How-To Guides:
+    - Present to Executives: howto/executive-reporting.md
+    - Calibrate from Data: howto/calibrate-from-data.md
+    - Integrate with Tools: howto/tool-integration.md
+    - Best Practices: models/best-practices.md
+
+  - Reference:
+    - CLI Commands: cli/cli-commands.md
+    - Python API: api/python-api.md
+
+  - Mathematical Background:
     - Frequency Models (Gamma–Poisson): runtime/frequency.md
     - Severity Models: runtime/severity.md
     - Entropy & Information Theory: runtime/entropy.md
     - Copula Models: runtime/copula.md
     - MCMC (QBER Engine): runtime/mcmc.md
+    - Deep Mathematics: math/deep_math.md
 
-  - Runtime:
+  - Advanced Topics:
     - Attack Graphs: runtime/attack-graphs.md
-    - CLI Commands: cli/cli-commands.md
-    - Python API: api/python-api.md
+    - FAIR vs QBER: fair-qber-comparison.md
 
-  - CRML Models:
-    - Best Practices: models/best-practices.md
-    - FAIR Baseline Model: models/example-fair-baseline.md
-    - QBER Enterprise Model: models/example-qber-enterprise.md
-    - Full Model Examples: examples/full_examples.md
+  - Help & Support:
+    - FAQ: faq.md
+    - Troubleshooting: troubleshooting.md
+    - Glossary: glossary.md
 
-  - FAIR vs QBER:
-    - Comparison & Evaluation: fair-qber-comparison.md
-
-  - Diagrams:
-    - Mermaid Diagrams: diagrams/mermaid.md
-
-  - Roadmap:
-    - CRML Roadmap: roadmap.md
+  - Project:
+    - Roadmap: roadmap.md
+    - Diagrams: diagrams/mermaid.md
 
 markdown_extensions:
   - admonition
@@ -57,4 +69,16 @@ markdown_extensions:
 
 extra:
   generator: false
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/Faux16/crml
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/crml-lang/
+    - icon: fontawesome/solid/envelope
+      link: mailto:research@zeron.one
+    - icon: fontawesome/solid/globe
+      link: https://zeron.one
 
+copyright: |
+  &copy; 2024 Zeron Research Labs. Licensed under <a href="https://opensource.org/licenses/MIT" target="_blank">MIT License</a>.<br>
+  CRML is an open-source project. <a href="https://github.com/Faux16/crml/blob/main/CONTRIBUTING.md" target="_blank">Contributions welcome</a>!
