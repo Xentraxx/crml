@@ -45,7 +45,7 @@ async function runSimulation(yamlContent: string, runs: number, seed?: number): 
         const pythonCode = `
 import sys
 import json
-sys.path.insert(0, '${path.join(process.cwd(), '..', 'src')}')
+sys.path.insert(0, r'${path.join(process.cwd(), '..', 'src')}')
 
 from crml.runtime import run_simulation
 
@@ -55,7 +55,7 @@ result = run_simulation(yaml_content, n_runs=${runs}${seed ? `, seed=${seed}` : 
 print(json.dumps(result))
 `;
 
-        const python = spawn('python3', ['-c', pythonCode]);
+        const python = spawn('python', ['-c', pythonCode]);
 
         let stdout = '';
         let stderr = '';
