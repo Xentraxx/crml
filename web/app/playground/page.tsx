@@ -113,6 +113,7 @@ export default function PlaygroundPage() {
     const [isSimulating, setIsSimulating] = useState(false);
     const [runs, setRuns] = useState("10000");
     const [seed, setSeed] = useState("");
+    const [currency, setCurrency] = useState("$");
 
     const handleExampleChange = (value: string) => {
         setSelectedExample(value);
@@ -136,7 +137,8 @@ export default function PlaygroundPage() {
                 body: JSON.stringify({
                     yaml: yamlContent,
                     runs: parseInt(runs) || 10000,
-                    seed: seed ? parseInt(seed) : undefined
+                    seed: seed ? parseInt(seed) : undefined,
+                    currency: currency
                 }),
             });
 
@@ -188,7 +190,7 @@ export default function PlaygroundPage() {
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <div className="grid gap-4 md:grid-cols-4">
+                        <div className="grid gap-4 md:grid-cols-5">
                             <div className="space-y-2">
                                 <Label htmlFor="example-select">Example Model</Label>
                                 <Select value={selectedExample} onValueChange={handleExampleChange}>
@@ -266,6 +268,39 @@ export default function PlaygroundPage() {
                                 />
                                 <p className="text-xs text-muted-foreground">
                                     {seed ? "🔒 Reproducible results" : "🎲 Random each time"}
+                                </p>
+                            </div>
+                            <div className="space-y-2">
+                                <div className="flex items-center gap-2">
+                                    <Label htmlFor="currency">Currency</Label>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                                        </TooltipTrigger>
+                                        <TooltipContent className="max-w-xs">
+                                            <p className="text-xs">Select the currency for loss amounts</p>
+                                            <p className="text-xs mt-2 font-semibold">Examples: $ (USD), € (EUR), £ (GBP), ¥ (JPY)</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </div>
+                                <Select value={currency} onValueChange={setCurrency}>
+                                    <SelectTrigger id="currency">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="$">$ USD</SelectItem>
+                                        <SelectItem value="€">€ EUR</SelectItem>
+                                        <SelectItem value="£">£ GBP</SelectItem>
+                                        <SelectItem value="¥">¥ JPY</SelectItem>
+                                        <SelectItem value="₹">₹ INR</SelectItem>
+                                        <SelectItem value="C$">C$ CAD</SelectItem>
+                                        <SelectItem value="A$">A$ AUD</SelectItem>
+                                        <SelectItem value="₨">₨ PKR</SelectItem>
+                                        <SelectItem value="R$">R$ BRL</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <p className="text-xs text-muted-foreground">
+                                    {currency}
                                 </p>
                             </div>
                             <div className="flex items-end gap-2">

@@ -4,7 +4,7 @@ import json
 import time
 from typing import Dict, Any, Union
 
-def run_simulation(yaml_content: Union[str, dict], n_runs: int = 10000, seed: int = None) -> Dict[str, Any]:
+def run_simulation(yaml_content: Union[str, dict], n_runs: int = 10000, seed: int = None, currency: str = "$") -> Dict[str, Any]:
     """
     Runs a Monte Carlo simulation based on the CRML model.
     
@@ -12,6 +12,7 @@ def run_simulation(yaml_content: Union[str, dict], n_runs: int = 10000, seed: in
         yaml_content: Either a file path (str) or YAML content (str) or parsed dict
         n_runs: Number of Monte Carlo iterations
         seed: Random seed for reproducibility
+        currency: Currency symbol (default: "$")
         
     Returns:
         Dictionary with simulation results:
@@ -19,7 +20,7 @@ def run_simulation(yaml_content: Union[str, dict], n_runs: int = 10000, seed: in
             "success": bool,
             "metrics": {"eal": float, "var_95": float, "var_99": float, "var_999": float},
             "distribution": {"bins": [...], "frequencies": [...], "raw_data": [...]},
-            "metadata": {"runs": int, "runtime_ms": float, "model_name": str, "seed": int},
+            "metadata": {"runs": int, "runtime_ms": float, "model_name": str, "seed": int, "currency": str},
             "errors": [...]
         }
     """
@@ -33,7 +34,7 @@ def run_simulation(yaml_content: Union[str, dict], n_runs: int = 10000, seed: in
         "success": False,
         "metrics": {},
         "distribution": {},
-        "metadata": {"runs": n_runs, "seed": seed},
+        "metadata": {"runs": n_runs, "seed": seed, "currency": currency},
         "errors": []
     }
     
@@ -251,7 +252,7 @@ def run_simulation(yaml_content: Union[str, dict], n_runs: int = 10000, seed: in
     return result
 
 
-def run_simulation_cli(file_path: str, n_runs: int = 10000, output_format: str = 'text'):
+def run_simulation_cli(file_path: str, n_runs: int = 10000, output_format: str = 'text', currency: str = "$"):
     """
     CLI wrapper for run_simulation that prints results.
     
@@ -259,8 +260,9 @@ def run_simulation_cli(file_path: str, n_runs: int = 10000, output_format: str =
         file_path: Path to CRML YAML file
         n_runs: Number of simulation runs
         output_format: 'text' or 'json'
+        currency: Currency symbol (default: "$")
     """
-    result = run_simulation(file_path, n_runs)
+    result = run_simulation(file_path, n_runs, currency=currency)
     
     if output_format == 'json':
         print(json.dumps(result, indent=2))
@@ -275,6 +277,7 @@ def run_simulation_cli(file_path: str, n_runs: int = 10000, output_format: str =
     
     meta = result["metadata"]
     metrics = result["metrics"]
+    curr = meta.get('currency', '$')
     
     print(f"\n{'='*50}")
     print(f"CRML Simulation Results")
@@ -284,17 +287,18 @@ def run_simulation_cli(file_path: str, n_runs: int = 10000, output_format: str =
     print(f"Runtime: {meta['runtime_ms']:.2f} ms")
     if meta.get('seed'):
         print(f"Seed: {meta['seed']}")
+    print(f"Currency: {curr}")
     print(f"\n{'='*50}")
     print(f"Risk Metrics")
     print(f"{'='*50}")
-    print(f"EAL (Expected Annual Loss):  ${metrics['eal']:,.2f}")
-    print(f"VaR 95%:                      ${metrics['var_95']:,.2f}")
-    print(f"VaR 99%:                      ${metrics['var_99']:,.2f}")
-    print(f"VaR 99.9%:                    ${metrics['var_999']:,.2f}")
-    print(f"\nMin Loss:                     ${metrics['min']:,.2f}")
-    print(f"Max Loss:                     ${metrics['max']:,.2f}")
-    print(f"Median Loss:                  ${metrics['median']:,.2f}")
-    print(f"Std Deviation:                ${metrics['std_dev']:,.2f}")
+    print(f"EAL (Expected Annual Loss):  {curr}{metrics['eal']:,.2f}")
+    print(f"VaR 95%:                      {curr}{metrics['var_95']:,.2f}")
+    print(f"VaR 99%:                      {curr}{metrics['var_99']:,.2f}")
+    print(f"VaR 99.9%:                    {curr}{metrics['var_999']:,.2f}")
+    print(f"\nMin Loss:                     {curr}{metrics['min']:,.2f}")
+    print(f"Max Loss:                     {curr}{metrics['max']:,.2f}")
+    print(f"Median Loss:                  {curr}{metrics['median']:,.2f}")
+    print(f"Std Deviation:                {curr}{metrics['std_dev']:,.2f}")
     print(f"{'='*50}\n")
     
     return True

@@ -28,6 +28,8 @@ def main():
                                 help='Random seed for reproducibility')
     simulate_parser.add_argument('-f', '--format', choices=['text', 'json'], default='text',
                                 help='Output format (default: text)')
+    simulate_parser.add_argument('-c', '--currency', type=str, default='$',
+                                help='Currency symbol (default: $). Examples: €, £, ¥, etc.')
     
     # Legacy 'run' command (alias for simulate)
     run_parser = subparsers.add_parser('run', help='Run a Monte Carlo simulation (alias for simulate)')
@@ -51,7 +53,7 @@ def main():
         return 0 if success else 1
     
     elif args.command == 'simulate':
-        success = run_simulation_cli(args.file, n_runs=args.runs, output_format=args.format)
+        success = run_simulation_cli(args.file, n_runs=args.runs, output_format=args.format, currency=args.currency)
         return 0 if success else 1
     
     elif args.command == 'run':
