@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { writeFile, unlink } from "fs/promises";
+import { writeFile, unlink, mkdir } from "fs/promises";
 import { exec } from "child_process";
 import { promisify } from "util";
 import path from "path";
+import os from "os";
 import yaml from "js-yaml";
 
 const execAsync = promisify(exec);
@@ -29,8 +30,9 @@ export async function POST(request: NextRequest) {
             });
         }
 
-        // Create a temporary file
-        const tmpDir = "/tmp";
+        // Use OS-specific temp directory (cross-platform)
+        const tmpDir = path.join(os.tmpdir(), "crml-validator");
+        await mkdir(tmpDir, { recursive: true });
         const tmpFile = path.join(tmpDir, `crml-${Date.now()}.yaml`);
 
         try {
