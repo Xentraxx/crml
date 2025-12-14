@@ -337,10 +337,10 @@ def run_simulation(yaml_content: Union[str, dict], n_runs: int = 10000, seed: in
             # Support both median and mu (median is preferred)
             if 'median' in ln_params:
                 median_val = parse_number(ln_params['median'])
-                sev_currency = ln_params.get('currency', None)
-                if sev_currency:
-                    # Convert from model currency to base currency, then to output currency
-                    median_val = convert_currency(median_val, sev_currency, output_currency, fx_config)
+                # Default to base currency (USD) if not specified
+                sev_currency = ln_params.get('currency', fx_config.get('base_currency', 'USD'))
+                # Convert from model currency to output currency
+                median_val = convert_currency(median_val, sev_currency, output_currency, fx_config)
                 if median_val <= 0:
                     result["errors"].append("Median parameter must be positive")
                     return result
@@ -368,10 +368,10 @@ def run_simulation(yaml_content: Union[str, dict], n_runs: int = 10000, seed: in
                 # Support both median and mu (median is preferred)
                 if 'median' in params:
                     median_val = parse_number(params['median'])
-                    sev_currency = params.get('currency', None)
-                    if sev_currency:
-                        # Convert from model currency to output currency
-                        median_val = convert_currency(median_val, sev_currency, output_currency, fx_config)
+                    # Default to base currency (USD) if not specified
+                    sev_currency = params.get('currency', fx_config.get('base_currency', 'USD'))
+                    # Convert from model currency to output currency
+                    median_val = convert_currency(median_val, sev_currency, output_currency, fx_config)
                     if median_val <= 0:
                         result["errors"].append("Median parameter must be positive")
                         return result
