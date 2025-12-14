@@ -49,6 +49,84 @@
             "type": "string"
           },
           "examples": [["qber", "bayesian", "mcmc"], ["fair-compatible", "simple"]]
+        },
+        "industry": {
+          "type": "array",
+          "description": "Industry sectors this model is designed for or calibrated against. Use 'all' for cross-industry models. Categories aligned with common breach report segmentation (Verizon DBIR, IBM X-Force) for threat data applicability.",
+          "items": {
+            "type": "string",
+            "enum": [
+              "all",
+              "financial-services",
+              "healthcare",
+              "manufacturing",
+              "retail-wholesale",
+              "technology",
+              "professional-services",
+              "education",
+              "government",
+              "energy-utilities",
+              "transportation-logistics",
+              "media-entertainment",
+              "construction-real-estate",
+              "hospitality-food-service",
+              "nonprofit-ngo"
+            ]
+          },
+          "examples": [["all"], ["healthcare"], ["financial-services", "technology"], ["manufacturing"]]
+        },
+        "company_size": {
+          "type": "array",
+          "description": "Organization sizes this model is appropriate for. Based on employee count and typical IT complexity. Models can be calibrated differently for each size tier.",
+          "items": {
+            "type": "string",
+            "enum": [
+              "all",
+              "startup",
+              "smb",
+              "mid-market",
+              "enterprise",
+              "large-enterprise"
+            ],
+            "enumDescriptions": {
+              "startup": "1-50 employees, minimal security infrastructure",
+              "smb": "51-500 employees, basic security controls",
+              "mid-market": "501-2500 employees, dedicated security team",
+              "enterprise": "2501-10000 employees, mature security program",
+              "large-enterprise": "10000+ employees, complex global operations"
+            }
+          },
+          "examples": [["all"], ["enterprise", "large-enterprise"], ["smb", "mid-market"]]
+        },
+        "regulatory_frameworks": {
+          "type": "array",
+          "description": "Compliance frameworks this model aligns with or helps assess risk for.",
+          "items": {
+            "type": "string",
+            "enum": [
+              "nist-csf",
+              "iso-27001",
+              "soc2",
+              "gdpr",
+              "ccpa",
+              "hipaa",
+              "pci-dss",
+              "glba",
+              "sox",
+              "fisma",
+              "fedramp",
+              "cmmc",
+              "nerc-cip",
+              "dora",
+              "nis2",
+              "psd2",
+              "cis-controls",
+              "cobit",
+              "tisax",
+              "other"
+            ]
+          },
+          "examples": [["nist-csf", "iso-27001"], ["hipaa", "soc2"], ["pci-dss", "gdpr"]]
         }
       },
       "additionalProperties": true

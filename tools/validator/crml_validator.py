@@ -23,7 +23,7 @@ def validate_crml(path: str) -> None:
         print(e)
         sys.exit(2)
     except ValidationError as e:
-        print(f"[ERROR] {path} failed CRML 1.1 validation."))
+        print(f"[ERROR] {path} failed CRML 1.1 validation.")
         print("Message:", e.message)
         print("Path:   ", " -> ".join(map(str, e.path)))
         sys.exit(1)
