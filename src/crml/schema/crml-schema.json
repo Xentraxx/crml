@@ -336,10 +336,12 @@
                 "description": "Name or type of the asset (e.g., 'laptop', 'server')."
               },
               "cardinality": {
-                "type": "integer",
-                "description": "Number of assets of this type.",
-                "minimum": 1,
-                "examples": [100, 50]
+                "oneOf": [
+                  {"type": "integer", "minimum": 1},
+                  {"type": "string", "pattern": "^[0-9 ]+$"}
+                ],
+                "description": "Number of assets of this type. Can be a number or a string with spaces for readability (e.g., '10 000').",
+                "examples": [100, "10 000", 50]
               },
               "criticality_index": {
                 "type": "object",
@@ -375,76 +377,44 @@
         "frequency": {
           "type": "object",
           "description": "Specifies the distribution for loss event frequency (how often events occur).",
-          "required": [
-            "model"
-          ],
           "properties": {
-            "model": {
-              "type": "string",
-              "description": "Statistical distribution for event frequency.",
-              "enum": [
-                "poisson",
-                "negative_binomial",
-                "hierarchical_gamma_poisson",
-                "zero_inflated_poisson"
-              ],
-              "examples": [
-                "poisson",
-                "hierarchical_gamma_poisson"
-              ]
-            },
             "scope": {
               "type": "string",
-              "description": "Level at which frequency is modeled: 'portfolio' for aggregate, 'asset' for per-asset rates.",
-              "enum": [
-                "portfolio",
-                "asset"
-              ],
+              "description": "Level at which frequency is modeled: 'portfolio' for aggregate, 'asset' for per-asset rates. Default is 'portfolio'.",
+              "enum": ["portfolio", "asset"],
               "default": "portfolio"
+            },
+            "model": {
+              "type": "string",
+              "description": "Statistical distribution for event frequency (used if scope is 'portfolio').",
+              "enum": ["poisson", "negative_binomial", "hierarchical_gamma_poisson", "zero_inflated_poisson"],
+              "examples": ["poisson", "hierarchical_gamma_poisson"]
             },
             "parameters": {
               "type": "object",
-              "description": "Distribution-specific parameters. Can include expressions referencing CI (criticality index).",
+              "description": "Distribution-specific parameters (used if scope is 'portfolio'). Can include expressions referencing CI (criticality index).",
               "properties": {
                 "lambda": {
                   "oneOf": [
-                    {
-                      "type": "number",
-                      "minimum": 0
-                    },
-                    {
-                      "type": "string"
-                    }
+                    {"type": "number", "minimum": 0},
+                    {"type": "string"}
                   ],
                   "description": "Poisson rate parameter. For hierarchical models, can be an expression like '1 + CI * 0.5'.",
-                  "examples": [
-                    1.2,
-                    "1 + CI * 0.5"
-                  ]
+                  "examples": [1.2, "1 + CI * 0.5"]
                 },
                 "alpha_base": {
                   "oneOf": [
-                    {
-                      "type": "number",
-                      "minimum": 0
-                    },
-                    {
-                      "type": "string"
-                    }
+                    {"type": "number", "minimum": 0},
+                    {"type": "string"}
                   ],
                   "description": "Gamma shape parameter for hierarchical_gamma_poisson.",
-                  "examples": [
-                    1.0,
-                    "1 + CI * 0.5"
-                  ]
+                  "examples": [1.0, "1 + CI * 0.5"]
                 },
                 "beta_base": {
                   "type": "number",
                   "description": "Gamma rate parameter for hierarchical_gamma_poisson.",
                   "minimum": 0,
-                  "examples": [
-                    1.5
-                  ]
+                  "examples": [1.5]
                 },
                 "r": {
                   "type": "number",
@@ -458,8 +428,73 @@
                   "maximum": 1
                 }
               }
+            },
+            "models": {
+              "type": "array",
+              "description": "If scope is 'asset', defines frequency model and parameters for each asset type.",
+              "items": {
+                "type": "object",
+                "required": ["asset", "model", "parameters"],
+                "properties": {
+                  "asset": {
+                    "type": "string",
+                    "description": "Name of the asset type (must match an entry in assets[].name)."
+                  },
+                  "model": {
+                    "type": "string",
+                    "description": "Statistical distribution for event frequency.",
+                    "enum": ["poisson", "negative_binomial", "hierarchical_gamma_poisson", "zero_inflated_poisson"]
+                  },
+                  "parameters": {
+                    "type": "object",
+                    "description": "Distribution-specific parameters for this asset type.",
+                    "properties": {
+                      "lambda": {
+                        "oneOf": [
+                          {"type": "number", "minimum": 0},
+                          {"type": "string", "pattern": "^[0-9 ]+$"},
+                          {"type": "string"}
+                        ],
+                        "description": "Poisson rate parameter. Can be a number, a string with spaces (e.g., '1 200'), or an expression like '1 + CI * 0.5'."
+                      },
+                      "alpha_base": {
+                        "oneOf": [
+                          {"type": "number", "minimum": 0},
+                          {"type": "string", "pattern": "^[0-9 ]+$"},
+                          {"type": "string"}
+                        ],
+                        "description": "Gamma shape parameter for hierarchical_gamma_poisson. Can be a number or a string with spaces."
+                      },
+                      "beta_base": {
+                        "type": "number",
+                        "description": "Gamma rate parameter for hierarchical_gamma_poisson.",
+                        "minimum": 0
+                      },
+                      "r": {
+                        "oneOf": [
+                          {"type": "number", "minimum": 0},
+                          {"type": "string", "pattern": "^[0-9 ]+$"}
+                        ],
+                        "description": "Number of successes parameter for negative_binomial. Can be a number or a string with spaces."
+                      },
+                      "p": {
+                        "type": "number",
+                        "description": "Success probability for negative_binomial.",
+                        "minimum": 0,
+                        "maximum": 1
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                },
+                "additionalProperties": false
+              }
             }
-          }
+          },
+          "oneOf": [
+            {"required": ["model", "parameters"]},
+            {"required": ["scope", "models"]}
+          ]
         },
         "severity": {
           "type": "object",
@@ -535,21 +570,11 @@
               "properties": {
                 "median": {
                   "oneOf": [
-                    {
-                      "type": "number",
-                      "minimum": 0
-                    },
-                    {
-                      "type": "string",
-                      "pattern": "^[0-9 ]+$"
-                    }
+                    {"type": "number", "minimum": 0},
+                    {"type": "string", "pattern": "^[0-9 ]+$"}
                   ],
                   "description": "Median loss value for lognormal distribution. RECOMMENDED over mu because it's more intuitive. Accepts space-separated numbers for readability (e.g., '250 000' = 250000). Internally converted to mu = ln(median).",
-                  "examples": [
-                    250000,
-                    "250 000",
-                    "8 100"
-                  ]
+                  "examples": [250000, "250 000", "8 100"]
                 },
                 "currency": {
                   "type": "string",
@@ -588,12 +613,12 @@
                   ]
                 },
                 "scale": {
-                  "type": "number",
-                  "description": "Scale parameter (theta) for gamma/Weibull distributions.",
-                  "minimum": 0,
-                  "examples": [
-                    10000
-                  ]
+                  "oneOf": [
+                    {"type": "number", "minimum": 0},
+                    {"type": "string", "pattern": "^[0-9 ]+$"}
+                  ],
+                  "description": "Scale parameter (theta) for gamma/Weibull distributions. Can be a number or a string with spaces.",
+                  "examples": [10000, "10 000"]
                 },
                 "alpha": {
                   "type": "number",
@@ -605,13 +630,12 @@
                   ]
                 },
                 "x_min": {
-                  "type": "number",
-                  "description": "Minimum value (scale) for Pareto distribution.",
-                  "minimum": 0,
-                  "examples": [
-                    1000,
-                    10000
-                  ]
+                  "oneOf": [
+                    {"type": "number", "minimum": 0},
+                    {"type": "string", "pattern": "^[0-9 ]+$"}
+                  ],
+                  "description": "Minimum value (scale) for Pareto distribution. Can be a number or a string with spaces.",
+                  "examples": [1000, "10 000"]
                 }
               }
             },
@@ -1290,10 +1314,19 @@
           }
         ],
         "frequency": {
-          "model": "poisson",
-          "parameters": {
-            "lambda": 1.2
-          }
+          "scope": "asset",
+          "models": [
+            {
+              "asset": "laptop",
+              "model": "poisson",
+              "parameters": { "lambda": 0.02 }
+            },
+            {
+              "asset": "server",
+              "model": "poisson",
+              "parameters": { "lambda": 0.05 }
+            }
+          ]
         },
         "severity": {
           "model": "lognormal",

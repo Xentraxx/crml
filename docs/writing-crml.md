@@ -73,13 +73,36 @@ How often do bad things happen?
 
 #### **Option A: Poisson (Most Common)**
 
-Use when events are random and independent:
+Use when events are random and independent. 
+
+For a single asset type:
 
 ```yaml
   frequency:
     model: poisson
     parameters:
       lambda: 0.05  # 5% chance per asset per year
+```
+
+For multiple asset types, use per-asset frequency models:
+
+```yaml
+  assets:
+    - name: laptop
+      cardinality: 100
+    - name: server
+      cardinality: 50
+  frequency:
+    scope: asset
+    models:
+      - asset: laptop
+        model: poisson
+        parameters:
+          lambda: 0.02
+      - asset: server
+        model: poisson
+        parameters:
+          lambda: 0.05
 ```
 
 **When to use Poisson:**
@@ -450,17 +473,26 @@ model:
 
 ### Pattern 1: Simple Per-Asset Risk
 
-**Use case:** Each asset has independent risk
+**Use case:** Each asset has independent risk (multiple asset types):
 
 ```yaml
 model:
   assets:
+    - name: laptop
+      cardinality: 100
     - name: server
-      cardinality: 100  # 100 servers
+      cardinality: 50
   frequency:
-    model: poisson
-    parameters:
-      lambda: 0.02  # 2% per server
+    scope: asset
+    models:
+      - asset: laptop
+        model: poisson
+        parameters:
+          lambda: 0.02
+      - asset: server
+        model: poisson
+        parameters:
+          lambda: 0.05
   severity:
     model: lognormal
     parameters:
