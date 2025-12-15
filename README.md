@@ -19,6 +19,7 @@ CRML is designed for:
 
 ## ✨ Key Features
 
+- **🛡️ Control Effectiveness Modeling** - Quantify how security controls reduce risk with defense-in-depth calculations
 - **📊 Intuitive Median-Based Parameterization** - Use `median` directly instead of log-space `mu` for lognormal distributions
 - **💱 Multi-Currency Support** - Model risks across different currencies with automatic conversion (15+ currencies supported)
 - **🔄 Auto-Calibration** - Provide raw loss data and let CRML calibrate distributions automatically
@@ -52,6 +53,47 @@ Output:
 ```
 [OK] spec/examples/qber-enterprise.yaml is a valid CRML 1.1 document.
 ```
+
+### Model Security Controls
+
+**New in CRML 1.1:** Quantify how security controls reduce cyber risk.
+
+```yaml
+model:
+  frequency:
+    model: poisson
+    parameters:
+      lambda: 0.15  # 15% baseline probability
+  
+  controls:
+    layers:
+      - name: "email_security"
+        controls:
+          - id: "email_filtering"
+            type: "preventive"
+            effectiveness: 0.90  # Blocks 90% of attacks
+            coverage: 1.0
+            reliability: 0.95
+      
+      - name: "endpoint_protection"
+        controls:
+          - id: "edr"
+            type: "detective"
+            effectiveness: 0.80
+            coverage: 0.98
+  
+  severity:
+    model: lognormal
+    parameters:
+      median: "700 000"
+      currency: USD
+      sigma: 1.8
+```
+
+**Result:** Risk reduced from 15% to ~3.5% (76% reduction!)
+
+See [docs/controls-guide.md](docs/controls-guide.md) for detailed guidance.
+
 
 ## 📁 Repository Layout
 

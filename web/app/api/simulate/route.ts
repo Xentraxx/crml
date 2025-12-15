@@ -71,7 +71,7 @@ result = run_simulation(yaml_content, n_runs=${runs}${seed ? `, seed=${seed}` : 
 print(json.dumps(result))
 `;
 
-        const python = spawn('python', ['-c', pythonCode], {
+        const python = spawn('python3', ['-c', pythonCode], {
             stdio: ['pipe', 'pipe', 'pipe']  // Enable stdin pipe
         });
 
