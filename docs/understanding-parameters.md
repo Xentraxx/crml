@@ -123,6 +123,7 @@ frequency:
 - `currency`: The currency code for the median value (e.g., USD, EUR)
 - `sigma`: Controls the variability (how spread out losses are)
 - `mu`: Alternative to median - log-space mean (advanced users only)
+- `single_losses`: List of observed or estimated single-event loss amounts for auto-calibration (do not combine with median/mu/sigma)
 
 **Number Format:** Large numbers support ISO 80000-1 style space separators for readability. Both `100000` and `"100 000"` are valid.
 

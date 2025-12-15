@@ -242,7 +242,7 @@
     },
     "data": {
       "type": "object",
-      "description": "Defines telemetry sources and feature mappings that feed into the risk model. Optional—models can run with synthetic data or expert estimates if no real data sources are configured.",
+      "description": "Defines telemetry sources and feature mappings that feed into the risk model. Models can run with synthetic data or expert estimates if no real data sources are configured.",
       "properties": {
         "sources": {
           "type": "object",
@@ -265,10 +265,12 @@
                   "vm",
                   "cspm",
                   "ndr",
-                  "phishingSimulation",
                   "casb",
                   "asm",
                   "ueba",
+                  "audit",
+                  "phishingSimulation",
+                  "vulnerabilityReport",
                   "industryReport",
                   "pentestReport",
                   "person",
@@ -298,7 +300,7 @@
         },
         "feature_mapping": {
           "type": "object",
-          "description": "Maps logical feature names used in the model to physical source.field paths. Enables abstraction between model logic and data sources.",
+          "description": "Maps model input variables to specific fields in your data sources (key-value pairs). The key is the variable used in the model, the value is the source and field (e.g., 'pam.pam_entropy').",
           "additionalProperties": {
             "type": "string",
             "description": "Source path in format 'source_name.field_name'",
@@ -323,57 +325,51 @@
       ],
       "properties": {
         "assets": {
-          "type": "object",
-          "description": "Defines the asset population being modeled and how criticality is computed.",
-          "properties": {
-            "cardinality": {
-              "type": "integer",
-              "description": "Number of assets in the portfolio. Used for asset-level frequency models.",
-              "minimum": 1,
-              "examples": [
-                100,
-                10000
-              ]
-            },
-            "criticality_index": {
-              "type": "object",
-              "description": "Configuration for computing asset criticality scores (1-5 scale typically).",
-              "properties": {
-                "type": {
-                  "type": "string",
-                  "description": "Method for computing criticality index.",
-                  "enum": [
-                    "entropy-weighted",
-                    "manual",
-                    "uniform"
-                  ],
-                  "default": "uniform"
-                },
-                "inputs": {
-                  "type": "object",
-                  "description": "Maps input names to feature_mapping keys for entropy-weighted calculation.",
-                  "additionalProperties": {
-                    "type": "string"
+          "type": "array",
+          "description": "List of asset or asset types being modeled. Each asset (type) has a name, cardinality, and optional criticality index configuration.",
+          "items": {
+            "type": "object",
+            "required": ["name", "cardinality"],
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Name or type of the asset (e.g., 'laptop', 'server')."
+              },
+              "cardinality": {
+                "type": "integer",
+                "description": "Number of assets of this type.",
+                "minimum": 1,
+                "examples": [100, 50]
+              },
+              "criticality_index": {
+                "type": "object",
+                "description": "Configuration for computing asset criticality scores (1-5 scale typically).",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "description": "Method for computing criticality index.",
+                    "enum": ["entropy-weighted", "manual", "uniform"],
+                    "default": "uniform"
+                  },
+                  "inputs": {
+                    "type": "object",
+                    "description": "Maps input names to feature_mapping keys for entropy-weighted calculation.",
+                    "additionalProperties": {"type": "string"}
+                  },
+                  "weights": {
+                    "type": "object",
+                    "description": "Relative weights for each input. Should sum to 1.0.",
+                    "additionalProperties": {"type": "number", "minimum": 0, "maximum": 1}
+                  },
+                  "transform": {
+                    "type": "string",
+                    "description": "Expression to transform weighted entropy into criticality index. Use 'total_entropy' as the computed sum.",
+                    "examples": ["clip(1 + 4 * total_entropy, 1, 5)"]
                   }
-                },
-                "weights": {
-                  "type": "object",
-                  "description": "Relative weights for each input. Should sum to 1.0.",
-                  "additionalProperties": {
-                    "type": "number",
-                    "minimum": 0,
-                    "maximum": 1
-                  }
-                },
-                "transform": {
-                  "type": "string",
-                  "description": "Expression to transform weighted entropy into criticality index. Use 'total_entropy' as the computed sum.",
-                  "examples": [
-                    "clip(1 + 4 * total_entropy, 1, 5)"
-                  ]
                 }
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "frequency": {
@@ -1281,6 +1277,18 @@
         "description": "Basic FAIR-style risk model"
       },
       "model": {
+        "assets": [
+          {
+            "name": "laptop",
+            "cardinality": 100,
+            "criticality_index": { "type": "uniform" }
+          },
+          {
+            "name": "server",
+            "cardinality": 50,
+            "criticality_index": { "type": "uniform" }
+          }
+        ],
         "frequency": {
           "model": "poisson",
           "parameters": {

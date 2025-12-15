@@ -55,7 +55,8 @@ What are you protecting? How many of them?
 ```yaml
 model:
   assets:
-    cardinality: 500  # 500 employees with email
+    - name: employeeWithEmail
+      cardinality: 500  # 500 employees with email
 ```
 
 **Common asset types:**
@@ -421,7 +422,8 @@ meta:
   
 model:
   assets:
-    cardinality: 500  # 500 employees
+    - name: employee
+      cardinality: 500  # 500 employees
     
   frequency:
     model: poisson
@@ -453,7 +455,8 @@ model:
 ```yaml
 model:
   assets:
-    cardinality: 100  # 100 servers
+    - name: server
+      cardinality: 100  # 100 servers
   frequency:
     model: poisson
     parameters:
@@ -548,7 +551,8 @@ meta:
   
 model:
   assets:
-    cardinality: 50  # 50 databases
+    - name: database
+      cardinality: 50  # 50 databases
   frequency:
     model: poisson
     parameters:
@@ -577,7 +581,8 @@ meta:
   
 model:
   assets:
-    cardinality: 500  # 500 critical servers
+    - name: server
+      cardinality: 500  # 500 critical servers
   frequency:
     model: poisson
     parameters:
@@ -676,7 +681,8 @@ meta:
   name: "my-model"
 model:
   assets:
-    cardinality: N  # Number of assets
+    - name: asset
+      cardinality: N  # Number of assets
   frequency:
     model: poisson
     parameters:
