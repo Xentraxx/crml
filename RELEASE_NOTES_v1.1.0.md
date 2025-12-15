@@ -44,7 +44,27 @@ median: "1 000 000"  # One million, easier to read
 
 This applies to large monetary values (`median`, `scale`) but NOT to mathematical factors (`mu`, `sigma`, `lambda`, `shape`).
 
-### 3. Explicit Currency Declarations
+### 3. Single-Loss Auto-Calibration (`single_losses`)
+
+If you have real incident cost data, you can provide a list of `single_losses` and let the engine auto-calibrate lognormal parameters:
+
+```yaml
+severity:
+  model: lognormal
+  parameters:
+    currency: USD
+    single_losses:
+      - "25 000"
+      - "18 000"
+      - "45 000"
+      - "32 000"
+```
+
+Notes:
+- `single_losses` must contain at least 2 positive values.
+- When using `single_losses`, do not also set `median`, `mu`, or `sigma`.
+
+### 4. Explicit Currency Declarations
 
 All monetary parameters can now declare their currency explicitly:
 
@@ -57,7 +77,7 @@ severity:
     sigma: 1.8
 ```
 
-### 4. External FX Configuration
+### 5. External FX Configuration
 
 Currency conversion can now be handled via external FX configuration files.
 
@@ -82,7 +102,7 @@ Benefits:
 - **Single source of truth** - Update rates in one place
 - **Reproducibility** - FX rates are explicit and versioned
 
-### 4. Multi-Currency Risk Models
+### 6. Multi-Currency Risk Models
 
 Model risks across multiple jurisdictions with automatic currency normalization:
 

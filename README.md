@@ -48,8 +48,9 @@ Output:
 
 ## 📁 Repository Layout
 
-- **`spec/`** — CRML 1.1 specification, JSON Schema, and example models
+- **`spec/`** — CRML specification and example models
 - **`src/crml/`** — Python package source code (validator, CLI)
+- **`src/crml/schema`** CRML json schema
 - **`tools/`** — Legacy validator and CLI utilities
 - **`docs/`** — Documentation, roadmap, and diagrams
 

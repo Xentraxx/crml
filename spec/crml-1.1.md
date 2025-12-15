@@ -63,9 +63,10 @@ CRML 1.1 is backward compatible with CRML 1.0 documents in the sense that engine
 CRML 1.1 adds and/or clarifies:
 
 1. **Median-based lognormal severity parameterization**: `median` is supported and RECOMMENDED over `mu`.
-2. **Explicit currency declaration** for monetary values (via ISO 4217 `currency`).
-3. **Readable monetary numbers**: certain monetary fields MAY be written as strings containing spaces as thousands separators.
-4. **External FX configuration**: currency conversion is handled out-of-band via an FX config file (engine/CLI option), not embedded into the risk model.
+2. **Single-loss auto-calibration for lognormal severity**: `single_losses` MAY be provided as raw incident loss data; engines can derive calibrated lognormal parameters from it.
+3. **Explicit currency declaration** for monetary values (via ISO 4217 `currency`).
+4. **Readable monetary numbers**: certain monetary fields MAY be written as strings containing spaces as thousands separators.
+5. **External FX configuration**: currency conversion is handled out-of-band via an FX config file (engine/CLI option), not embedded into the risk model.
 
 ## 2. Document Format
 
@@ -306,10 +307,11 @@ Required:
 
 For `lognormal`, `parameters` MUST provide exactly one of:
 
-- `median` (RECOMMENDED), or
-- `mu` (ADVANCED)
+- (`median` (RECOMMENDED) and `sigma`), or
+- (`mu` (ADVANCED) and `sigma`), or
+- `single_losses` (auto-calibration input)
 
-and SHOULD provide `sigma`.
+If `single_losses` is used, it MUST replace `median`, `mu`, and `sigma`.
 
 Median-based (RECOMMENDED):
 
@@ -334,11 +336,35 @@ model:
       sigma: 1.2
 ```
 
-Implementations MUST reject a lognormal `parameters` object that contains both `median` and `mu`.
+Single-loss auto-calibration (AUDITABLE INPUT):
+
+```yaml
+model:
+  severity:
+    model: lognormal
+    parameters:
+      currency: USD
+      single_losses:
+        - "25 000"
+        - "18 000"
+        - "45 000"
+        - "32 000"
+```
+
+Implementations MUST reject a lognormal `parameters` object that:
+
+- contains both `median` and `mu`, or
+- contains `single_losses` alongside any of `median`, `mu`, or `sigma`.
 
 Relationship:
 
 $$\mu = \ln(\mathrm{median}) \qquad \mathrm{median} = e^{\mu}$$
+
+For `single_losses`, an implementation MAY derive calibrated parameters from the data. The reference runtime computes:
+
+$$\mu = \ln(\mathrm{median}(\text{single\_losses}))$$
+
+$$\sigma = \mathrm{stddev}(\ln(\text{single\_losses}))$$
 
 #### 6.3.2 Currency declaration
 
@@ -354,7 +380,9 @@ Rules:
 - Only digits and spaces SHOULD be used (e.g., `"1 000 000"`).
 - Commas and locale-specific decimal separators SHOULD NOT be used.
 
-Note: Strict validators may only allow this format for fields that explicitly permit it (e.g., `median`).
+This format MAY be used for monetary inputs such as `median` and individual values within `single_losses`.
+
+Note: Strict validators may only allow this format for fields that explicitly permit it.
 
 #### 6.3.4 Mixture severity
 
@@ -529,6 +557,8 @@ crml: "1.1"
 2. For lognormal severity, prefer `median` and compute it from `mu` if needed:
 
 $$\mathrm{median} = e^{\mu}$$
+
+Alternatively, if you have incident loss samples, you MAY provide `single_losses` and let the engine auto-calibrate `mu` and `sigma`.
 
 3. Add `currency` to monetary parameters.
 
