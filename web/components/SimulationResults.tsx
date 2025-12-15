@@ -32,6 +32,20 @@ export interface SimulationMetadata {
     description?: string;
     seed?: number;
     currency?: string;
+    controls_applied?: boolean;
+    lambda_baseline?: number;
+    lambda_effective?: number;
+    control_reduction_pct?: number;
+    control_details?: Array<{
+        id: string;
+        type: string;
+        effectiveness: number;
+        coverage: number;
+        reliability: number;
+        reduction: number;
+        cost?: number;
+    }>;
+    control_warnings?: string[];
 }
 
 export interface SimulationResult {
@@ -179,6 +193,104 @@ export default function SimulationResults({ result, isSimulating }: SimulationRe
                         </CardDescription>
                     </CardHeader>
                 </Card>
+
+                {/* Control Effectiveness */}
+                {metadata?.controls_applied && (
+                    <Card className="bg-purple-50 dark:bg-purple-950 border-purple-200 dark:border-purple-800">
+                        <CardHeader className="pb-3">
+                            <div className="flex items-center gap-2">
+                                <DollarSign className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                                <CardTitle className="text-base">Control Effectiveness</CardTitle>
+                            </div>
+                            <CardDescription className="text-xs">
+                                Security controls reduced risk by {metadata.control_reduction_pct?.toFixed(1)}%
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                            {/* Baseline vs Effective */}
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="space-y-1">
+                                    <p className="text-xs text-muted-foreground">Baseline (no controls)</p>
+                                    <p className="text-lg font-semibold text-red-600 dark:text-red-400">
+                                        {(metadata.lambda_baseline! * 100).toFixed(1)}%
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">Annual probability</p>
+                                </div>
+                                <div className="space-y-1">
+                                    <p className="text-xs text-muted-foreground">Effective (with controls)</p>
+                                    <p className="text-lg font-semibold text-green-600 dark:text-green-400">
+                                        {(metadata.lambda_effective! * 100).toFixed(2)}%
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">Annual probability</p>
+                                </div>
+                            </div>
+
+                            {/* Risk Reduction Bar */}
+                            <div className="space-y-1">
+                                <div className="flex justify-between text-xs">
+                                    <span className="text-muted-foreground">Risk Reduction</span>
+                                    <span className="font-semibold text-green-600 dark:text-green-400">
+                                        {metadata.control_reduction_pct?.toFixed(1)}%
+                                    </span>
+                                </div>
+                                <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                                    <div
+                                        className="h-full bg-gradient-to-r from-green-500 to-green-600 transition-all"
+                                        style={{ width: `${Math.min(metadata.control_reduction_pct || 0, 100)}%` }}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Individual Controls */}
+                            {metadata.control_details && metadata.control_details.length > 0 && (
+                                <div className="space-y-2">
+                                    <p className="text-xs font-medium text-muted-foreground">
+                                        Individual Controls ({metadata.control_details.length})
+                                    </p>
+                                    <div className="space-y-1.5 max-h-32 overflow-y-auto">
+                                        {metadata.control_details.slice(0, 5).map((ctrl, idx) => (
+                                            <div key={idx} className="flex items-center justify-between text-xs p-1.5 bg-white dark:bg-gray-900 rounded">
+                                                <div className="flex-1">
+                                                    <span className="font-medium">{ctrl.id}</span>
+                                                    <span className="text-muted-foreground ml-1">({ctrl.type})</span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <Tooltip>
+                                                        <TooltipTrigger>
+                                                            <span className="text-green-600 dark:text-green-400 font-semibold">
+                                                                {(ctrl.reduction * 100).toFixed(0)}%
+                                                            </span>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent className="text-xs">
+                                                            <p>Effectiveness: {(ctrl.effectiveness * 100).toFixed(0)}%</p>
+                                                            <p>Coverage: {(ctrl.coverage * 100).toFixed(0)}%</p>
+                                                            <p>Reliability: {(ctrl.reliability * 100).toFixed(0)}%</p>
+                                                        </TooltipContent>
+                                                    </Tooltip>
+                                                </div>
+                                            </div>
+                                        ))}
+                                        {metadata.control_details.length > 5 && (
+                                            <p className="text-xs text-muted-foreground text-center py-1">
+                                                ... and {metadata.control_details.length - 5} more controls
+                                            </p>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Warnings */}
+                            {metadata.control_warnings && metadata.control_warnings.length > 0 && (
+                                <Alert variant="default" className="py-2">
+                                    <AlertCircle className="h-3 w-3" />
+                                    <AlertDescription className="text-xs">
+                                        {metadata.control_warnings[0]}
+                                    </AlertDescription>
+                                </Alert>
+                            )}
+                        </CardContent>
+                    </Card>
+                )}
 
                 {/* Key Metrics */}
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

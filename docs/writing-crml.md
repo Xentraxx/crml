@@ -172,6 +172,153 @@ CRML has first-class support for multi-currency models. This is essential when:
 **Example: Multi-Currency Model**
 ```yaml
 severity:
+---
+
+## Security Control Effectiveness
+
+**New in CRML 1.1:** Model how security controls reduce cyber risk.
+
+### Why Model Controls?
+
+Security controls (email filtering, EDR, MFA, backups) reduce the likelihood and impact of cyber incidents. CRML allows you to:
+
+- **Quantify control effectiveness** - See exact risk reduction
+- **Optimize security spend** - Identify highest-impact controls
+- **Model defense-in-depth** - Layer multiple controls realistically
+
+### Basic Control Example
+
+```yaml
+model:
+  frequency:
+    model: poisson
+    parameters:
+      lambda: 0.15  # 15% baseline probability
+  
+  controls:
+    layers:
+      - name: "email_security"
+        controls:
+          - id: "email_filtering"
+            type: "preventive"
+            effectiveness: 0.90  # Blocks 90% of attacks
+            coverage: 1.0        # Covers all users
+            reliability: 0.95    # 95% uptime
+```
+
+**Result:** Risk reduced from 15% to ~1.5% (90% reduction)
+
+### Control Parameters
+
+#### Required
+
+- **`id`**: Unique identifier (e.g., `"email_filtering"`, `"edr"`)
+- **`type`**: Control category
+  - `preventive` - Stops attacks before they occur
+  - `detective` - Identifies attacks in progress
+  - `recovery` - Restores after incidents
+  - `corrective`, `deterrent`, `compensating`
+- **`effectiveness`** (0-1): How well it works when functioning
+  - `0.95-1.0` - Highly effective (immutable backups)
+  - `0.80-0.95` - Very effective (MFA, EDR, email filtering)
+  - `0.60-0.80` - Moderately effective (security awareness)
+
+#### Optional
+
+- **`coverage`** (0-1, default 1.0): What % of assets it covers
+- **`reliability`** (0-1, default 1.0): How reliably it functions (uptime)
+- **`cost`**: Annual cost for ROI calculations
+
+### Defense-in-Depth Example
+
+Layer multiple controls for maximum protection:
+
+```yaml
+controls:
+  layers:
+    - name: "email_security"
+      controls:
+        - id: "email_filtering"
+          type: "preventive"
+          effectiveness: 0.90
+          cost: 50000
+    
+    - name: "endpoint_protection"
+      controls:
+        - id: "edr"
+          type: "detective"
+          effectiveness: 0.80
+          coverage: 0.98
+          cost: 120000
+    
+    - name: "backup_recovery"
+      controls:
+        - id: "immutable_backups"
+          type: "recovery"
+          effectiveness: 0.95
+          cost: 75000
+```
+
+**Combined Effect:**
+- Baseline: 15% probability
+- After email filtering: 1.5%
+- After EDR: 0.3%
+- After backups: 0.015% (99% total reduction!)
+
+### Control Dependencies
+
+When controls overlap or may fail together:
+
+```yaml
+controls:
+  layers:
+    - name: "endpoint"
+      controls:
+        - id: "edr"
+          effectiveness: 0.80
+        - id: "antivirus"
+          effectiveness: 0.70
+  
+  dependencies:
+    - controls: ["edr", "antivirus"]
+      correlation: 0.5  # Both target endpoint threats
+```
+
+**Correlation values:**
+- `0.0` - Independent
+- `0.3-0.5` - Some overlap
+- `0.7-1.0` - High overlap
+
+### Interpreting Results
+
+When you run a simulation with controls, you'll see:
+
+```
+CONTROL EFFECTIVENESS RESULTS:
+Baseline Lambda (no controls):    0.150000
+Effective Lambda (with controls): 0.034602
+Risk Reduction:                   76.9%
+```
+
+### Best Practices
+
+✅ **Do:**
+- Use realistic effectiveness values (0.6-0.9 for most controls)
+- Layer multiple control types (preventive + detective + recovery)
+- Account for coverage gaps and reliability
+- Include costs for ROI analysis
+
+❌ **Don't:**
+- Use unrealistically high effectiveness (>0.95 for most controls)
+- Rely on a single control
+- Ignore coverage and reliability factors
+
+### Complete Example
+
+See [ransomware-with-controls.yaml](file:///Users/sanketsarkar/Desktop/RND/crml_full_repo/spec/examples/ransomware-with-controls.yaml) for a full working example with 6 layered controls.
+
+For detailed guidance, see the [Control Effectiveness Guide](file:///Users/sanketsarkar/Desktop/RND/crml_full_repo/docs/controls-guide.md).
+
   model: mixture
   components:
     - lognormal:  # GDPR fines in EUR

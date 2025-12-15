@@ -354,6 +354,39 @@ def run_simulation(yaml_content: Union[str, dict], n_runs: int = 10000, seed: in
         result["errors"].append(f"Error extracting frequency parameters: {str(e)}")
         return result
 
+    # Apply control effectiveness if controls are defined
+    controls_result = None
+    lambda_baseline = lambda_val if freq_model == 'poisson' else None
+    
+    if 'controls' in model:
+        from crml.controls import apply_control_effectiveness
+        
+        # Only apply to Poisson models for now (most common)
+        if freq_model == 'poisson':
+            controls_result = apply_control_effectiveness(
+                base_lambda=lambda_val,
+                controls_config=model['controls']
+            )
+            
+            # Store baseline for comparison
+            result['metadata']['lambda_baseline'] = lambda_val
+            result['metadata']['controls_applied'] = True
+            
+            # Use effective lambda for simulation
+            lambda_val = controls_result['effective_lambda']
+            result['metadata']['lambda_effective'] = lambda_val
+            result['metadata']['control_reduction_pct'] = controls_result['reduction_pct']
+            result['metadata']['control_details'] = controls_result['control_details']
+            
+            # Add warnings if any
+            if controls_result['warnings']:
+                result['metadata']['control_warnings'] = controls_result['warnings']
+        else:
+            result['metadata']['controls_applied'] = False
+            result['metadata']['control_warning'] = f"Controls not yet supported for {freq_model} frequency model"
+    else:
+        result['metadata']['controls_applied'] = False
+
     # Validate and extract severity parameters
     sev_model = sev.get('model', '')
     
