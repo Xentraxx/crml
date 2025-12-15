@@ -64,6 +64,13 @@ def validate_crml(path: str) -> bool:
             if abs(total_weight - 1.0) > 0.001:
                 warnings.append(f"Mixture weights sum to {total_weight:.3f}, should sum to 1.0")
 
+        # Warn if any severity node is missing a currency property
+        if isinstance(severity, dict):
+            params = severity.get("parameters", {})
+            if any(k in params for k in ("median", "mu", "mean", "single_losses")):
+                if "currency" not in params:
+                    warnings.append("Severity node has monetary values but no 'currency' property. Implicit currency assumptions are not recommended; please specify the currency.")
+
         # Warn if no output metrics specified
         output = data.get("output", {})
         if not output.get("metrics"):
