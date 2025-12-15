@@ -28,6 +28,8 @@ def main():
                                 help='Random seed for reproducibility')
     simulate_parser.add_argument('-f', '--format', choices=['text', 'json'], default='text',
                                 help='Output format (default: text)')
+    simulate_parser.add_argument('--fx-config', type=str, default=None,
+                                help='Path to FX configuration YAML file for currency settings')
     
     # Legacy 'run' command (alias for simulate)
     run_parser = subparsers.add_parser('run', help='Run a Monte Carlo simulation (alias for simulate)')
@@ -51,7 +53,7 @@ def main():
         return 0 if success else 1
     
     elif args.command == 'simulate':
-        success = run_simulation_cli(args.file, n_runs=args.runs, output_format=args.format)
+        success = run_simulation_cli(args.file, n_runs=args.runs, output_format=args.format, fx_config_path=args.fx_config)
         return 0 if success else 1
     
     elif args.command == 'run':

@@ -5,7 +5,7 @@ import path from 'path';
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
-        const { yaml, runs = 10000, seed } = body;
+        const { yaml, runs = 10000, seed, outputCurrency = 'USD' } = body;
 
         if (!yaml) {
             return NextResponse.json(
@@ -23,8 +23,17 @@ export async function POST(request: NextRequest) {
             );
         }
 
+        // Validate currency
+        const validCurrencies = ['USD', 'EUR', 'GBP', 'CHF', 'JPY', 'CAD', 'AUD', 'CNY', 'INR', 'BRL', 'MXN', 'KRW', 'SGD', 'HKD', 'PKR'];
+        if (!validCurrencies.includes(outputCurrency)) {
+            return NextResponse.json(
+                { success: false, errors: [`Invalid currency: ${outputCurrency}`] },
+                { status: 400 }
+            );
+        }
+
         // Run Python simulation
-        const result = await runSimulation(yaml, numRuns, seed);
+        const result = await runSimulation(yaml, numRuns, seed, outputCurrency);
 
         return NextResponse.json(result);
     } catch (error) {
@@ -39,23 +48,32 @@ export async function POST(request: NextRequest) {
     }
 }
 
-async function runSimulation(yamlContent: string, runs: number, seed?: number): Promise<any> {
+async function runSimulation(yamlContent: string, runs: number, seed?: number, outputCurrency: string = 'USD'): Promise<any> {
     return new Promise((resolve, reject) => {
-        // Find the Python executable and crml module
+        // Read YAML from stdin instead of embedding in code
         const pythonCode = `
 import sys
 import json
-sys.path.insert(0, '${path.join(process.cwd(), '..', 'src')}')
+sys.path.insert(0, r'${path.join(process.cwd(), '..', 'src')}')
 
 from crml.runtime import run_simulation
 
-yaml_content = """${yamlContent.replace(/"/g, '\\"')}"""
+# Read YAML from stdin
+yaml_content = sys.stdin.read()
 
-result = run_simulation(yaml_content, n_runs=${runs}${seed ? `, seed=${seed}` : ''})
+fx_config = {
+    "base_currency": "USD",
+    "output_currency": "${outputCurrency}",
+    "rates": None  # Use default rates
+}
+
+result = run_simulation(yaml_content, n_runs=${runs}${seed ? `, seed=${seed}` : ''}, fx_config=fx_config)
 print(json.dumps(result))
 `;
 
-        const python = spawn('python3', ['-c', pythonCode]);
+        const python = spawn('python', ['-c', pythonCode], {
+            stdio: ['pipe', 'pipe', 'pipe']  // Enable stdin pipe
+        });
 
         let stdout = '';
         let stderr = '';
@@ -67,6 +85,10 @@ print(json.dumps(result))
         python.stderr.on('data', (data) => {
             stderr += data.toString();
         });
+
+        // Write YAML content to stdin and close it
+        python.stdin.write(yamlContent);
+        python.stdin.end();
 
         // Set timeout for 30 seconds
         const timeout = setTimeout(() => {

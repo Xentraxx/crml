@@ -31,6 +31,7 @@ export interface SimulationMetadata {
     model_version?: string;
     description?: string;
     seed?: number;
+    currency?: string;
 }
 
 export interface SimulationResult {
@@ -117,10 +118,13 @@ export default function SimulationResults({ result, isSimulating }: SimulationRe
 
     const { metrics, distribution, metadata } = result;
 
+    // Get currency from metadata, default to $
+    const currency = metadata?.currency || '$';
+
     // Prepare chart data
     const chartData = distribution?.bins && distribution?.frequencies
         ? distribution.bins.slice(0, -1).map((bin, idx) => ({
-            range: `$${(bin / 1000).toFixed(0)}K`,
+            range: `${currency}${(bin / 1000).toFixed(0)}K`,
             frequency: distribution.frequencies[idx],
             binStart: bin
         }))
@@ -128,9 +132,9 @@ export default function SimulationResults({ result, isSimulating }: SimulationRe
 
     const formatCurrency = (value: number) => {
         if (value >= 1000000) {
-            return `$${(value / 1000000).toFixed(2)}M`;
+            return `${currency}${(value / 1000000).toFixed(2)}M`;
         }
-        return `$${(value / 1000).toFixed(0)}K`;
+        return `${currency}${(value / 1000).toFixed(0)}K`;
     };
 
     const handleDownloadJSON = () => {
