@@ -421,7 +421,7 @@ Want to help implement these features?
 
 - Timeline estimates are subject to change based on community feedback and priorities
 - Effort estimates assume experienced Python developer
-- Features may be released in different order based on demand
+- Features may be delivered in a different order based on demand
 - Breaking changes will follow semantic versioning (major version bumps)
 
 ---

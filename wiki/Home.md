@@ -115,12 +115,11 @@ Model how security controls reduce cyber risk:
 
 ## 🗺️ Roadmap
 
-See our [Roadmap](Roadmap) for upcoming features:
+See our [Roadmap](Roadmap) for draft milestones and upcoming features:
 
-- ✅ **v1.2.0** - Control Effectiveness Modeling (Released)
+- 📋 **v1.2.0** - Control Effectiveness Modeling (Draft)
 - 🚧 **v1.3.0** - Attack Chain Modeling (In Progress)
 - 📋 **v1.4.0** - Threat Actor Modeling (Planned)
-- 📋 **v2.0.0** - Bayesian Inference with MCMC (Future)
 
 ---
 
@@ -145,7 +144,7 @@ We welcome contributions! See our [Contributing Guide](Contributing) for:
 
 ## 📄 License
 
-CRML is released under the [MIT License](https://github.com/Faux16/crml/blob/main/LICENSE).
+CRML is licensed under the [MIT License](https://github.com/Faux16/crml/blob/main/LICENSE).
 
 ---
 

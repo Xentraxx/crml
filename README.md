@@ -8,6 +8,8 @@
 **Maintained by:** Zeron Research 
 **Status:** draft
 
+IMPORTANT: The CRML language standard/specification is in active development and is currently in Draft status. All syntax, semantics, and examples are subject to change without notice!
+
 CRML is an open, declarative, implementation-agnostic language for expressing cyber risk models, telemetry mappings, simulation pipelines, dependencies, and output requirements.
 
 CRML is designed for:
