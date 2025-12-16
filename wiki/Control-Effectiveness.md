@@ -454,5 +454,5 @@ ROI = ($100,000 - $24,000) / $390,000 = 0.195 (19.5%)
 ---
 
 **See Also:**
-- [CRML Specification](https://github.com/Faux16/crml/blob/main/spec/crml-1.1.md)
-- [Controls Guide (Full)](https://github.com/Faux16/crml/blob/main/docs/controls-guide.md)
+- [CRML 1.1 Specification](Reference/CRML-1.1)
+- [CRML Schema](Reference/CRML-Schema)

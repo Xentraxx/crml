@@ -46,7 +46,7 @@ No! CRML is designed for security professionals, not statisticians.
 - Statistical software experience
 - Programming skills (though Python API is available)
 
-The [Writing CRML guide](writing-crml.md) explains everything step-by-step.
+The [Writing CRML guide](../Guides/Writing-CRML) explains everything step-by-step.
 
 ---
 

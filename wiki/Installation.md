@@ -128,4 +128,4 @@ docker run -it ghcr.io/faux16/crml:latest crml --version
 
 ## Troubleshooting
 
-See [Troubleshooting Guide](../troubleshooting.md) for common issues.
+See [Troubleshooting Guide](Reference/Troubleshooting) for common issues.

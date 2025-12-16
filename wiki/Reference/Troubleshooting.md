@@ -202,7 +202,7 @@ model:  # Model section (required)
 4. **Test with known example:**
    ```bash
    # Use a validated example
-   crml simulate spec/examples/data-breach-simple.yaml
+   crml simulate examples/data-breach-simple.yaml
    ```
 
 ---
@@ -317,7 +317,7 @@ model:  # Model section (required)
 
 4. **Test Python directly:**
    ```bash
-   python3 -m crml.cli simulate spec/examples/data-breach-simple.yaml
+   python3 -m crml.cli simulate examples/data-breach-simple.yaml
    ```
 
 ---
@@ -348,7 +348,7 @@ model:  # Model section (required)
 
 4. **See parameter guide:**
    - [Understanding Parameters](understanding-parameters.md)
-   - [Writing CRML](writing-crml.md)
+   - [Writing CRML](../Guides/Writing-CRML)
 
 ---
 
@@ -495,7 +495,7 @@ model:  # Model section (required)
 
 1. ✅ Check this troubleshooting guide
 2. ✅ Read the [FAQ](faq.md)
-3. ✅ Try the examples in `spec/examples/`
+3. ✅ Try the examples in `examples/`
 4. ✅ Validate your YAML: `crml validate model.yaml`
 5. ✅ Check GitHub issues for similar problems
 

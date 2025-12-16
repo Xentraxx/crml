@@ -35,8 +35,8 @@ Visit http://localhost:3000
 crml_full_repo/
 ├── src/crml/          # Python package
 ├── web/               # Next.js web platform
-├── spec/examples/     # Example CRML models
-└── docs/              # Documentation
+├── examples/          # Example CRML models
+└── wiki/              # Documentation (wiki source)
 ```
 
 ## Features

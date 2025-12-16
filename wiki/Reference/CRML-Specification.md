@@ -1,70 +1,15 @@
 # CRML Specification
 
-This section defines the structure and semantics of a **CRML document**.
+This section is an index for CRML specification and validation artifacts.
 
----
+- Full CRML 1.1 specification (canonical): [CRML-1.1](CRML-1.1)
+- JSON Schema reference: [CRML-Schema](CRML-Schema)
+- CLI validation: [CLI-Commands](CLI-Commands)
 
-## Top-level structure
+If you’re looking for a quick practical walkthrough instead of the formal spec:
 
-A CRML file is a YAML or JSON document with the following top-level keys:
-
-```yaml
-crml: "1.1"
-meta: {...}
-data: {...}
-model: {...}
-pipeline: {...}
-output: {...}
-```
-
-### `crml`
-
-- String indicating the CRML specification version.
-- Example: `"1.1"`.
-
-### `meta`
-
-Metadata about the model:
-
-```yaml
-meta:
-  name: "financial-services-risk-model"
-  version: "2025.2"
-  description: "Unified enterprise cyber risk model."
-  author: "Zeron Research Labs"
-  organization: "Zeron"
-  tags: ["qber", "fair-compatible", "enterprise"]
-```
-
----
-
-## `data` block
-
-Describes **input data sources** and derived **features**.
-
-```yaml
-data:
-  sources:
-    pam:
-      type: pam
-      data_schema:
-        priv_escalations: int
-        failed_sudo: int
-        vault_access: int
-
-    dlp:
-      type: dlp
-      data_schema:
-        dpi_hits: int
-        exfil_attempts: int
-
-  feature_mapping:
-    pam_entropy: "entropy(pam.*)"
-    dlp_entropy: "entropy(dlp.*)"
-    control_score: "normalize(pam_entropy + dlp_entropy)"
-```
-
-The runtime does not hard-code where data comes from (files, APIs, DWH). It only assumes that, at execution time, the features referred to here are available as arrays/vectors.
+- [Getting Started](../Getting-Started)
+- [Writing CRML Models](../Guides/Writing-CRML)
 
 ---
 

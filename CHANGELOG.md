@@ -5,7 +5,7 @@ All notable changes to CRML will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.2.0] - 2025-12-15
+## [1.2.0] - 2025-12-15 (Draft)
 
 ### Added
 - **Control Effectiveness Modeling** - Major new feature for quantifying security control impact
@@ -17,12 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Comprehensive validation and error handling
   - New module `crml.controls` with core logic (360 lines)
   - 19 comprehensive test cases (100% pass rate)
-  - Full documentation in `docs/controls-guide.md` (500+ lines)
-  - Example model: `spec/examples/ransomware-with-controls.yaml`
+  - Full documentation in `wiki/Control-Effectiveness.md`
+  - Example model: `examples/ransomware-with-controls.yaml`
   - Web UI integration with beautiful control effectiveness card
 
 ### Changed
-- Updated `docs/writing-crml.md` with controls section
+- Updated `wiki/Guides/Writing-CRML.md` with controls section
 - Enhanced README.md with control effectiveness examples
 - Web platform now displays baseline vs effective lambda comparison
 - Improved simulation results with risk reduction metrics
@@ -36,7 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added control type reference and best practices
 - Included calibration guidance from vendor data and historical incidents
 
-## [1.1.0] - 2024-XX-XX
+## [1.1.0] - 2024-XX-XX (Draft)
 
 ### Added
 - Median-based parameterization for lognormal distributions
@@ -50,7 +50,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Migrated from log-space `mu` to intuitive `median` parameter
 - Enhanced documentation and examples
 
-## [1.0.0] - 2024-XX-XX
+## [1.0.0] - 2024-XX-XX (Draft)
 
 ### Added
 - Initial release of CRML specification
@@ -63,6 +63,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Version History
 
-- **1.2.0** - Control Effectiveness Modeling
-- **1.1.0** - Median parameterization, multi-currency, auto-calibration
-- **1.0.0** - Initial release
+- **1.2.0 (Draft)** - Control Effectiveness Modeling
+- **1.1.0 (Draft)** - Median parameterization, multi-currency, auto-calibration
+- **1.0.0 (Draft)** - Initial release

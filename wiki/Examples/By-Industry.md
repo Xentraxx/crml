@@ -460,6 +460,6 @@ python compare-results.py q1-results.json q2-results.json
 
 ## Next Steps
 
-- **[Writing CRML](../writing-crml.md)** - Learn to create custom models
+- **[Writing CRML](../Guides/Writing-CRML)** - Learn to create custom models
 - **[Understanding Parameters](../understanding-parameters.md)** - Deep dive on distributions
 - **[FAQ](../faq.md)** - Common questions

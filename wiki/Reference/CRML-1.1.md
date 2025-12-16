@@ -580,7 +580,7 @@ CRML 1.1 documents SHOULD validate against the JSON Schema shipped with this rep
 Example:
 
 ```bash
-crml validate spec/examples/data-breach-simple.yaml
+crml validate examples/data-breach-simple.yaml
 ```
 
 ## 11. Migration Guide (CRML 1.0 → 1.1)
@@ -603,4 +603,4 @@ Alternatively, if you have incident loss samples, you MAY provide `single_losses
 
 ## 12. Examples
 
-See `spec/examples/` for complete CRML 1.1 models.
+See `examples/` for complete CRML 1.1 models.

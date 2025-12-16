@@ -465,6 +465,6 @@ severity:
 
 ## See Also
 
-- [Writing CRML](../writing-crml.md) - Model creation basics
+- [Writing CRML](Writing-CRML) - Model creation basics
 - [FAQ](../faq.md) - Common calibration questions
 - [Executive Reporting](executive-reporting.md) - Present calibrated results
