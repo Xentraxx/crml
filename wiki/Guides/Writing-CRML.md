@@ -339,9 +339,9 @@ Risk Reduction:                   76.9%
 
 ### Complete Example
 
-See [ransomware-with-controls.yaml](/spec/examples/ransomware-with-controls.yaml) for a full working example with 6 layered controls.
+See [ransomware-with-controls.yaml](https://github.com/Faux16/crml/blob/main/examples/ransomware-with-controls.yaml) for a full working example with layered controls.
 
-For detailed guidance, see the [Control Effectiveness Guide](/docs/controls-guide.md).
+For detailed guidance, see the [Control Effectiveness Guide](../Control-Effectiveness).
 
   model: mixture
   components:

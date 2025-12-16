@@ -11,6 +11,8 @@
 ## 🚀 Quick Links
 
 - **[Getting Started](Getting-Started)** - Install and run your first simulation
+- **[Installation](Installation)** - Platform-specific install steps
+- **[Quickstart](Quickstart)** - 5-minute first run
 - **[Roadmap](Roadmap)** - Future features and development timeline
 - **[Control Effectiveness Guide](Control-Effectiveness)** - Model security controls
 - **[Examples](Examples)** - Real-world risk models
@@ -93,9 +95,9 @@ Model how security controls reduce cyber risk:
 ## 📚 Documentation
 
 ### Getting Started
-- [Installation](Getting-Started#installation)
-- [Your First Model](Getting-Started#your-first-model)
-- [Running Simulations](Getting-Started#running-simulations)
+- [Installation](Installation)
+- [Quickstart (5 min)](Quickstart)
+- [Getting Started (longer tutorial)](Getting-Started)
 
 ### Guides
 - [Writing CRML Models](Writing-CRML-Models)
@@ -104,7 +106,8 @@ Model how security controls reduce cyber risk:
 - [Auto-Calibration](Auto-Calibration)
 
 ### Reference
-- [CRML Specification](https://github.com/Faux16/crml/blob/main/spec/crml-1.1.md)
+- [CRML 1.1 Specification](Reference/CRML-1.1)
+- [CRML Schema](Reference/CRML-Schema)
 - [API Reference](API-Reference)
 - [Examples](Examples)
 

@@ -6,7 +6,7 @@ import yaml from "js-yaml";
 export async function GET() {
     try {
         // Path to examples directory (relative to project root)
-        const examplesDir = path.join(process.cwd(), "..", "spec", "examples");
+        const examplesDir = path.join(process.cwd(), "..", "examples");
 
         // Read all files and filter to only include YAML files, excluding FX config files
         const files = await readdir(examplesDir);

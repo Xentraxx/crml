@@ -237,6 +237,6 @@ VaR_99% = 99th percentile of simulated losses
 
 ## See Also
 
-- [Writing CRML Models](writing-crml.md) - Learn how to use these terms in practice
+- [Writing CRML Models](../Guides/Writing-CRML) - Learn how to use these terms in practice
 - [Understanding Parameters](understanding-parameters.md) - Deep dive on distributions
 - [FAQ](faq.md) - Common questions about these concepts

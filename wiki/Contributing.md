@@ -118,7 +118,7 @@ flake8 .
 ## 📄 Documentation
 
 - **Wiki:** If you are adding a major feature, please consider updating the Wiki.
-- **Specification:** Changes to the language itself require updating `spec/crml-1.1.md`.
+- **Specification:** Changes to the language itself require updating `wiki/Reference/CRML-1.1.md`.
 
 ---
 

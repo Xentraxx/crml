@@ -6,24 +6,10 @@ This guide will help you install CRML and run your first cyber risk simulation.
 
 ## Installation
 
-### Prerequisites
+For platform-specific install steps, see:
 
-- Python 3.7 or higher
-- pip (Python package manager)
-
-### Install from PyPI
-
-```bash
-pip install crml-lang
-```
-
-### Verify Installation
-
-```bash
-crml --version
-```
-
-You should see: `CRML CLI version 1.2.0`
+- [Installation](Installation)
+- [Quickstart](Quickstart)
 
 ---
 
@@ -269,6 +255,6 @@ pip install crml-lang
 
 ## Getting Help
 
-- **Documentation:** [CRML Specification](https://github.com/Faux16/crml/blob/main/spec/crml-1.1.md)
+- **Documentation:** [CRML Specification](Reference/CRML-1.1)
 - **Issues:** [GitHub Issues](https://github.com/Faux16/crml/issues)
 - **Discussions:** [GitHub Discussions](https://github.com/Faux16/crml/discussions)

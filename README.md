@@ -5,7 +5,8 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 **Version:** 1.2
-**Maintained by:** Zeron Research Labs
+**Maintained by:** Zeron Research 
+**Status:** draft
 
 CRML is an open, declarative, implementation-agnostic language for expressing cyber risk models, telemetry mappings, simulation pipelines, dependencies, and output requirements.
 
@@ -48,12 +49,12 @@ crml validate path/to/your/model.yaml
 ### Example
 
 ```bash
-crml validate spec/examples/qber-enterprise.yaml
+crml validate examples/qber-enterprise.yaml
 ```
 
 Output:
 ```
-[OK] spec/examples/qber-enterprise.yaml is a valid CRML 1.1 document.
+[OK] examples/qber-enterprise.yaml is a valid CRML 1.1 document.
 ```
 
 ### Model Security Controls
@@ -94,7 +95,7 @@ model:
 
 **Result:** Risk reduced from 15% to ~3.5% (76% reduction!)
 
-See [docs/controls-guide.md](docs/controls-guide.md) for detailed guidance.
+See the wiki page [Control-Effectiveness](https://github.com/Faux16/crml/wiki/Control-Effectiveness) for detailed guidance.
 
 
 ## 📁 Repository Layout
@@ -102,8 +103,7 @@ See [docs/controls-guide.md](docs/controls-guide.md) for detailed guidance.
 - **`spec/`** — CRML specification and example models
 - **`src/crml/`** — Python package source code (validator, CLI)
 - **`src/crml/schema`** CRML json schema
-- **`tools/`** — Legacy validator and CLI utilities
-- **`docs/`** — Documentation, roadmap, and diagrams
+- **`wiki/`** — Wiki content (mirrors GitHub Wiki pages)
 
 ## 🛠️ Development
 
@@ -115,17 +115,17 @@ cd crml
 pip install -e .
 ```
 
-### Run Validator Directly
+### Run Validator
 
 <img src="/images/validator.png">
 
 ```bash
-python tools/validator/crml_validator.py spec/examples/qber-enterprise.yaml
+crml validate examples/qber-enterprise.yaml
 ```
 
 ## 📖 Documentation
 
-For detailed documentation, examples, and the full specification, visit the `docs/` directory or check out the [specification](spec/crml-1.1.md).
+For documentation and examples, use the GitHub Wiki (source lives in `wiki/`) and the [specification](wiki/Reference/CRML-1.1.md).
 
 ## 🤝 Contributing
 
@@ -139,7 +139,7 @@ MIT License — see [`LICENSE`](LICENSE) for details.
 
 - **PyPI Package:** https://pypi.org/project/crml-lang/
 - **GitHub Repository:** https://github.com/Faux16/crml
-- **Specification:** [CRML 1.1](spec/crml-1.1.md)
+- **Specification:** [CRML 1.1](wiki/Reference/CRML-1.1.md)
 
 ---
 

@@ -306,5 +306,5 @@ python compare-scenarios.py before.json after.json > comparison.txt
 ## Next Steps
 
 - **[FAQ](../faq.md)** - Answers to common questions
-- **[Writing CRML](../writing-crml.md)** - Create your own models
+- **[Writing CRML](Writing-CRML)** - Create your own models
 - **[Industry Examples](../examples/by-industry.md)** - Real-world scenarios

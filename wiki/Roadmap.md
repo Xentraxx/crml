@@ -4,11 +4,11 @@ This roadmap outlines the planned features and enhancements for CRML. Items are 
 
 ---
 
-## ✅ Released
+## Draft
 
 ### v1.2.0 - Control Effectiveness Modeling
 
-**Status:** ✅ Released
+**Status:** Draft
 
 Comprehensive security control effectiveness modeling to quantify how controls reduce cyber risk.
 
@@ -40,7 +40,7 @@ controls:
 
 ### v1.1.0 - Enhanced Usability
 
-**Status:** ✅ Released
+**Status:** Draft
 
 - ✅ Median-based parameterization for lognormal distributions
 - ✅ Multi-currency support (15+ currencies)
@@ -51,11 +51,33 @@ controls:
 
 ---
 
-## 🚧 In Progress
+## 📌 Legacy Roadmap Notes
+
+These items were previously tracked as a shorter high-level roadmap:
+
+### v1.x
+
+- Finalize CRML 1.1 spec based on community feedback
+- Add richer JSON Schema with stricter validation
+- Publish reference Python runtime for QBER-style models
+- Add examples for industry verticals (banking, healthcare, telecom)
+- Add GitHub Actions for validation and CI
+
+### v2.0 (planned)
+
+- Calibration block (data-driven parameter learning)
+- Formal temporal modeling spec
+- Richer dependency structures (graph-based, factor models)
+- Multi-language SDKs (Python, Rust, Go)
+- VS Code extension for CRML syntax highlighting and validation
+
+---
+
+## Draft (In Progress)
 
 ### v1.3.0 - Attack Chain Modeling
 
-**Status:** 🚧 Planning
+**Status:** Draft
 
 **Priority:** High
 
@@ -94,11 +116,11 @@ attack_chain:
 
 ---
 
-## 📋 Planned
+## Draft (Planned)
 
 ### v1.4.0 - Threat Actor Modeling
 
-**Status:** 📋 Planned
+**Status:** Draft
 
 **Priority:** High
 
@@ -127,7 +149,7 @@ threat_actors:
 
 ### v1.5.0 - Data-Driven Calibration
 
-**Status:** 📋 Planned
+**Status:** Draft
 
 **Priority:** Medium
 
@@ -161,7 +183,7 @@ data:
 
 ### v1.6.0 - Temporal Dynamics
 
-**Status:** 📋 Planned
+**Status:** Draft
 
 **Priority:** Medium
 
@@ -195,7 +217,7 @@ temporal:
 
 ### v1.7.0 - Vulnerability & Exposure Modeling
 
-**Status:** 📋 Planned
+**Status:** Draft
 
 **Priority:** Medium
 
@@ -226,7 +248,7 @@ assets:
 
 ### v1.8.0 - Breach Cost Modeling
 
-**Status:** 📋 Planned
+**Status:** Draft
 
 **Priority:** Low
 
@@ -263,7 +285,7 @@ severity:
 
 ### v1.9.0 - Insurance & Risk Transfer
 
-**Status:** 📋 Planned
+**Status:** 🔮 Research
 
 **Priority:** Medium
 
@@ -290,7 +312,7 @@ insurance:
 
 ---
 
-## 🔮 Future (v2.0+)
+## Draft (Future v2.0+)
 
 ### v2.0.0 - Bayesian Inference with MCMC
 

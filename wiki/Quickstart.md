@@ -118,9 +118,9 @@ Visit http://localhost:3000/simulation
 ## Next Steps
 
 ### Learn More
-- **[Writing CRML Models](writing-crml.md)** - Comprehensive guide
-- **[Understanding Parameters](understanding-parameters.md)** - How to choose values
-- **[Examples](examples/full_examples.md)** - Pre-built models
+- **[Writing CRML Models](Guides/Writing-CRML)** - Comprehensive guide
+- **[Understanding Parameters](Guides/Understanding-Parameters)** - How to choose values
+- **[Examples](Examples/Full-Examples)** - Pre-built models
 
 ### Try Different Scenarios
 - Modify `lambda` to see how frequency affects risk
@@ -152,9 +152,9 @@ Visit http://localhost:3000/simulation
 
 ## Get Help
 
-- 📖 [Full Documentation](index.md)
+- 📖 [Full Documentation](Home)
 - 🧪 [Interactive Simulation](http://localhost:3000/simulation)
 - 💬 [GitHub Issues](https://github.com/Faux16/crml/issues)
 - 📧 [Email Support](mailto:research@zeron.one)
 
-**Ready to build real risk models?** Check out the [Writing CRML guide](writing-crml.md)!
+**Ready to build real risk models?** Check out the [Writing CRML guide](Guides/Writing-CRML)!
