@@ -84,6 +84,12 @@ class PortfolioControl(BaseModel):
 class Portfolio(BaseModel):
     assets: List[Asset] = Field(default_factory=list)
     controls: Optional[List[PortfolioControl]] = None
+
+    # Optional pack references (paths). These allow portfolios to point at
+    # portable catalogs/assessments without duplicating their contents.
+    control_catalogs: Optional[List[str]] = None
+    control_assessments: Optional[List[str]] = None
+
     scenarios: List[ScenarioRef]
     semantics: PortfolioSemantics
     relationships: Optional[List[Relationship]] = None

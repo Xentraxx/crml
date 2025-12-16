@@ -1,0 +1,16 @@
+crml_portfolio: "1.0"
+meta:
+  name: "Example portfolio"
+portfolio:
+  semantics:
+    method: sum
+    constraints:
+      require_paths_exist: true
+      validate_scenarios: true
+  control_catalogs:
+    - control-catalog.yaml
+  control_assessments:
+    - control-assessment.yaml
+  scenarios:
+    - id: phishing
+      path: scenario-phishing.yaml

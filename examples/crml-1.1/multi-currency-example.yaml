@@ -11,7 +11,7 @@ meta:
     - CCPA violations in California (fines in USD)
     
     Use with --fx-config to normalize currencies for consolidated reporting:
-      crml simulate multi-currency-example.yaml --fx-config fx-config.yaml
+      crml simulate multi-currency-example.yaml --fx-config examples/fx/fx-config.yaml
   author: CRML Team
   locale:
     regions: ["europe", "north-america"]
@@ -89,5 +89,5 @@ output:
     annual_loss: true
   notes: |
     Results are displayed in the output currency specified in fx-config.
-    For board reporting in EUR: use --fx-config fx-config-eur.yaml
-    For board reporting in USD: use --fx-config fx-config-usd.yaml or the default (which is USD)
+    For board reporting in EUR: use --fx-config examples/fx/fx-config-eur.yaml
+    For board reporting in USD: use --fx-config examples/fx/fx-config.yaml or the default (which is USD)

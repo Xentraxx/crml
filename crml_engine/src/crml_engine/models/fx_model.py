@@ -1,15 +1,24 @@
-"""
-fx_model.py
-===========
+"""FX config models and loader.
 
-Defines Pydantic models for FX (foreign exchange) configuration and currency data.
-This allows type-safe, validated handling of currency rates and FX config in CRML code.
+FX config is a separate document type from CRML scenarios/portfolios.
+We version it with a top-level `crml_fx_config` field and validate it against
+a small JSON Schema to keep CLI behavior deterministic.
 """
-from .constants import DEFAULT_FX_RATES, CURRENCY_SYMBOL_TO_CODE, CURRENCY_CODE_TO_SYMBOL
+
+from __future__ import annotations
+
+import json
+import os
 from typing import Dict, Optional
-from pydantic import BaseModel, Field
-from .constants import DEFAULT_FX_RATES
+
 import yaml
+from jsonschema import Draft202012Validator
+from pydantic import BaseModel, Field
+
+from .constants import DEFAULT_FX_RATES, CURRENCY_SYMBOL_TO_CODE, CURRENCY_CODE_TO_SYMBOL
+
+
+FX_SCHEMA_PATH = os.path.join(os.path.dirname(__file__), "..", "schemas", "crml-fx-config-schema.json")
 
 class CurrencyInfo(BaseModel):
     symbol: str
@@ -44,24 +53,37 @@ def load_fx_config(fx_config_path: Optional[str] = None) -> 'FXConfig':
     if fx_config_path is None:
         return default_config
     try:
-        with open(fx_config_path, 'r') as f:
+        with open(fx_config_path, 'r', encoding='utf-8') as f:
             config = yaml.safe_load(f)
+
+        if not isinstance(config, dict):
+            raise ValueError("FX config must be a YAML mapping/object")
+
+        # Validate schema/version (reject unknown/absent identifier).
+        with open(FX_SCHEMA_PATH, 'r', encoding='utf-8') as f:
+            schema = json.load(f)
+        validator = Draft202012Validator(schema)
+        errors = sorted(validator.iter_errors(config), key=lambda e: list(e.path))
+        if errors:
+            first = errors[0]
+            path = " -> ".join(map(str, first.path)) if first.path else "(root)"
+            raise ValueError(f"Invalid FX config: {first.message} at {path}")
+
         # Merge with defaults
         result = default_config.model_copy(deep=True)
-        if config:
-            result.base_currency = config.get("base_currency", "USD")
-            result.output_currency = config.get("output_currency", result.base_currency)
-            if "rates" in config:
-                from .constants import DEFAULT_FX_RATES
-                result.rates = {**DEFAULT_FX_RATES, **config["rates"]}
-            result.as_of = config.get("as_of")
-        # Set currency_symbol attribute using get_currency_symbol
-        result.currency_symbol = get_currency_symbol(result.output_currency)
+        result.base_currency = config.get("base_currency", "USD")
+        result.output_currency = config.get("output_currency", result.base_currency)
+
+        if "rates" in config:
+            result.rates = {**DEFAULT_FX_RATES, **(config.get("rates") or {})}
+        result.as_of = config.get("as_of")
+
+        # Ensure output_symbol stays consistent (older code used currency_symbol)
+        result.output_symbol = get_currency_symbol(result.output_currency)
         return result
     except Exception as e:
         print(f"Warning: Could not load FX config from {fx_config_path}: {e}")
-        # Set currency_symbol from default_config as fallback
-        default_config.currency_symbol = get_currency_symbol(default_config.output_currency)
+        default_config.output_symbol = get_currency_symbol(default_config.output_currency)
         return default_config
 
 def get_currency_symbol(currency: str) -> str:

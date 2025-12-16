@@ -107,6 +107,62 @@ Normative details:
 
 > Implementation note: today the validator enforces the “scenario controls must exist in portfolio.controls” rule when validating a portfolio that loads scenarios. Portfolio-to-pack auto-loading/merging may be implemented by tooling/runtime.
 
+### Example: same control appears in multiple sources
+
+Assume control `org:iam.mfa` is present in an assessment pack and referenced by a scenario.
+
+Assessment pack (org-wide posture):
+
+```yaml
+crml_control_assessment: "1.0"
+meta: {name: "Org assessment"}
+assessment:
+  framework: "Org"
+  assessments:
+    - id: "org:iam.mfa"
+      implementation_effectiveness: 0.7
+      coverage: {value: 0.9, basis: employees}
+```
+
+Portfolio control inventory (optional executable overrides):
+
+```yaml
+crml_portfolio: "1.0"
+meta: {name: "Org portfolio"}
+portfolio:
+  semantics: {method: sum}
+  controls:
+    - id: "org:iam.mfa"
+      implementation_effectiveness: 0.5
+```
+
+Scenario-specific assumption (highest precedence):
+
+```yaml
+crml_scenario: "1.2"
+meta: {name: "Phishing"}
+scenario:
+  controls:
+    - id: "org:iam.mfa"
+      implementation_effectiveness: 0.3
+      notes: "Assume limited MFA enforcement for this scenario"
+```
+
+Effective value (for `implementation_effectiveness`) is `0.3` because scenario overrides portfolio and assessment.
+
+### Example: field-by-field override
+
+If the scenario only overrides coverage, the assessment’s implementation effectiveness remains in effect.
+
+```yaml
+scenario:
+  controls:
+    - id: "org:iam.mfa"
+      coverage: {value: 0.6, basis: employees}
+```
+
+Effective `implementation_effectiveness` comes from portfolio (if present) else assessment; effective `coverage` comes from the scenario.
+
 ---
 
 ## Validation Rules

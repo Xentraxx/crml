@@ -750,6 +750,152 @@ def _portfolio_semantic_checks(data: dict[str, Any], *, base_dir: str | None = N
     validate_scenarios = isinstance(constraints, dict) and constraints.get("validate_scenarios") is True
     require_paths_exist = isinstance(constraints, dict) and constraints.get("require_paths_exist") is True
 
+    def _resolve_path(p: str) -> str:
+        if base_dir and not os.path.isabs(p):
+            return os.path.join(base_dir, p)
+        return p
+
+    # Optional pack references: load/validate catalogs + assessments.
+    # These can be used to (a) enforce that referenced control IDs are known,
+    # and (b) derive a control-ID set for scenario mapping when portfolio.controls is omitted.
+    catalog_paths: list[str] = []
+    assessment_paths: list[str] = []
+
+    catalog_sources = portfolio.get("control_catalogs")
+    if catalog_sources is not None:
+        if not isinstance(catalog_sources, list):
+            messages.append(
+                ValidationMessage(
+                    level="error",
+                    source="semantic",
+                    path="portfolio -> control_catalogs",
+                    message="portfolio.control_catalogs must be a list of file paths.",
+                )
+            )
+        else:
+            for idx, p in enumerate(catalog_sources):
+                if not isinstance(p, str) or not p:
+                    messages.append(
+                        ValidationMessage(
+                            level="error",
+                            source="semantic",
+                            path=f"portfolio -> control_catalogs -> {idx}",
+                            message="control catalog path must be a non-empty string.",
+                        )
+                    )
+                    continue
+
+                resolved = _resolve_path(p)
+                catalog_paths.append(resolved)
+
+                if not os.path.exists(resolved):
+                    messages.append(
+                        ValidationMessage(
+                            level="error",
+                            source="semantic",
+                            path=f"portfolio -> control_catalogs -> {idx}",
+                            message=f"Control catalog file not found at path: {resolved}",
+                        )
+                    )
+                    continue
+
+                cat_report = validate_control_catalog(resolved, source_kind="path")
+                if not cat_report.ok:
+                    for e in cat_report.errors:
+                        messages.append(
+                            ValidationMessage(
+                                level=e.level,
+                                source=e.source,
+                                path=f"portfolio -> control_catalogs -> {idx} -> {e.path}",
+                                message=e.message,
+                                validator=e.validator,
+                            )
+                        )
+
+    assessment_sources = portfolio.get("control_assessments")
+    if assessment_sources is not None:
+        if not isinstance(assessment_sources, list):
+            messages.append(
+                ValidationMessage(
+                    level="error",
+                    source="semantic",
+                    path="portfolio -> control_assessments",
+                    message="portfolio.control_assessments must be a list of file paths.",
+                )
+            )
+        else:
+            for idx, p in enumerate(assessment_sources):
+                if not isinstance(p, str) or not p:
+                    messages.append(
+                        ValidationMessage(
+                            level="error",
+                            source="semantic",
+                            path=f"portfolio -> control_assessments -> {idx}",
+                            message="control assessment path must be a non-empty string.",
+                        )
+                    )
+                    continue
+
+                resolved = _resolve_path(p)
+                assessment_paths.append(resolved)
+
+                if not os.path.exists(resolved):
+                    messages.append(
+                        ValidationMessage(
+                            level="error",
+                            source="semantic",
+                            path=f"portfolio -> control_assessments -> {idx}",
+                            message=f"Control assessment file not found at path: {resolved}",
+                        )
+                    )
+                    continue
+
+                assess_report = validate_control_assessment(
+                    resolved,
+                    source_kind="path",
+                    control_catalogs=catalog_paths if catalog_paths else None,
+                    control_catalogs_source_kind="path",
+                )
+                if not assess_report.ok:
+                    for e in assess_report.errors:
+                        messages.append(
+                            ValidationMessage(
+                                level=e.level,
+                                source=e.source,
+                                path=f"portfolio -> control_assessments -> {idx} -> {e.path}",
+                                message=e.message,
+                                validator=e.validator,
+                            )
+                        )
+
+    # Build a catalog-id set (if any catalogs validated) for additional checks.
+    catalog_ids: set[str] = set()
+    if catalog_paths:
+        for p in catalog_paths:
+            cat_data, cat_io_errors = _load_input(p, source_kind="path")
+            if cat_io_errors or not cat_data:
+                continue
+            catalog = cat_data.get("catalog")
+            controls_any = catalog.get("controls") if isinstance(catalog, dict) else None
+            if isinstance(controls_any, list):
+                for entry in controls_any:
+                    if isinstance(entry, dict) and isinstance(entry.get("id"), str):
+                        catalog_ids.add(entry["id"])
+
+    # Derive control ids from assessment packs (if any assessments validated).
+    assessment_ids: set[str] = set()
+    if assessment_paths:
+        for p in assessment_paths:
+            assess_data, assess_io_errors = _load_input(p, source_kind="path")
+            if assess_io_errors or not assess_data:
+                continue
+            assessment = assess_data.get("assessment")
+            assessments_any = assessment.get("assessments") if isinstance(assessment, dict) else None
+            if isinstance(assessments_any, list):
+                for entry in assessments_any:
+                    if isinstance(entry, dict) and isinstance(entry.get("id"), str):
+                        assessment_ids.add(entry["id"])
+
     # Collect IDs / paths
     scenario_ids: list[str] = []
     scenario_paths: list[str] = []
@@ -836,6 +982,37 @@ def _portfolio_semantic_checks(data: dict[str, Any], *, base_dir: str | None = N
                 if isinstance(c, dict) and isinstance(c.get("id"), str):
                     portfolio_control_ids.add(c["id"])
 
+        # If the portfolio does not provide explicit controls, fall back to the set of ids from
+        # referenced assessment pack(s). This keeps scenarios portable while letting portfolios
+        # be “thin” wrappers over packs.
+        using_assessment_controls = False
+        if not portfolio_control_ids and assessment_ids:
+            portfolio_control_ids = set(assessment_ids)
+            using_assessment_controls = True
+
+        # If a catalog is provided, require portfolio controls to exist in it.
+        if catalog_ids and portfolio_control_ids:
+            for cid in sorted(portfolio_control_ids):
+                if cid not in catalog_ids:
+                    messages.append(
+                        ValidationMessage(
+                            level="error",
+                            source="semantic",
+                            path="portfolio -> controls -> id",
+                            message=f"Portfolio references unknown control id '{cid}' (not found in referenced control catalog pack(s)).",
+                        )
+                    )
+
+        if using_assessment_controls:
+            messages.append(
+                ValidationMessage(
+                    level="warning",
+                    source="semantic",
+                    path="portfolio -> controls",
+                    message="portfolio.controls is missing/empty; using control ids from referenced control assessment pack(s) for scenario mapping.",
+                )
+            )
+
         for idx, sc in enumerate(scenarios):
             if not isinstance(sc, dict):
                 continue
@@ -889,7 +1066,7 @@ def _portfolio_semantic_checks(data: dict[str, Any], *, base_dir: str | None = N
                         level="error",
                         source="semantic",
                         path="portfolio -> controls",
-                        message="Scenario(s) reference controls but portfolio.controls is missing or empty. Import your control assessment output into the portfolio.",
+                        message="Scenario(s) reference controls but no control inventory is available. Provide portfolio.controls or reference control_assessments.",
                     )
                 )
                 break

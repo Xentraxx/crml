@@ -1,0 +1,16 @@
+crml_control_assessment: "1.0"
+meta:
+  name: "Example control assessment"
+assessment:
+  framework: "Org"
+  assessments:
+    - id: "org:iam.mfa"
+      implementation_effectiveness: 0.7
+      coverage:
+        value: 0.9
+        basis: employees
+    - id: "org:edr"
+      implementation_effectiveness: 0.6
+      coverage:
+        value: 0.8
+        basis: endpoints

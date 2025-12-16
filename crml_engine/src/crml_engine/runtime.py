@@ -7,9 +7,9 @@ from .models.fx_model import (
     load_fx_config, 
     normalize_fx_config, 
     convert_currency, 
-    get_currency_symbol, 
-    DEFAULT_FX_RATES
+    get_currency_symbol
 )
+from .models.constants import DEFAULT_FX_RATES
 from .simulation.engine import run_monte_carlo
 from .simulation.severity import SeverityEngine
 

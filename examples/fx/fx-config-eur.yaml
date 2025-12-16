@@ -2,7 +2,9 @@
 # --------------------------
 # Example: Output all results in Euros
 #
-# Use with: crml simulate model.yaml --fx-config fx-config-eur.yaml
+# Use with: crml simulate model.yaml --fx-config examples/fx/fx-config-eur.yaml
+
+crml_fx_config: "1.0"
 
 base_currency: USD
 output_currency: EUR

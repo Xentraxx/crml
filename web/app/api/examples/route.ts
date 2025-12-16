@@ -3,17 +3,39 @@ import { readFile, readdir } from "fs/promises";
 import path from "path";
 import yaml from "js-yaml";
 
+async function listYamlFiles(dir: string, baseDir: string): Promise<string[]> {
+    const entries = await readdir(dir, { withFileTypes: true });
+    const results: string[] = [];
+
+    for (const entry of entries) {
+        // Ignore common noise
+        if (entry.name.startsWith(".")) continue;
+        if (entry.name === "node_modules") continue;
+
+        const abs = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+            results.push(...await listYamlFiles(abs, baseDir));
+            continue;
+        }
+
+        const isYaml = entry.name.endsWith(".yaml") || entry.name.endsWith(".yml");
+        if (!isYaml) continue;
+
+        // Exclude FX config documents from the examples gallery
+        if (entry.name.startsWith("fx-config")) continue;
+
+        results.push(path.relative(baseDir, abs));
+    }
+
+    return results;
+}
+
 export async function GET() {
     try {
         // Path to examples directory (relative to project root)
         const examplesDir = path.join(process.cwd(), "..", "examples");
 
-        // Read all files and filter to only include YAML files, excluding FX config files
-        const files = await readdir(examplesDir);
-        const yamlFiles = files.filter(
-            (file) => (file.endsWith(".yaml") || file.endsWith(".yml")) &&
-                !file.startsWith("fx-config")
-        );
+        const yamlFiles = await listYamlFiles(examplesDir, examplesDir);
 
         // Read and parse each example
         const examples = await Promise.all(
@@ -29,8 +51,10 @@ export async function GET() {
                     const regions: string[] = Array.isArray(locale.regions) ? locale.regions : [];
                     const countries: string[] = Array.isArray(locale.countries) ? locale.countries : (typeof locale.countries === "string" ? [locale.countries] : []);
 
+                    const id = file.replace(/\.(yaml|yml)$/, "").replace(/[\\/]/g, "__");
+
                     return {
-                        id: file.replace(/\.(yaml|yml)$/, ""),
+                        id,
                         filename: file,
                         name: parsed?.meta?.name || file,
                         description: parsed?.meta?.description || "No description available",
@@ -41,8 +65,9 @@ export async function GET() {
                         content,
                     };
                 } catch (error) {
+                    const id = file.replace(/\.(yaml|yml)$/, "").replace(/[\\/]/g, "__");
                     return {
-                        id: file.replace(/\.(yaml|yml)$/, ""),
+                        id,
                         filename: file,
                         name: file,
                         description: "Error parsing file",

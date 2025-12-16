@@ -1,0 +1,12 @@
+crml_control_catalog: "1.0"
+meta:
+  name: "Example control catalog"
+catalog:
+  name: "Org control IDs"
+  controls:
+    - id: "org:iam.mfa"
+      title: "Multi-factor authentication"
+      tags: ["iam"]
+    - id: "org:edr"
+      title: "Endpoint detection and response"
+      tags: ["endpoint", "detection"]

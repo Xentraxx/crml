@@ -1,11 +1,9 @@
 # FX Configuration File
 # ---------------------
 # This file defines currency exchange rates and output preferences.
-# Use with: crml simulate model.yaml --fx-config fx-config.yaml
-#
-# The base_currency is used for internal calculations (normalization).
-# The output_currency determines how results are displayed.
-# Rates express how much 1 unit of each currency is worth in the base_currency.
+# Use with: crml simulate model.yaml --fx-config examples/fx/fx-config.yaml
+
+crml_fx_config: "1.0"
 
 # Base currency for internal calculations
 base_currency: USD

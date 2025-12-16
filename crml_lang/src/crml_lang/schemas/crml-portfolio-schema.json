@@ -375,6 +375,36 @@
           "default": null,
           "title": "Controls"
         },
+        "control_catalogs": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Control Catalogs"
+        },
+        "control_assessments": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Control Assessments"
+        },
         "scenarios": {
           "items": {
             "$ref": "#/$defs/ScenarioRef"

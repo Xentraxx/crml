@@ -1,0 +1,18 @@
+crml_scenario: "1.2"
+meta:
+  name: "Phishing -> account takeover"
+scenario:
+  id: "phishing_ato"
+  controls:
+    - "org:iam.mfa"
+  frequency:
+    basis: per_organization_per_year
+    model: poisson
+    parameters:
+      lambda: 0.8
+  severity:
+    model: lognormal
+    parameters:
+      mu: 10
+      sigma: 1.2
+      currency: USD
