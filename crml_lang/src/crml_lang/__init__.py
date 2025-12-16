@@ -27,6 +27,15 @@ from .validators import (
     validate_control_catalog,
 )
 
+from .planning import (
+    PlanMessage,
+    PlanReport,
+    PortfolioExecutionPlan,
+    ResolvedScenario,
+    ResolvedScenarioControl,
+    plan_portfolio,
+)
+
 __all__ = [
     "CRScenario",
     "CRPortfolio",
@@ -40,6 +49,12 @@ __all__ = [
     "validate_portfolio",
     "validate_control_assessment",
     "validate_control_catalog",
+    "plan_portfolio",
+    "PlanMessage",
+    "PlanReport",
+    "PortfolioExecutionPlan",
+    "ResolvedScenario",
+    "ResolvedScenarioControl",
     "ValidationMessage",
     "ValidationReport",
 ]

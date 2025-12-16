@@ -37,6 +37,7 @@ from .models.control_assessment_model import CRControlAssessmentSchema as _CRCon
 from .models.control_catalog_model import CRControlCatalogSchema as _CRControlCatalogSchema
 from .models.portfolio_model import CRPortfolioSchema as _CRPortfolioSchema
 from .validators import ValidationMessage, ValidationReport, validate, validate_portfolio
+from .planning import PlanReport, PortfolioExecutionPlan, ResolvedScenario, ResolvedScenarioControl, plan_portfolio
 
 
 class CRScenario(_CRScenarioSchema):
@@ -264,6 +265,12 @@ __all__ = [
     "dump_to_yaml",
     "dump_to_yaml_str",
     "validate",
+    "validate_portfolio",
+    "plan_portfolio",
+    "PlanReport",
+    "PortfolioExecutionPlan",
+    "ResolvedScenario",
+    "ResolvedScenarioControl",
     "ValidationMessage",
     "ValidationReport",
 ]
