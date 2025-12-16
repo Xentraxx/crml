@@ -4,12 +4,14 @@ This section is an index for CRML specification and validation artifacts.
 
 - Full CRML 1.1 specification (canonical): [CRML-1.1](CRML-1.1)
 - JSON Schema reference: [CRML-Schema](CRML-Schema)
+- Controls & packs semantics (CRML 1.2+): [Controls-and-Packs](Controls-and-Packs)
 - CLI validation: [CLI-Commands](CLI-Commands)
 
 If you’re looking for a quick practical walkthrough instead of the formal spec:
 
 - [Getting Started](../Getting-Started)
 - [Writing CRML Models](../Guides/Writing-CRML)
+- [Controls & Packs](../Guides/Controls-and-Packs)
 
 ---
 
