@@ -572,6 +572,7 @@
       "type": "object"
     }
   },
+  "additionalProperties": false,
   "properties": {
     "crml_scenario": {
       "const": "1.0",

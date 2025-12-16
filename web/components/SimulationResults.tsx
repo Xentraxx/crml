@@ -18,6 +18,59 @@ export interface SimulationMetrics {
     std_dev: number;
 }
 
+export interface CrmlCurrencyUnit {
+    kind: "currency";
+    code: string;
+    symbol?: string;
+}
+
+export interface CrmlMeasure {
+    id: string;
+    value?: number;
+    unit?: CrmlCurrencyUnit;
+    parameters?: Record<string, unknown>;
+    label?: string;
+}
+
+export interface CrmlHistogramArtifact {
+    kind: "histogram";
+    id: string;
+    unit?: CrmlCurrencyUnit;
+    bin_edges: number[];
+    counts: number[];
+    binning?: Record<string, unknown>;
+}
+
+export interface CrmlSamplesArtifact {
+    kind: "samples";
+    id: string;
+    unit?: CrmlCurrencyUnit;
+    values: number[];
+    sample_count_total?: number;
+    sample_count_returned?: number;
+    sampling?: Record<string, unknown>;
+}
+
+export type CrmlArtifact = CrmlHistogramArtifact | CrmlSamplesArtifact;
+
+export interface CrmlResultPayload {
+    measures: CrmlMeasure[];
+    artifacts: CrmlArtifact[];
+}
+
+export interface SimulationResultEnvelope {
+    schema_id: "crml.simulation.result";
+    schema_version: string;
+    success: boolean;
+    errors?: string[];
+    warnings?: string[];
+    engine: { name: string; version?: string };
+    run?: { runs?: number; seed?: number; runtime_ms?: number; started_at?: string };
+    inputs?: { model_name?: string; model_version?: string; description?: string };
+    units?: { currency: CrmlCurrencyUnit; horizon?: string };
+    results: CrmlResultPayload;
+}
+
 export interface SimulationDistribution {
     bins: number[];
     frequencies: number[];
@@ -52,13 +105,7 @@ export interface SimulationMetadata {
     }>;
 }
 
-export interface SimulationResult {
-    success: boolean;
-    metrics?: SimulationMetrics;
-    distribution?: SimulationDistribution;
-    metadata?: SimulationMetadata;
-    errors?: string[];
-}
+export type SimulationResult = SimulationResultEnvelope;
 
 interface SimulationResultsProps {
     result: SimulationResult | null;
@@ -134,10 +181,44 @@ export default function SimulationResults({ result, isSimulating }: SimulationRe
         );
     }
 
-    const { metrics, distribution, metadata } = result;
+    const measures = result.results?.measures ?? [];
+    const artifacts = result.results?.artifacts ?? [];
 
-    // Get currency from metadata, default to $
-    const currency = metadata?.currency || '$';
+    const currency = result.units?.currency?.symbol || result.units?.currency?.code || '$';
+
+    const getMeasure = (id: string) => measures.find(m => m.id === id);
+    const getVar = (level: number) => measures.find(m => m.id === "loss.var" && (m.parameters as any)?.level === level);
+    const histogram = artifacts.find((a): a is CrmlHistogramArtifact => a.kind === "histogram" && a.id === "loss.annual");
+    const samples = artifacts.find((a): a is CrmlSamplesArtifact => a.kind === "samples" && a.id === "loss.annual");
+
+    const metrics: SimulationMetrics = {
+        eal: (getMeasure("loss.eal")?.value as number) || 0,
+        var_95: (getVar(0.95)?.value as number) || 0,
+        var_99: (getVar(0.99)?.value as number) || 0,
+        var_999: (getVar(0.999)?.value as number) || 0,
+        min: (getMeasure("loss.min")?.value as number) || 0,
+        max: (getMeasure("loss.max")?.value as number) || 0,
+        median: (getMeasure("loss.median")?.value as number) || 0,
+        std_dev: (getMeasure("loss.std_dev")?.value as number) || 0,
+    };
+
+    const metadata: SimulationMetadata = {
+        runs: result.run?.runs || 0,
+        runtime_ms: result.run?.runtime_ms || 0,
+        model_name: result.inputs?.model_name || "",
+        model_version: result.inputs?.model_version,
+        description: result.inputs?.description,
+        seed: result.run?.seed,
+        currency,
+    };
+
+    const distribution: SimulationDistribution | undefined = histogram
+        ? {
+            bins: histogram.bin_edges,
+            frequencies: histogram.counts,
+            raw_data: samples?.values,
+        }
+        : undefined;
 
     // Prepare chart data
     const chartData = distribution?.bins && distribution?.frequencies

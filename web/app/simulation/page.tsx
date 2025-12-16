@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import CodeEditor from "@/components/CodeEditor";
-import SimulationResults, { SimulationResult } from "@/components/SimulationResults";
+import SimulationResults, { SimulationResultEnvelope } from "@/components/SimulationResults";
 import { Play, RotateCcw, FileText, Settings2, HelpCircle, Info, BookOpen } from "lucide-react";
 import Link from "next/link";
 
@@ -128,7 +128,7 @@ const OUTPUT_CURRENCIES = {
 export default function SimulationPage() {
     const [yamlContent, setYamlContent] = useState(EXAMPLE_MODELS["data-breach"].content);
     const [selectedExample, setSelectedExample] = useState("data-breach");
-    const [simulationResult, setSimulationResult] = useState<SimulationResult | null>(null);
+    const [simulationResult, setSimulationResult] = useState<SimulationResultEnvelope | null>(null);
     const [isSimulating, setIsSimulating] = useState(false);
     const [runs, setRuns] = useState("10000");
     const [seed, setSeed] = useState("");
@@ -162,11 +162,18 @@ export default function SimulationPage() {
             });
 
             const result = await response.json();
-            setSimulationResult(result);
+            setSimulationResult(result as SimulationResultEnvelope);
         } catch (error) {
             setSimulationResult({
+                schema_id: "crml.simulation.result",
+                schema_version: "1.0.0",
                 success: false,
                 errors: ["Failed to run simulation: " + (error as Error).message],
+                warnings: [],
+                engine: { name: "web", version: undefined },
+                run: { runs: parseInt(runs) || 10000, seed: seed ? parseInt(seed) : undefined },
+                inputs: {},
+                results: { measures: [], artifacts: [] },
             });
         } finally {
             setIsSimulating(false);
