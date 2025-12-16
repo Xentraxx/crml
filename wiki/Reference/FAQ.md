@@ -166,7 +166,9 @@ mu = ln(median_loss)
 
 ### Can I model multiple risk scenarios in one file?
 
-**Option 1: Separate files**
+By design, **each CRML file represents one scenario**.
+
+If you want to model multiple scenarios (a portfolio), use **separate files** and aggregate results in whatever runtime/tooling you use.
 
 ```text
 phishing-risk.yaml
@@ -174,36 +176,34 @@ ransomware-risk.yaml
 data-breach-risk.yaml
 ```
 
-**Option 2: Multi-scenario within one CRML document**
-
-CRML supports asset/scenario-specific models via `model.frequency.models` and `model.severity.models`.
+Within a single scenario file, you can still model **multiple assets**. CRML supports per-asset frequency and severity via `model.frequency.models` and `model.severity.models`.
 
 ```yaml
 crml: "1.1"
-meta: {name: portfolio}
+meta: {name: "Single scenario with multiple assets"}
 
 model:
   assets:
-    - name: "phishing"
+    - name: "Employee_Laptops"
       cardinality: 100
-    - name: "ransomware"
+    - name: "Production_Database"
       cardinality: 1
 
   frequency:
     models:
-      - asset: "phishing"
+      - asset: "Employee_Laptops"
         model: poisson
         parameters: {lambda: 0.10}
-      - asset: "ransomware"
+      - asset: "Production_Database"
         model: poisson
         parameters: {lambda: 0.02}
 
   severity:
     models:
-      - asset: "phishing"
+      - asset: "Employee_Laptops"
         model: lognormal
         parameters: {median: "20 000", currency: USD, sigma: 1.0}
-      - asset: "ransomware"
+      - asset: "Production_Database"
         model: lognormal
         parameters: {median: "500 000", currency: USD, sigma: 1.8}
 ```

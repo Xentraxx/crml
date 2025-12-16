@@ -75,8 +75,8 @@ def run_monte_carlo(
     result.metadata.description = meta.description or ''
 
     # 3. Execution Setup
-    # Currently single-scenario logic (preserving existing behavior + refactoring)
-    # TODO: Multi-scenario loop goes here
+    # Single CRML document == one scenario.
+    # Portfolio / multi-file execution (if desired) lives above this function.
     
     assets = model.assets
     freq = model.frequency
@@ -115,12 +115,12 @@ def run_monte_carlo(
         # Let's create a temporary override dict or modify the params object
         freq.parameters.lambda_ = lambda_val
 
-    # 4. Simulation Scenarios Extraction
-    # We identify "scenarios" as (FrequencyModel, SeverityModel) pairs.
+    # 4. Asset-Model Extraction
+    # We identify per-asset simulation units as (FrequencyModel, SeverityModel) pairs.
     # Grouping logic:
     # - If freq.models and sev.models exist, match by asset name.
-    # - Fail back to global models if asset-specific ones not found.
-    # - If no models list, use single global scenario logic.
+    # - Fall back to global models if asset-specific ones not found.
+    # - If no models list, use single global model logic.
 
     scenarios = []
     
@@ -134,7 +134,7 @@ def run_monte_carlo(
         return global_sev.model, global_sev.parameters, global_sev.components
 
     if freq.models:
-        # Multi-scenario mode driven by frequency assets
+        # Per-asset mode driven by frequency.models
         for fm in freq.models:
             s_model, s_params, s_comps = get_sev_for_asset(fm.asset, sev)
             scenarios.append({

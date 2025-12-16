@@ -9,7 +9,7 @@ This changelog covers the `crml-engine` package (reference runtime/CLI).
 - Monte Carlo simulation runtime
 - FX configuration support for multi-currency normalization/output
 - Control effectiveness application during simulation (for Poisson frequency)
-- Multi-scenario execution (asset-specific frequency/severity models)
+- Per-asset frequency/severity models (multiple assets within one scenario file)
 
 ### Notes
 - `crml-engine` depends on `crml-lang` for parsing and validation.

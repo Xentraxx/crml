@@ -292,7 +292,7 @@ pipeline:
 Aggregate multiple correlated risk models at enterprise level.
 
 **Planned Features:**
-- Multi-scenario aggregation
+- Multi-file scenario aggregation
 - Correlation modeling between scenarios
 - Portfolio-level VaR
 - Diversification benefits
