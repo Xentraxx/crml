@@ -90,9 +90,9 @@ meta:
   name: "qber-simplified"
   description: "Simplified QBER-style model"
 model:
-    assets:
-      - name: "endpoint"
-        cardinality: 1000
+  assets:
+    - name: "endpoint"
+      cardinality: 1000
   frequency:
     model: hierarchical_gamma_poisson  # Bayesian hierarchical
     parameters:

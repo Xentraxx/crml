@@ -2,7 +2,7 @@ import numpy as np
 import json
 import time
 import math
-from typing import Dict, Any, Union, Optional
+from typing import Union, Optional
 from .models.crml_model import load_crml_from_yaml_str, CRMLSchema
 from .models.result_model import SimulationResult, Metrics, Distribution, Metadata
 from .models.fx_model import FXConfig, convert_currency, get_currency_symbol, load_fx_config, normalize_fx_config
@@ -221,6 +221,12 @@ def run_simulation(yaml_content: Union[str, dict], n_runs: int = 10000, seed: in
                 if 'median' in ln_params:
                     median_val = ln_params['median']
                     sev_currency = ln_params.get('currency', fx_config.base_currency)
+                    # Ensure median_val is a float, even if string with spaces/commas
+                    try:
+                        median_val = float(str(median_val).replace(' ', '').replace(',', ''))
+                    except Exception:
+                        result.errors.append(f"Median parameter could not be converted to a number: {median_val}")
+                        return result
                     median_val = convert_currency(median_val, sev_currency, base_currency, fx_config)
                     if median_val <= 0:
                         result.errors.append("Median parameter must be positive")
@@ -277,6 +283,12 @@ def run_simulation(yaml_content: Union[str, dict], n_runs: int = 10000, seed: in
                     if params and params.median is not None:
                         median_val = params.median
                         sev_currency = params.currency if params.currency is not None else fx_config.base_currency
+                        # Ensure median_val is a float, even if string with spaces/commas
+                        try:
+                            median_val = float(str(median_val).replace(' ', '').replace(',', ''))
+                        except Exception:
+                            result.errors.append(f"Median parameter could not be converted to a number: {median_val}")
+                            return result
                         median_val = convert_currency(median_val, sev_currency, base_currency, fx_config)
                         if median_val <= 0:
                             result.errors.append("Median parameter must be positive")
