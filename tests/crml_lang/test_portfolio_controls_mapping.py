@@ -7,7 +7,7 @@ def test_portfolio_requires_controls_or_assessments_for_scenario_controls(tmp_pa
     scenario_path = tmp_path / "scenario.yaml"
     scenario_path.write_text(
         """
-crml_scenario: "1.2"
+crml_scenario: "1.0"
 meta:
   name: "Threat scenario"
 scenario:
@@ -53,7 +53,7 @@ def test_portfolio_can_use_assessment_pack_for_scenario_control_mapping(tmp_path
     scenario_path = tmp_path / "scenario.yaml"
     scenario_path.write_text(
         """
-crml_scenario: "1.2"
+crml_scenario: "1.0"
 meta:
   name: "Threat scenario"
 scenario:
@@ -114,7 +114,7 @@ def test_portfolio_controls_can_set_implementation_effectiveness(tmp_path) -> No
     scenario_path = tmp_path / "scenario.yaml"
     scenario_path.write_text(
         """
-crml_scenario: "1.2"
+crml_scenario: "1.0"
 meta:
   name: "Threat scenario"
 scenario:
@@ -161,7 +161,7 @@ def test_scenario_control_objects_are_supported_for_mapping(tmp_path) -> None:
     scenario_path = tmp_path / "scenario.yaml"
     scenario_path.write_text(
         """
-crml_scenario: "1.2"
+crml_scenario: "1.0"
 meta:
   name: "Threat scenario"
 scenario:

@@ -15,11 +15,9 @@ meta:
   locale:
     regions: ["world"]
     countries: ["US"]
-model:
-  assets:
-    - name: "critical_system"
-      cardinality: 500  # 500 critical systems
+scenario:
   frequency:
+    basis: per_organization_per_year
     model: poisson
     parameters:
       lambda: 0.08  # ~8% annual probability per asset (industry average)
@@ -29,16 +27,3 @@ model:
       median: "700 000"  # $700K median loss
       currency: USD
       sigma: 1.8  # High variability in ransomware losses
-pipeline:
-  simulation:
-    monte_carlo:
-      enabled: true
-      runs: 10000
-      random_seed: 123
-output:
-  metrics:
-    - EAL
-    - VaR_95
-    - VaR_99
-  distributions:
-    annual_loss: true

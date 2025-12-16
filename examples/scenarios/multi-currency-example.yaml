@@ -11,7 +11,7 @@ meta:
     - CCPA violations in California (fines in USD)
     
     Use with --fx-config to normalize currencies for consolidated reporting:
-      crml simulate multi-currency-example.yaml --fx-config examples/fx/fx-config.yaml
+      crml simulate multi-currency-example.yaml --fx-config examples/fx_configs/fx-config.yaml
   author: CRML Team
   locale:
     regions: ["europe", "north-america"]
@@ -25,17 +25,9 @@ meta:
   industries:
     - all
 
-# This model uses a mixture to represent two distinct regulatory risks
-# Each component represents a different jurisdiction with its own currency
-
-model:
-  assets:
-    - name: "eu_database"
-      cardinality: 45 # Customer databases in Germany
-    - name: "us_database"   
-      cardinality: 120  # Customer databases in California
-
+scenario:
   frequency:
+    basis: per_organization_per_year
     model: poisson
     description: |
       Combined probability of a reportable PII breach across all jurisdictions.
@@ -71,23 +63,3 @@ model:
           median: "250 000"   # $250K median CCPA fine/settlement
           currency: USD
           sigma: 1.5          # Moderate variability
-
-pipeline:
-  simulation:
-    monte_carlo:
-      enabled: true
-      runs: 10000
-      description: "Monte Carlo simulation for annual loss estimation"
-
-output:
-  metrics:
-    - EAL           # Expected Annual Loss (consolidated)
-    - VaR_95        # 95th percentile loss
-    - VaR_99        # 99th percentile loss
-    - VaR_999       # 99.9th percentile (tail risk)
-  distributions:
-    annual_loss: true
-  notes: |
-    Results are displayed in the output currency specified in fx-config.
-    For board reporting in EUR: use --fx-config examples/fx/fx-config-eur.yaml
-    For board reporting in USD: use --fx-config examples/fx/fx-config.yaml or the default (which is USD)

@@ -1,11 +1,9 @@
 crml_scenario: "1.0"
 meta:
   name: "Mixture Bug Repro String"
-model:
-  assets:
-    - name: "EU_DB"
-      cardinality: 10
+scenario:
   frequency:
+    basis: per_organization_per_year
     model: poisson
     parameters: {lambda: 2.0}
   severity:

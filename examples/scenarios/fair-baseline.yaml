@@ -14,10 +14,10 @@ meta:
     - smb
   industries:
     - all
-model:
+scenario:
   frequency:
+    basis: per_organization_per_year
     model: poisson
-    scope: portfolio
     parameters:
       lambda: 1.2
   severity:
@@ -26,16 +26,3 @@ model:
       median: "8 100"  # $8,100 median loss
       currency: USD
       sigma: 1.0
-pipeline:
-  simulation:
-    monte_carlo:
-      enabled: true
-      runs: 50000
-      random_seed: 7
-output:
-  metrics:
-    - EAL
-    - VaR_95
-    - VaR_99
-  distributions:
-    annual_loss: true

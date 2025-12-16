@@ -3,7 +3,7 @@ from crml_lang import CRPortfolio, CRScenario
 
 def test_numberish_strings_parse_to_numbers():
     yaml_text = """
-crml_scenario: "1.2"
+crml_scenario: "1.0"
 meta:
   name: "readable-numbers"
 scenario:
@@ -99,7 +99,7 @@ portfolio:
 def test_percent_strings_allowed_only_for_probability_like_fields():
     # p should accept percent strings
     yaml_ok = """
-crml_scenario: "1.2"
+crml_scenario: "1.0"
 meta:
   name: "percent-ok"
 scenario:
@@ -120,7 +120,7 @@ scenario:
 
     # median should NOT accept percent strings (absolute value field)
     yaml_bad = """
-crml_scenario: "1.2"
+crml_scenario: "1.0"
 meta:
   name: "percent-bad"
 scenario:

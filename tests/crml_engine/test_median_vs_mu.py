@@ -10,11 +10,12 @@ def test_median_equivalent_to_mu():
     mu_value = np.log(median_value)  # ln(100000) ≈ 11.513
     
     median_model = f"""
-crml: "1.1"
+crml_scenario: "1.0"
 meta:
   name: "median-test"
-model:
+scenario:
   frequency:
+    basis: per_organization_per_year
     model: poisson
     parameters:
       lambda: 1.0
@@ -27,11 +28,12 @@ model:
 """
     
     mu_model = f"""
-crml: "1.1"
+crml_scenario: "1.0"
 meta:
   name: "mu-test"
-model:
+scenario:
   frequency:
+    basis: per_organization_per_year
     model: poisson
     parameters:
       lambda: 1.0
@@ -71,11 +73,12 @@ def test_median_mu_conflict_rejected():
     """Verify that providing both median and mu is rejected."""
     
     conflicting_model = """
-crml: "1.1"
+crml_scenario: "1.0"
 meta:
   name: "conflict-test"
-model:
+scenario:
   frequency:
+    basis: per_organization_per_year
     model: poisson
     parameters:
       lambda: 1.0
@@ -96,11 +99,12 @@ def test_median_with_space_separator():
     """Verify that median accepts space-separated numbers for readability."""
     
     model = """
-crml: "1.1"
+crml_scenario: "1.0"
 meta:
   name: "space-test"
-model:
+scenario:
   frequency:
+    basis: per_organization_per_year
     model: poisson
     parameters:
       lambda: 1.0
@@ -122,11 +126,12 @@ def test_missing_median_and_mu_rejected():
     """Verify that lognormal requires either median or mu."""
     
     missing_model = """
-crml: "1.1"
+crml_scenario: "1.0"
 meta:
   name: "missing-test"
-model:
+scenario:
   frequency:
+    basis: per_organization_per_year
     model: poisson
     parameters:
       lambda: 1.0

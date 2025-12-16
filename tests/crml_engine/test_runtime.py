@@ -16,12 +16,16 @@ def test_run_simulation_invalid_file(tmp_path):
 
 def test_run_simulation_unsupported_model(tmp_path):
     content = """
-crml: "1.1"
-model:
+crml_scenario: "1.0"
+meta: {name: "unsupported-model"}
+scenario:
   frequency:
+    basis: per_organization_per_year
     model: unknown_model
+    parameters: {lambda: 1.0}
   severity:
     model: lognormal
+    parameters: {median: 1000, sigma: 1.0}
 """
     p = tmp_path / "unsupported.yaml"
     p.write_text(content)
@@ -43,11 +47,12 @@ def test_lognormal_mu_currency_matches_single_losses_with_output_currency_conver
 
     # Loss amounts in USD
     single_losses_model = """
-crml: "1.1"
+crml_scenario: "1.0"
 meta:
   name: "single-losses"
-model:
+scenario:
   frequency:
+    basis: per_organization_per_year
     model: poisson
     parameters:
       lambda: 1.0
@@ -64,11 +69,12 @@ model:
 
     # Equivalent mu/sigma (ln(median), stddev(ln(losses))) in USD
     mu_sigma_model = """
-crml: "1.1"
+crml_scenario: "1.0"
 meta:
   name: "mu-sigma"
-model:
+scenario:
   frequency:
+    basis: per_organization_per_year
     model: poisson
     parameters:
       lambda: 1.0

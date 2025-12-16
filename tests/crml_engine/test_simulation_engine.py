@@ -94,17 +94,15 @@ def test_severity_generation_lognormal():
 def test_full_engine_execution(tmp_path):
     # Minimal valid CRML
     content = """
-crml: "1.1"
+crml_scenario: "1.0"
 meta:
   name: "test-model"
-model:
-  assets:
-    - name: "Server"
-      cardinality: 1
+scenario:
   frequency:
-    model: poisson
-    parameters:
-      lambda: 5.0
+        basis: per_organization_per_year
+        model: poisson
+        parameters:
+            lambda: 5.0
   severity:
     model: lognormal
     parameters:

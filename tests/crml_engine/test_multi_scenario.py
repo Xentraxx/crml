@@ -2,41 +2,22 @@ import pytest
 import numpy as np
 from crml_engine.simulation.engine import run_monte_carlo
 
-# Synthetic YAML for a multi-scenario model
-MULTI_SCENARIO_YAML = """
-crml: "1.1"
+# Synthetic YAML for a single scenario (scenario-only schema)
+SINGLE_SCENARIO_YAML = """
+crml_scenario: "1.0"
 meta:
-  name: "Multi-Scenario Test"
-model:
-  assets:
-    - name: "Database"
-      cardinality: 1
-    - name: "Laptop"
-      cardinality: 1
-
+  name: "Single-Scenario Test"
+scenario:
   frequency:
-    models:
-      - asset: "Database"
-        model: "poisson"
-        parameters:
-          lambda: 2.0  # ~2 events/year
-      - asset: "Laptop"
-        model: "poisson"
-        parameters:
-          lambda: 5.0  # ~5 events/year
-
+    basis: per_organization_per_year
+    model: "poisson"
+    parameters:
+      lambda: 2.0
   severity:
-    models:
-      - asset: "Database"
-        model: "lognormal"
-        parameters:
-          median: 1000
-          sigma: 0.5
-      - asset: "Laptop"
-        model: "lognormal"
-        parameters:
-          median: 100
-          sigma: 0.1
+    model: "lognormal"
+    parameters:
+      median: 1000
+      sigma: 0.5
 """
 
 def test_multi_scenario_eal_aggregation():
@@ -55,9 +36,11 @@ def test_multi_scenario_eal_aggregation():
       Mean Severity ~= exp(ln(100) + 0.1^2/2) = 100 * exp(0.005) ~= 100.5
       Expected Annual Loss ~= 5.0 * 100.5 = 502.5
       
-    Total Expected EAL ~= 2266 + 502.5 = 2768.5
+    Scenario-only schema supports a single frequency+severity pair.
+
+    Expected Annual Loss ~= 2.0 * 1133 = 2266
     """
-    result = run_monte_carlo(MULTI_SCENARIO_YAML, n_runs=10000, seed=42)
+    result = run_monte_carlo(SINGLE_SCENARIO_YAML, n_runs=10000, seed=42)
     
     assert result.success, f"Simulation failed: {result.errors}"
     
@@ -65,7 +48,7 @@ def test_multi_scenario_eal_aggregation():
     print(f"Calculated EAL: {eal}")
     
     # Allow 5% margin of error for MC variability
-    expected_eal = 2768.5
+    expected_eal = 2266.0
     margin = expected_eal * 0.05
     
     assert expected_eal - margin <= eal <= expected_eal + margin, \
@@ -76,15 +59,13 @@ def test_fallback_to_global_severity():
     Test that if a severity model is missing for an asset, it falls back to the global model.
     """
     YAML_FALLBACK = """
-    crml: "1.1"
+    crml_scenario: "1.0"
     meta: {name: "Fallback Test"}
-    model:
-      assets: [{name: "A", cardinality: 1}]
+    scenario:
       frequency:
-        models:
-          - asset: "A"
-            model: "poisson"
-            parameters: {lambda: 10}
+        basis: per_organization_per_year
+        model: "poisson"
+        parameters: {lambda: 10}
       severity:
         model: "lognormal"
         parameters: {median: 50, sigma: 0.1}

@@ -63,10 +63,7 @@ def run_monte_carlo(
         result.errors.append(f"Parsing error: {str(e)}")
         return result
 
-    model = crml_obj.model
-    if not model:
-        result.errors.append("Missing 'model' section")
-        return result
+    scenario = crml_obj.scenario
 
     # Populating Metadata
     meta = crml_obj.meta
@@ -78,16 +75,10 @@ def run_monte_carlo(
     # Single CRML document == one scenario.
     # Portfolio / multi-file execution (if desired) lives above this function.
     
-    assets = model.assets
-    freq = model.frequency
-    sev = model.severity
+    freq = scenario.frequency
+    sev = scenario.severity
     
-    # Asset Cardinality
-    try:
-        cardinality = sum(int(asset.cardinality) for asset in assets) if assets else 1
-    except Exception as e:
-        result.errors.append(f"Invalid asset cardinality: {e}")
-        return result
+    cardinality = 1
         
     # Controls Application (Heuristic/Multiplicative)
     freq_model = freq.model if freq else ''
@@ -95,25 +86,8 @@ def run_monte_carlo(
     if freq_model == 'poisson' and freq.parameters:
         lambda_val = float(freq.parameters.lambda_) if freq.parameters.lambda_ is not None else 0.0
         
-    if model.controls and freq_model == 'poisson' and lambda_val is not None:
-        controls_res = apply_control_effectiveness(
-            base_lambda=lambda_val,
-            controls_config=model.controls.model_dump(),
-        )
-        result.metadata.controls_applied = True
-        result.metadata.lambda_baseline = lambda_val
-        lambda_val = controls_res['effective_lambda']
-        result.metadata.lambda_effective = lambda_val
-        result.metadata.control_reduction_pct = controls_res['reduction_pct']
-        result.metadata.control_details = controls_res['control_details']
-        if controls_res['warnings']:
-            result.metadata.control_warnings = controls_res['warnings']
-            
-        # Update keys in params for the simulation step
-        # Ideally we shouldn't mutate the pydantic object, but for this linear flow:
-        # We need to construct a params input that has the NEW lambda
-        # Let's create a temporary override dict or modify the params object
-        freq.parameters.lambda_ = lambda_val
+    # Scenario-first controls are references, not executable effectiveness configs.
+    # Control application is handled at portfolio/runtime level.
 
     # 4. Asset-Model Extraction
     # We identify per-asset simulation units as (FrequencyModel, SeverityModel) pairs.
@@ -122,115 +96,41 @@ def run_monte_carlo(
     # - Fall back to global models if asset-specific ones not found.
     # - If no models list, use single global model logic.
 
-    scenarios = []
-    
-    # helper to find severity for an asset
-    def get_sev_for_asset(asset_name, global_sev):
-        if global_sev.models:
-            for sm in global_sev.models:
-                if sm.asset == asset_name:
-                    return sm.model, sm.parameters, None # components not supported in sub-models yet
-        # Fallback to global
-        return global_sev.model, global_sev.parameters, global_sev.components
-
-    if freq.models:
-        # Per-asset mode driven by frequency.models
-        for fm in freq.models:
-            s_model, s_params, s_comps = get_sev_for_asset(fm.asset, sev)
-            scenarios.append({
-                'name': fm.asset,
-                'freq_model': fm.model,
-                'freq_params': fm.parameters,
-                'sev_model': s_model if s_model else (sev.model if sev else ''),
-                'sev_params': s_params if s_params else sev.parameters,
-                'sev_comps': s_comps
-            })
-    else:
-        # Global single scenario
-        scenarios.append({
+    scenarios = [
+        {
             'name': 'global',
-            'freq_model': freq.model if freq else '',
+            'freq_model': freq.model,
             'freq_params': freq.parameters,
-            'sev_model': sev.model if sev else '',
+            'sev_model': sev.model,
             'sev_params': sev.parameters,
-            'sev_comps': sev.components
-        })
-
-    # 4a. Correlation & Copula Setup
-    # -----------------------------
-    correlated_uniforms_map = {}
-    
-    # Identify all assets involved in scenarios
-    scenario_assets = [sc['name'] for sc in scenarios]
-    
-    if model.correlations and len(model.correlations) > 0:
-        try:
-            from scipy.stats import norm
-            
-            n_assets = len(scenario_assets)
-            if n_assets > 1:
-                # 1. Initialize Correlation Matrix
-                asset_idx_map = {name: i for i, name in enumerate(scenario_assets)}
-                cov_matrix = np.eye(n_assets)
-                
-                for corr in model.correlations:
-                    # Expecting correlation between exactly 2 assets
-                    if len(corr.assets) != 2:
-                        continue
-                    a1, a2 = corr.assets[0], corr.assets[1]
-                    idx1 = asset_idx_map.get(a1)
-                    idx2 = asset_idx_map.get(a2)
-                    
-                    if idx1 is not None and idx2 is not None:
-                        cov_matrix[idx1, idx2] = corr.value
-                        cov_matrix[idx2, idx1] = corr.value
-                        
-                # 2. Cholesky Decomposition
-                # Raises LinAlgError if not positive definite
-                # We add a tiny jitter to diagonal if strictly PD check fails due to float precision
-                try:
-                    L = np.linalg.cholesky(cov_matrix)
-                except np.linalg.LinAlgError:
-                    # Simple fix: boost diagonal slightly
-                    cov_matrix += np.eye(n_assets) * 1e-6
-                    L = np.linalg.cholesky(cov_matrix)
-                    
-                # 3. Generate Correlated Normals
-                # Z_uncorr: (n_runs, n_assets)
-                Z_uncorr = np.random.standard_normal((n_runs, n_assets))
-                
-                # Z_corr = Z_uncorr @ L.T
-                Z_corr = Z_uncorr @ L.T
-                
-                # 4. Convert to Uniforms (CDF)
-                # U_corr: (n_runs, n_assets)
-                U_corr = norm.cdf(Z_corr)
-                
-                # Map back to asset names
-                for i, name in enumerate(scenario_assets):
-                    correlated_uniforms_map[name] = U_corr[:, i]
-                
-                # Store in metadata for UI
-                result.metadata.correlation_info = [c.model_dump() for c in model.correlations]
-                    
-        except ImportError:
-            result.errors.append("Scipy required for correlations. Install with: pip install scipy")
-        except Exception as e:
-            result.errors.append(f"Correlation processing error: {e}")
+            'sev_comps': sev.components,
+        }
+    ]
 
     # 5. Simulation Loop (Aggregated)
     try:
         # Initialize total annual losses accumulator
         total_annual_losses = np.zeros(n_runs)
+
+        supported_frequency_models = {"poisson", "gamma", "hierarchical_gamma_poisson"}
+        supported_severity_models = {"lognormal", "gamma", "mixture"}
         
         for sc in scenarios:
             f_model = sc['freq_model']
             asset_name = sc['name']
+
+            if not f_model or f_model not in supported_frequency_models:
+                result.errors.append(f"Unsupported frequency model: {f_model}")
+                return result
+
+            s_model = sc.get('sev_model')
+            if not s_model or s_model not in supported_severity_models:
+                result.errors.append(f"Unsupported severity model: {s_model}")
+                return result
             
             # ... (Control logic omitted for brevity) ...
 
-            # Get correlated uniforms for this asset if available
-            uniforms = correlated_uniforms_map.get(asset_name)
+            uniforms = None
 
             # Using specific parameters for this scenario
             if f_model == 'poisson' and sc['freq_params']:
@@ -241,7 +141,7 @@ def run_monte_carlo(
                 freq_model=f_model,
                 params=sc['freq_params'],
                 n_runs=n_runs,
-                cardinality=1, # Per-scenario is typically 1 asset group or aggregate
+                cardinality=cardinality,
                 seed=seed,
                 uniforms=uniforms
             )

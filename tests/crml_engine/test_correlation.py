@@ -1,36 +1,13 @@
 import pytest
 import numpy as np
 from crml_engine.simulation.engine import run_monte_carlo
-from crml_lang.models.crml_model import CRMLSchema
 
 def test_high_correlation_poisson():
     """
     Test that high correlation (0.99) results in highly correlated event counts.
     """
-    yaml_content = """
-crml: "1.1"
-meta: {name: "Test"}
-model:
-  assets: 
-    - name: "A"
-      cardinality: 1
-    - name: "B"
-      cardinality: 1
-  correlations:
-    - assets: ["A", "B"]
-      value: 0.99
-  frequency:
-    models:
-      - asset: "A"
-        model: "poisson"
-        parameters: {lambda: 5}
-      - asset: "B"
-        model: "poisson"
-        parameters: {lambda: 5}
-  severity:
-    model: lognormal
-    parameters: {median: 100, sigma: 1}
-"""
+    # Note: under the strict scenario-only schema, correlation is a portfolio concern.
+    # This test validates correlation behavior directly using the copula method.
     # Need to access internal frequency counts, but run_monte_carlo returns aggregated result.
     # However, we can use the engine internals or check variance of sum?
     # Var(A+B) = Var(A) + Var(B) + 2*Cov(A,B)

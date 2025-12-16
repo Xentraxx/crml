@@ -574,7 +574,7 @@
   },
   "properties": {
     "crml_scenario": {
-      "const": "1.2",
+      "const": "1.0",
       "title": "Crml Scenario",
       "type": "string"
     },

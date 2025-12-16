@@ -15,7 +15,8 @@ Consequences:
 """
 
 from typing import Any, Dict, List, Literal, Optional, Union
-from pydantic import BaseModel, Field, ConfigDict, field_validator
+
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from .numberish import parse_floatish, parse_float_list
 from .control_ref import ControlId
@@ -132,13 +133,25 @@ class Scenario(BaseModel):
 
 # --- Root CRML Scenario Schema ---
 class CRScenarioSchema(BaseModel):
-    crml_scenario: Literal["1.2"]
+    # Scenario document version.
+    crml_scenario: Literal["1.0"]
     meta: Meta
     data: Optional[Data] = None
     scenario: Scenario
 
     # Pydantic v2 config
-    model_config: ConfigDict = ConfigDict(populate_by_name=True)
+    model_config: ConfigDict = ConfigDict(populate_by_name=True, extra="forbid")
+
+    @model_validator(mode="before")
+    @classmethod
+    def _forbid_model_payload(cls, v):
+        if isinstance(v, dict) and "model" in v:
+            raise ValueError("Scenario documents must use 'scenario:' (top-level 'model:' is not allowed).")
+        return v
+
+
+# Backward-compatible alias used by the engine/tests.
+CRMLSchema = CRScenarioSchema
 
 # Usage: CRScenarioSchema.model_validate(your_json_dict)
 

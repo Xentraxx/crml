@@ -7,11 +7,12 @@ def test_single_currency_usd():
     """Test basic single currency model in USD."""
     
     model = """
-crml: "1.1"
+crml_scenario: "1.0"
 meta:
   name: "usd-test"
-model:
+scenario:
   frequency:
+    basis: per_organization_per_year
     model: poisson
     parameters:
       lambda: 1.0
@@ -33,16 +34,18 @@ def test_multi_currency_mixture():
     """Test mixture model with multiple currencies."""
     
     model = """
-crml: "1.1"
+crml_scenario: "1.0"
 meta:
   name: "multi-currency-test"
-model:
+scenario:
   frequency:
+    basis: per_organization_per_year
     model: poisson
     parameters:
       lambda: 1.0
   severity:
     model: mixture
+    parameters: {}
     components:
       - lognormal:
           weight: 0.5
@@ -71,11 +74,12 @@ def test_fx_config_conversion():
     """Test that FX config properly converts output currency."""
     
     model = """
-crml: "1.1"
+crml_scenario: "1.0"
 meta:
   name: "fx-test"
-model:
+scenario:
   frequency:
+    basis: per_organization_per_year
     model: poisson
     parameters:
       lambda: 1.0
@@ -159,11 +163,12 @@ def test_currency_normalization():
     
     # Model with EUR input
     model_eur = """
-crml: "1.1"
+crml_scenario: "1.0"
 meta:
   name: "eur-input"
-model:
+scenario:
   frequency:
+    basis: per_organization_per_year
     model: poisson
     parameters:
       lambda: 1.0
@@ -180,11 +185,12 @@ model:
     usd_equivalent = 100000 * eur_rate
     
     model_usd = f"""
-crml: "1.1"
+crml_scenario: "1.0"
 meta:
   name: "usd-input"
-model:
+scenario:
   frequency:
+    basis: per_organization_per_year
     model: poisson
     parameters:
       lambda: 1.0
@@ -225,11 +231,12 @@ def test_supported_currencies():
         assert currency in DEFAULT_FX_RATES, f"{currency} not in DEFAULT_FX_RATES"
         
         model = f"""
-crml: "1.1"
+crml_scenario: "1.0"
 meta:
   name: "test-{currency.lower()}"
-model:
+scenario:
   frequency:
+    basis: per_organization_per_year
     model: poisson
     parameters:
       lambda: 1.0
