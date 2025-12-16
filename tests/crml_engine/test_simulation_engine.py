@@ -1,9 +1,9 @@
 import pytest
 import numpy as np
-from crml.simulation.frequency import FrequencyEngine
-from crml.simulation.severity import SeverityEngine
-from crml.simulation.engine import run_monte_carlo
-from crml.models.fx_model import FXConfig, DEFAULT_FX_RATES
+from crml_engine.simulation.frequency import FrequencyEngine
+from crml_engine.simulation.severity import SeverityEngine
+from crml_engine.simulation.engine import run_monte_carlo
+from crml_engine.models.fx_model import FXConfig, DEFAULT_FX_RATES
 
 # --- Frequency Tests ---
 

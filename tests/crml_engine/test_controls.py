@@ -14,14 +14,14 @@ Tests cover:
 
 import pytest
 import numpy as np
-from crml.controls import (
+from crml_engine.controls import (
     validate_control,
     calculate_effective_reduction,
     apply_control_effectiveness,
     adjust_for_dependencies,
     calculate_control_roi
 )
-from crml.runtime import run_simulation
+from crml_engine.runtime import run_simulation
 
 
 class TestControlValidation:

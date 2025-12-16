@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from crml.simulation.engine import run_monte_carlo
+from crml_engine.simulation.engine import run_monte_carlo
 
 # Synthetic YAML for a multi-scenario model
 MULTI_SCENARIO_YAML = """

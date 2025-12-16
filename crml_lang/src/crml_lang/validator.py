@@ -14,7 +14,7 @@ Usage examples
 
 Validate a file path (typical CLI/library usage)::
 
-    from crml import validate
+    from crml_lang import validate
 
     report = validate("model.yaml", source_kind="path")
     if not report.ok:
@@ -24,7 +24,7 @@ Validate a file path (typical CLI/library usage)::
 
 Validate YAML content from a string::
 
-    from crml import validate
+    from crml_lang import validate
 
     yaml_text = '''
     crml: "1.1"
@@ -36,7 +36,7 @@ Validate YAML content from a string::
 
 Validate already-parsed data (dict)::
 
-    from crml import validate
+    from crml_lang import validate
 
     data = {"crml": "1.1", "meta": {"name": "example"}, "model": {"assets": [{"name": "Servers", "cardinality": 10}], "frequency": {"model": "poisson", "parameters": {"lambda": 0.5}}, "severity": {"model": "lognormal", "parameters": {"mu": 10, "sigma": 1}}}}
     report = validate(data, source_kind="data")

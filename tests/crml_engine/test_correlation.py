@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
-from crml.simulation.engine import run_monte_carlo
-from crml.models.crml_model import CRMLSchema
+from crml_engine.simulation.engine import run_monte_carlo
+from crml_lang.models.crml_model import CRMLSchema
 
 def test_high_correlation_poisson():
     """
@@ -43,7 +43,7 @@ model:
     # Since run_monte_carlo doesn't expose raw counts, let's use the internal logic directly 
     # by importing FrequencyEngine and doing what the engine does.
     
-    from crml.simulation.frequency import FrequencyEngine
+    from crml_engine.simulation.frequency import FrequencyEngine
     from scipy.stats import norm
     
     n_runs = 10000
@@ -66,7 +66,7 @@ def test_zero_correlation_poisson():
     """
     Test that zero correlation results in uncorrelated event counts.
     """
-    from crml.simulation.frequency import FrequencyEngine
+    from crml_engine.simulation.frequency import FrequencyEngine
     from scipy.stats import norm
     
     n_runs = 10000

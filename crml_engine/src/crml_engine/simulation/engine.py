@@ -5,7 +5,7 @@ import time
 import numpy as np
 from typing import Union, Optional, Dict, List
 
-from ..models.crml_model import load_crml_from_yaml_str, CRMLSchema
+from crml_lang.models.crml_model import load_crml_from_yaml_str, CRMLSchema
 from ..models.result_model import SimulationResult, Metrics, Distribution, Metadata
 from ..models.fx_model import FXConfig, convert_currency, get_currency_symbol, normalize_fx_config
 from ..models.constants import DEFAULT_FX_RATES

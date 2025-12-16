@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from crml.runtime import run_simulation
+from crml_engine.runtime import run_simulation
 
 
 def test_median_equivalent_to_mu():

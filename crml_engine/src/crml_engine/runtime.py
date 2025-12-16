@@ -1,6 +1,6 @@
 import json
 from typing import Union, Optional
-from .models.crml_model import load_crml_from_yaml_str, CRMLSchema
+from crml_lang.models.crml_model import load_crml_from_yaml_str, CRMLSchema
 from .models.result_model import SimulationResult, print_result
 from .models.fx_model import (
     FXConfig, 
@@ -13,7 +13,6 @@ from .models.fx_model import (
 from .simulation.engine import run_monte_carlo
 from .simulation.severity import SeverityEngine
 
-# Backward compatibility alias
 def run_simulation(
     yaml_content: Union[str, dict], 
     n_runs: int = 10000, 
@@ -23,7 +22,7 @@ def run_simulation(
     """
     Backward compatible wrapper for run_monte_carlo.
     
-    See crml.simulation.engine.run_monte_carlo for documentation.
+    See crml_engine.simulation.engine.run_monte_carlo for documentation.
     """
     return run_monte_carlo(yaml_content, n_runs, seed, fx_config)
 

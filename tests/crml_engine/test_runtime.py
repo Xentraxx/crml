@@ -1,5 +1,5 @@
-from crml.runtime import run_simulation, DEFAULT_FX_RATES
-from crml.models.result_model import SimulationResult
+from crml_engine.runtime import run_simulation, DEFAULT_FX_RATES
+from crml_engine.models.result_model import SimulationResult
 
 def test_run_simulation_valid(valid_crml_file):
     # Mock numpy random to make test deterministic if needed, 

@@ -1,4 +1,4 @@
-from crml.validator import validate
+from crml_lang import validate
 import pytest
 
 def test_validate_valid_file(valid_crml_file):

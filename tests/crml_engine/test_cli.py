@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import patch
 import sys
-from crml.cli import main
+from crml_engine.cli import main
 
 def test_cli_validate_success(valid_crml_file):
     with patch.object(sys, 'argv', ['crml', 'validate', valid_crml_file]):

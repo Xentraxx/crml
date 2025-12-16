@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from crml.runtime import run_simulation, convert_currency, DEFAULT_FX_RATES
+from crml_engine.runtime import run_simulation, convert_currency, DEFAULT_FX_RATES
 
 
 def test_single_currency_usd():
@@ -121,7 +121,7 @@ def test_convert_currency_function():
     
     # USD to EUR
     usd_amount = 100000
-    from crml.models.fx_model import FXConfig
+    from crml_engine.models.fx_model import FXConfig
     eur_amount = convert_currency(
       usd_amount,
       "USD",

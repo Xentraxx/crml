@@ -1,4 +1,4 @@
-from crml.api import CRModel
+from crml_lang import CRModel
 
 
 def test_dump_to_yaml_str_preserves_alias_lambda(valid_crml_content):

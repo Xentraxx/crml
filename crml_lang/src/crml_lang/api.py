@@ -9,7 +9,7 @@ Usage examples
 
 Load a model from YAML::
 
-    from crml import CRModel
+    from crml_lang import CRModel
 
     model = CRModel.load_from_yaml("model.yaml")
     # or: model = CRModel.load_from_yaml_str(yaml_text)
@@ -21,7 +21,7 @@ Dump a model back to YAML::
 
 Validate a document (schema + semantic warnings)::
 
-    from crml import validate
+    from crml_lang import validate
 
     report = validate("model.yaml", source_kind="path")
     if not report.ok:

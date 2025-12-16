@@ -1,4 +1,4 @@
-from crml.api import CRModel
+from crml_lang import CRModel
 
 
 def test_numberish_strings_parse_to_numbers():
