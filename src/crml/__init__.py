@@ -8,6 +8,8 @@ from .api import (
 	dump_to_yaml,
 	dump_to_yaml_str,
 	validate,
+	ValidationMessage,
+	ValidationReport,
 )
 
 __all__ = [
@@ -17,5 +19,7 @@ __all__ = [
 	"load_from_yaml_str",
 	"dump_to_yaml",
 	"dump_to_yaml_str",
-	"validate"
+	"validate",
+	"ValidationMessage",
+	"ValidationReport",
 ]

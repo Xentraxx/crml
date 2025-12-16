@@ -3,6 +3,29 @@
 This module is intended as the supported import surface for downstream users.
 Internal modules may change structure over time; symbols exported here should
 remain stable.
+
+Usage examples
+--------------
+
+Load a model from YAML::
+
+    from crml import CRModel
+
+    model = CRModel.load_from_yaml("model.yaml")
+    # or: model = CRModel.load_from_yaml_str(yaml_text)
+
+Dump a model back to YAML::
+
+    yaml_text = model.dump_to_yaml_str()
+    model.dump_to_yaml("out.yaml")
+
+Validate a document (schema + semantic warnings)::
+
+    from crml import validate
+
+    report = validate("model.yaml", source_kind="path")
+    if not report.ok:
+        print(report.render_text(source_label="model.yaml"))
 """
 
 from __future__ import annotations
@@ -10,7 +33,7 @@ from __future__ import annotations
 from typing import Any, Mapping
 
 from .models.crml_model import CRMLSchema as _CRMLSchema
-from .validator import validate_crml as validate
+from .validator import ValidationMessage, ValidationReport, validate
 
 
 class CRModel(_CRMLSchema):
@@ -103,4 +126,6 @@ __all__ = [
     "dump_to_yaml",
     "dump_to_yaml_str",
     "validate",
+    "ValidationMessage",
+    "ValidationReport",
 ]

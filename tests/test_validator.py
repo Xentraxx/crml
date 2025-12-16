@@ -1,13 +1,18 @@
-from crml.validator import validate_crml
+from crml.validator import validate
 import pytest
 
 def test_validate_valid_file(valid_crml_file):
-    assert validate_crml(valid_crml_file) is True
+    report = validate(valid_crml_file, source_kind="path")
+    assert report.ok is True
 
 def test_validate_invalid_file(tmp_path):
     p = tmp_path / "invalid.yaml"
     p.write_text("not: a valid crml file")
-    assert validate_crml(str(p)) is False
+    report = validate(str(p), source_kind="path")
+    assert report.ok is False
+    assert report.errors
 
 def test_validate_missing_file():
-    assert validate_crml("non_existent_file.yaml") is False
+    report = validate("non_existent_file.yaml", source_kind="path")
+    assert report.ok is False
+    assert any("File not found" in e.message for e in report.errors)

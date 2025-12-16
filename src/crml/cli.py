@@ -1,10 +1,27 @@
 #!/usr/bin/env python3
+"""CRML command-line interface.
+
+This CLI is intentionally thin:
+- Validation: calls the library validator and prints a rendered report.
+- Simulation: delegates to the reference runtime.
+
+The primary, supported programmatic API lives in `crml.api`.
+"""
+
 import argparse
 import sys
-from crml.validator import validate_crml
+
+from crml.validator import validate
 from crml.runtime import run_simulation_cli
 
 def main(argv=None, *, exit_on_return: bool = True):
+    """Run the CRML CLI.
+
+    Args:
+        argv: Optional argv list (defaults to sys.argv parsing if None).
+        exit_on_return: If True (default), raises SystemExit with the chosen
+            exit code. If False, returns the exit code instead.
+    """
     parser = argparse.ArgumentParser(
         description='CRML - Cyber Risk Modeling Language CLI'
     )
@@ -47,8 +64,9 @@ def main(argv=None, *, exit_on_return: bool = True):
         return exit_code
     
     if args.command == 'validate':
-        success = validate_crml(args.file)
-        exit_code = 0 if success else 1
+        report = validate(args.file, source_kind="path")
+        print(report.render_text(source_label=args.file))
+        exit_code = 0 if report.ok else 1
         if exit_on_return:
             raise SystemExit(exit_code)
         return exit_code
