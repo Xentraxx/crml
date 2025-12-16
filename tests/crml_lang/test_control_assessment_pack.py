@@ -10,7 +10,7 @@ assessment:
   id: "acme-2025-q4"
   framework: "CISv8"
   assessments:
-    - id: "cis.v8.2.3"
+    - id: "cisv8:2.3"
       ref: {standard: "CIS", version: "v8", control: "2", safeguard: "3"}
       implementation_effectiveness: 0.9
       coverage: {value: 0.8, basis: endpoints}

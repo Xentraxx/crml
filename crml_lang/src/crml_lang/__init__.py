@@ -16,7 +16,14 @@ from .api import (
     dump_to_yaml,
     dump_to_yaml_str,
 )
-from .validator import ValidationMessage, ValidationReport, validate, validate_portfolio, validate_control_assessment
+from .validator import (
+    ValidationMessage,
+    ValidationReport,
+    validate,
+    validate_portfolio,
+    validate_control_assessment,
+    validate_control_catalog,
+)
 
 __all__ = [
     "CRScenario",
@@ -28,6 +35,7 @@ __all__ = [
     "validate",
     "validate_portfolio",
     "validate_control_assessment",
+    "validate_control_catalog",
     "ValidationMessage",
     "ValidationReport",
 ]

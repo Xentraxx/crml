@@ -322,7 +322,7 @@ class TestControlROI:
         """Test basic ROI calculation."""
         control_details = [
             {
-                'id': 'test_control',
+                'id': 'cap:test_control',
                 'reduction': 0.80,
                 'cost': 100000
             }
@@ -362,7 +362,7 @@ model:
     layers:
       - name: "test_layer"
         controls:
-          - id: "test_control"
+                    - id: "cap:test_control"
             type: "preventive"
             effectiveness: 0.80
             coverage: 1.0

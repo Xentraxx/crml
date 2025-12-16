@@ -13,8 +13,15 @@ Design goals:
 - Scenarios can reference controls by a stable, unique id.
 - Portfolios can import control assessment outputs from any framework/tool.
 
-We keep the id rule intentionally permissive (non-whitespace string) because
-different standards and tools use very different identifier shapes.
+Canonical format:
+- `namespace:key`
+    - namespace: lowercase [a-z0-9_-], starting with a letter
+    - key: any non-whitespace sequence (standard-specific)
+
+Examples:
+- cap:edr
+- cisv8:4.2
+- iso27001:2022:A.5.1
 """
 
 
@@ -23,8 +30,8 @@ ControlId = Annotated[
     Field(
         min_length=1,
         max_length=256,
-        pattern=r"^\S+$",
-        description="Canonical unique control id (non-whitespace string). Examples: cis.v8.2.3, iso27001:2022:A.5.1, hipaa.164.308(a)(1)(ii)(A)",
+        pattern=r"^[a-z][a-z0-9_-]{0,31}:[^\s]{1,223}$",
+        description="Canonical unique control id in the form 'namespace:key' (no whitespace). Examples: cap:edr, cisv8:4.2, iso27001:2022:A.5.1",
     ),
 ]
 

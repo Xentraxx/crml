@@ -59,6 +59,7 @@ from jsonschema import Draft202012Validator
 CRML_SCHEMA_PATH = os.path.join(os.path.dirname(__file__), "schemas", "crml-scenario-schema.json")
 PORTFOLIO_SCHEMA_PATH = os.path.join(os.path.dirname(__file__), "schemas", "crml-portfolio-schema.json")
 CONTROL_ASSESSMENT_SCHEMA_PATH = os.path.join(os.path.dirname(__file__), "schemas", "crml-control-assessment-schema.json")
+CONTROL_CATALOG_SCHEMA_PATH = os.path.join(os.path.dirname(__file__), "schemas", "crml-control-catalog-schema.json")
 
 
 @dataclass(frozen=True)
@@ -125,6 +126,10 @@ def _load_portfolio_schema() -> dict[str, Any]:
 
 def _load_control_assessment_schema() -> dict[str, Any]:
     return _load_schema(CONTROL_ASSESSMENT_SCHEMA_PATH)
+
+
+def _load_control_catalog_schema() -> dict[str, Any]:
+    return _load_schema(CONTROL_CATALOG_SCHEMA_PATH)
 
 
 def _looks_like_yaml_text(s: str) -> bool:
@@ -504,6 +509,100 @@ def validate_control_assessment(
             )
 
     return ValidationReport(ok=(len(errors) == 0), errors=errors, warnings=[])
+
+
+def validate_control_catalog(
+    source: str | dict[str, Any],
+    *,
+    source_kind: Literal["path", "yaml", "data"] | None = None,
+    strict_model: bool = False,
+) -> ValidationReport:
+    """Validate a CRML Control Catalog Pack document."""
+
+    data, io_errors = _load_input(source, source_kind=source_kind)
+    if io_errors:
+        return ValidationReport(ok=False, errors=io_errors, warnings=[])
+    assert data is not None
+
+    try:
+        schema = _load_control_catalog_schema()
+    except FileNotFoundError:
+        return ValidationReport(
+            ok=False,
+            errors=[
+                ValidationMessage(
+                    level="error",
+                    source="io",
+                    path="(root)",
+                    message=f"Schema file not found at {CONTROL_CATALOG_SCHEMA_PATH}",
+                )
+            ],
+            warnings=[],
+        )
+
+    validator = Draft202012Validator(schema)
+    errors: list[ValidationMessage] = []
+    for err in validator.iter_errors(data):
+        errors.append(
+            ValidationMessage(
+                level="error",
+                source="schema",
+                path=_jsonschema_path(err),
+                message=_format_jsonschema_error(err),
+                validator=getattr(err, "validator", None),
+            )
+        )
+
+    # Semantic checks
+    warnings: list[ValidationMessage] = []
+    if not errors:
+        catalog = data.get("catalog")
+        controls = catalog.get("controls") if isinstance(catalog, dict) else None
+        if isinstance(controls, list):
+            ids: list[str] = []
+            for idx, c in enumerate(controls):
+                if not isinstance(c, dict):
+                    continue
+                cid = c.get("id")
+                if isinstance(cid, str):
+                    ids.append(cid)
+                else:
+                    errors.append(
+                        ValidationMessage(
+                            level="error",
+                            source="semantic",
+                            path=f"catalog -> controls -> {idx} -> id",
+                            message="Control catalog entry 'id' must be a string.",
+                        )
+                    )
+
+            if len(ids) != len(set(ids)):
+                errors.append(
+                    ValidationMessage(
+                        level="error",
+                        source="semantic",
+                        path="catalog -> controls",
+                        message="Control catalog contains duplicate control ids.",
+                    )
+                )
+
+    if strict_model and not errors:
+        try:
+            from .models.control_catalog_model import CRControlCatalogSchema
+
+            CRControlCatalogSchema.model_validate(data)
+        except Exception as e:
+            errors.append(
+                ValidationMessage(
+                    level="error",
+                    source="pydantic",
+                    path="(root)",
+                    message=f"Pydantic validation failed: {e}",
+                    validator="pydantic",
+                )
+            )
+
+    return ValidationReport(ok=(len(errors) == 0), errors=errors, warnings=warnings)
 
 
 def _portfolio_semantic_checks(data: dict[str, Any], *, base_dir: str | None = None) -> list[ValidationMessage]:

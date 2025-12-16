@@ -338,10 +338,10 @@
               "items": {
                 "anyOf": [
                   {
-                    "description": "Canonical unique control id (non-whitespace string). Examples: cis.v8.2.3, iso27001:2022:A.5.1, hipaa.164.308(a)(1)(ii)(A)",
+                    "description": "Canonical unique control id in the form 'namespace:key' (no whitespace). Examples: cap:edr, cisv8:4.2, iso27001:2022:A.5.1",
                     "maxLength": 256,
                     "minLength": 1,
-                    "pattern": "^\\S+$",
+                    "pattern": "^[a-z][a-z0-9_-]{0,31}:[^\\s]{1,223}$",
                     "type": "string"
                   },
                   {
@@ -370,10 +370,10 @@
       "description": "Scenario-specific control reference.\n\nThis allows a scenario to specify scenario-scoped assumptions for a control\n(e.g. partial applicability) without requiring portfolio-wide changes.",
       "properties": {
         "id": {
-          "description": "Canonical unique control id (non-whitespace string). Examples: cis.v8.2.3, iso27001:2022:A.5.1, hipaa.164.308(a)(1)(ii)(A)",
+          "description": "Canonical unique control id in the form 'namespace:key' (no whitespace). Examples: cap:edr, cisv8:4.2, iso27001:2022:A.5.1",
           "maxLength": 256,
           "minLength": 1,
-          "pattern": "^\\S+$",
+          "pattern": "^[a-z][a-z0-9_-]{0,31}:[^\\s]{1,223}$",
           "title": "Id",
           "type": "string"
         },

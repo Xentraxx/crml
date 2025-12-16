@@ -1,6 +1,7 @@
 {
   "$defs": {
-    "ControlAssessment": {
+    "ControlCatalogEntry": {
+      "description": "Portable metadata about a control id.\n\nImportant: do not embed copyrighted standard text here.\nKeep this to identifiers and tool-friendly metadata.",
       "properties": {
         "id": {
           "description": "Canonical unique control id in the form 'namespace:key' (no whitespace). Examples: cap:edr, cisv8:4.2, iso27001:2022:A.5.1",
@@ -21,32 +22,7 @@
           ],
           "default": null
         },
-        "implementation_effectiveness": {
-          "anyOf": [
-            {
-              "maximum": 1.0,
-              "minimum": 0.0,
-              "type": "number"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Implementation Effectiveness"
-        },
-        "coverage": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/Coverage"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
-        },
-        "notes": {
+        "title": {
           "anyOf": [
             {
               "type": "string"
@@ -56,16 +32,43 @@
             }
           ],
           "default": null,
-          "title": "Notes"
+          "title": "Title"
+        },
+        "url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Url"
+        },
+        "tags": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tags"
         }
       },
       "required": [
         "id"
       ],
-      "title": "ControlAssessment",
+      "title": "ControlCatalogEntry",
       "type": "object"
     },
-    "ControlAssessmentPack": {
+    "ControlCatalogPack": {
       "properties": {
         "id": {
           "anyOf": [
@@ -83,19 +86,19 @@
           "title": "Framework",
           "type": "string"
         },
-        "assessments": {
+        "controls": {
           "items": {
-            "$ref": "#/$defs/ControlAssessment"
+            "$ref": "#/$defs/ControlCatalogEntry"
           },
-          "title": "Assessments",
+          "title": "Controls",
           "type": "array"
         }
       },
       "required": [
         "framework",
-        "assessments"
+        "controls"
       ],
-      "title": "ControlAssessmentPack",
+      "title": "ControlCatalogPack",
       "type": "object"
     },
     "ControlStructuredRef": {
@@ -139,48 +142,6 @@
         "control"
       ],
       "title": "ControlStructuredRef",
-      "type": "object"
-    },
-    "Coverage": {
-      "description": "Breadth of application of a control across an organization.\n\nSemantics:\n- value=0.0 means \"not deployed/applied anywhere in the stated basis\"\n- value=1.0 means \"fully deployed/applied across the stated basis\"\n\nThe basis defines the denominator for the fraction (e.g. endpoints, employees).",
-      "properties": {
-        "value": {
-          "maximum": 1.0,
-          "minimum": 0.0,
-          "title": "Value",
-          "type": "number"
-        },
-        "basis": {
-          "enum": [
-            "endpoints",
-            "employees",
-            "servers",
-            "applications",
-            "business_units",
-            "data_stores",
-            "other"
-          ],
-          "title": "Basis",
-          "type": "string"
-        },
-        "notes": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Notes"
-        }
-      },
-      "required": [
-        "value",
-        "basis"
-      ],
-      "title": "Coverage",
       "type": "object"
     },
     "Meta": {
@@ -311,23 +272,23 @@
     }
   },
   "properties": {
-    "crml_control_assessment": {
+    "crml_control_catalog": {
       "const": "1.0",
-      "title": "Crml Control Assessment",
+      "title": "Crml Control Catalog",
       "type": "string"
     },
     "meta": {
       "$ref": "#/$defs/Meta"
     },
-    "assessment": {
-      "$ref": "#/$defs/ControlAssessmentPack"
+    "catalog": {
+      "$ref": "#/$defs/ControlCatalogPack"
     }
   },
   "required": [
-    "crml_control_assessment",
+    "crml_control_catalog",
     "meta",
-    "assessment"
+    "catalog"
   ],
-  "title": "CRControlAssessmentSchema",
+  "title": "CRControlCatalogSchema",
   "type": "object"
 }
