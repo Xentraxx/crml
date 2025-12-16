@@ -18,7 +18,8 @@ def run_monte_carlo(
     yaml_content: Union[str, dict],
     n_runs: int = 10000,
     seed: int = None,
-    fx_config: Optional[FXConfig] = None
+    fx_config: Optional[FXConfig] = None,
+    cardinality: int = 1,
 ) -> SimulationResult:
     """
     Orchestrates the Monte Carlo simulation.
@@ -78,7 +79,14 @@ def run_monte_carlo(
     freq = scenario.frequency
     sev = scenario.severity
     
-    cardinality = 1
+    # Cardinality is a portfolio/runtime concern (e.g. per-asset-unit basis).
+    # Scenario documents do not contain assets/exposure, so the default remains 1.
+    try:
+        cardinality = int(cardinality) if cardinality is not None else 1
+    except Exception:
+        cardinality = 1
+    if cardinality < 1:
+        cardinality = 1
         
     # Controls Application (Heuristic/Multiplicative)
     freq_model = freq.model if freq else ''
