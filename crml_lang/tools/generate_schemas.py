@@ -7,6 +7,7 @@ from crml_lang.models.crml_model import CRScenarioSchema
 from crml_lang.models.control_assessment_model import CRControlAssessmentSchema
 from crml_lang.models.control_catalog_model import CRControlCatalogSchema
 from crml_lang.models.portfolio_model import CRPortfolioSchema
+from crml_lang.models.portfolio_bundle import CRPortfolioBundle
 from crml_lang.models.result_envelope import SimulationResultEnvelope
 
 
@@ -19,6 +20,7 @@ def main() -> None:
     portfolio_schema = CRPortfolioSchema.model_json_schema()
     control_assessment_schema = CRControlAssessmentSchema.model_json_schema()
     control_catalog_schema = CRControlCatalogSchema.model_json_schema()
+    portfolio_bundle_schema = CRPortfolioBundle.model_json_schema()
     simulation_result_schema = SimulationResultEnvelope.model_json_schema()
 
     (schemas_dir / "crml-scenario-schema.json").write_text(
@@ -36,6 +38,11 @@ def main() -> None:
 
     (schemas_dir / "crml-control-catalog-schema.json").write_text(
         json.dumps(control_catalog_schema, indent=2, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
+
+    (schemas_dir / "crml-portfolio-bundle-schema.json").write_text(
+        json.dumps(portfolio_bundle_schema, indent=2, ensure_ascii=False) + "\n",
         encoding="utf-8",
     )
 

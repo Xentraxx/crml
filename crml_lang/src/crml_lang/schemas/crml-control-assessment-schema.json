@@ -34,7 +34,7 @@
             }
           ],
           "default": null,
-          "description": "Organization-specific implementation strength for this control. Semantics: 0.0 = not implemented / no coverage, 1.0 = fully implemented.",
+          "description": "Organization-specific implementation strength for this control. Semantics: 0.0 = not implemented / no coverage, 1.0 = fully implemented. This represents vulnerability likelihood (susceptibility) posture used to mitigate a scenario's baseline threat frequency.",
           "title": "Implementation Effectiveness"
         },
         "coverage": {
@@ -47,7 +47,7 @@
             }
           ],
           "default": null,
-          "description": "Breadth of deployment/application across the organization."
+          "description": "Breadth of deployment/application across the organization. This contributes to vulnerability likelihood reduction when applying this control to a scenario."
         },
         "reliability": {
           "anyOf": [
@@ -79,7 +79,7 @@
             }
           ],
           "default": "frequency",
-          "description": "Which loss component this control affects. Default is 'frequency' (frequency-first).",
+          "description": "Which loss component this control affects. Default is 'frequency' (frequency-first). Note: the current reference engine primarily applies controls to frequency (lambda).",
           "title": "Affects"
         },
         "notes": {

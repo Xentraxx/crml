@@ -1,5 +1,5 @@
 from __future__ import annotations
-from crml_lang import plan_portfolio
+from crml_engine.pipeline import plan_portfolio
 from crml_engine.simulation.engine import run_monte_carlo
 
 

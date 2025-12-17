@@ -47,6 +47,14 @@ class PortfolioConstraints(BaseModel):
     validate_scenarios: bool = Field(
         True, description="If true, referenced scenario files are schema-validated during portfolio validation."
     )
+    validate_relevance: bool = Field(
+        False,
+        description=(
+            "If true, perform additional relevance checks between the portfolio organization context "
+            "(meta.locale/meta.industries/meta.company_sizes/meta.regulatory_frameworks) and the referenced scenarios. "
+            "Also validates that portfolio control id namespaces align with declared regulatory frameworks."
+        ),
+    )
 
 
 class PortfolioSemantics(BaseModel):

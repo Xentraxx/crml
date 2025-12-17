@@ -154,7 +154,7 @@
             }
           ],
           "default": null,
-          "description": "Frequency parameter (e.g. Poisson rate). Serialized as 'lambda' in YAML/JSON.",
+          "description": "Threat-event frequency parameter (e.g. Poisson rate). Interpreted as baseline threat likelihood (threat landscape) before organization-specific vulnerability/control posture is applied. Serialized as 'lambda' in YAML/JSON.",
           "title": "Lambda"
         },
         "alpha_base": {
@@ -500,7 +500,7 @@
             }
           ],
           "default": null,
-          "description": "Median loss value (distribution-dependent).",
+          "description": "Median loss value (distribution-dependent). Interpreted as threat impact (monetary loss per event). The reference approach models vulnerability primarily via likelihood (controls); vulnerability impact is not modeled.",
           "title": "Median"
         },
         "currency": {
@@ -526,7 +526,7 @@
             }
           ],
           "default": null,
-          "description": "Distribution parameter (e.g. lognormal mu).",
+          "description": "Distribution parameter (e.g. lognormal mu). Used to parameterize threat impact. Prefer 'median' for human-readable inputs.",
           "title": "Mu"
         },
         "sigma": {
@@ -539,7 +539,7 @@
             }
           ],
           "default": null,
-          "description": "Distribution parameter (e.g. lognormal sigma).",
+          "description": "Distribution parameter (e.g. lognormal sigma). Controls variability of threat impact (loss per event).",
           "title": "Sigma"
         },
         "shape": {

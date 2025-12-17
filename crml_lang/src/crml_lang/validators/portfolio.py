@@ -19,6 +19,961 @@ from .control_catalog import validate_control_catalog
 from .control_assessment import validate_control_assessment
 
 
+_PATH_PORTFOLIO_CONTROLS_ID = "portfolio -> controls -> id"
+_PATH_PORTFOLIO_CONTROLS = "portfolio -> controls"
+
+
+def _resolve_path(base_dir: str | None, p: str) -> str:
+    if base_dir and not os.path.isabs(p):
+        return os.path.join(base_dir, p)
+    return p
+
+
+def _norm_token(s: str) -> str:
+    s = s.strip().lower()
+    return "".join(ch for ch in s if ("a" <= ch <= "z") or ("0" <= ch <= "9") or ch in "_-" )
+
+
+def _norm_list(v: Any) -> set[str]:
+    if not isinstance(v, list):
+        return set()
+    out: set[str] = set()
+    for item in v:
+        if isinstance(item, str) and item.strip():
+            out.add(_norm_token(item))
+    return {x for x in out if x}
+
+
+def _namespaces_from_control_ids(control_ids: set[str]) -> set[str]:
+    out: set[str] = set()
+    for cid in control_ids:
+        if not isinstance(cid, str):
+            continue
+        if ":" not in cid:
+            continue
+        ns = cid.split(":", 1)[0]
+        ns_norm = _norm_token(ns)
+        if ns_norm:
+            out.add(ns_norm)
+    return out
+
+
+def _effective_portfolio_frameworks(
+    *,
+    declared_frameworks: set[str],
+    catalog_ids: set[str],
+    validate_relevance: bool,
+) -> tuple[set[str], list[ValidationMessage]]:
+    if not validate_relevance or not catalog_ids:
+        return declared_frameworks, []
+
+    catalog_namespaces = _namespaces_from_control_ids(catalog_ids)
+    if not catalog_namespaces:
+        return declared_frameworks, []
+
+    if not declared_frameworks:
+        inferred = set(catalog_namespaces)
+        return (
+            inferred,
+            [
+                ValidationMessage(
+                    level="warning",
+                    source="semantic",
+                    path="meta -> regulatory_frameworks",
+                    message=(
+                        "meta.regulatory_frameworks is missing/empty; inferring it from referenced control catalog(s) "
+                        f"as {sorted(inferred)}."
+                    ),
+                )
+            ],
+        )
+
+    if not catalog_namespaces.issubset(declared_frameworks):
+        missing = sorted(catalog_namespaces - declared_frameworks)
+        return (
+            declared_frameworks,
+            [
+                ValidationMessage(
+                    level="error",
+                    source="semantic",
+                    path="meta -> regulatory_frameworks",
+                    message=(
+                        "meta.regulatory_frameworks does not include all framework namespaces implied by referenced control catalog(s). "
+                        f"Missing: {missing}."
+                    ),
+                )
+            ],
+        )
+
+    return declared_frameworks, []
+
+
+def _require_catalogs_for_assessments_when_validate_relevance(
+    *,
+    validate_relevance: bool,
+    catalog_paths: list[str],
+    assessment_paths: list[str],
+) -> list[ValidationMessage]:
+    if not validate_relevance:
+        return []
+    if not assessment_paths:
+        return []
+    if catalog_paths:
+        return []
+    return [
+        ValidationMessage(
+            level="error",
+            source="semantic",
+            path="portfolio -> control_catalogs",
+            message=(
+                "When semantics.constraints.validate_relevance is enabled and portfolio.control_assessments is used, "
+                "portfolio.control_catalogs must also be provided so assessment ids can be validated against a canonical control catalog."
+            ),
+        )
+    ]
+
+
+def _locale_countries(locale: Any) -> set[str]:
+    if not isinstance(locale, dict):
+        return set()
+    values: list[str] = []
+    c = locale.get("country")
+    if isinstance(c, str) and c.strip():
+        values.append(c)
+    cs = locale.get("countries")
+    if isinstance(cs, list):
+        for x in cs:
+            if isinstance(x, str) and x.strip():
+                values.append(x)
+
+    out: set[str] = set()
+    for x in values:
+        token = _norm_token(x)
+        if token:
+            out.add(token)
+    return out
+
+
+def _controls_uniqueness_checks(portfolio: dict[str, Any]) -> list[ValidationMessage]:
+    messages: list[ValidationMessage] = []
+    controls = portfolio.get("controls")
+    if not isinstance(controls, list):
+        return messages
+
+    ids: list[str] = []
+    for idx, c in enumerate(controls):
+        if not isinstance(c, dict):
+            continue
+        cid = c.get("id")
+        if isinstance(cid, str):
+            ids.append(cid)
+        else:
+            messages.append(
+                ValidationMessage(
+                    level="error",
+                    source="semantic",
+                    path=f"portfolio -> controls -> {idx} -> id",
+                    message="Control id must be a string.",
+                )
+            )
+
+    if len(ids) != len(set(ids)):
+        messages.append(
+            ValidationMessage(
+                level="error",
+                source="semantic",
+                path=_PATH_PORTFOLIO_CONTROLS_ID,
+                message="Control ids must be unique within a portfolio.",
+            )
+        )
+
+    return messages
+
+
+def _validate_pack_references(
+    *,
+    portfolio: dict[str, Any],
+    base_dir: str | None,
+) -> tuple[list[str], list[str], list[ValidationMessage]]:
+    catalog_paths, cat_messages = _validate_catalog_references(portfolio=portfolio, base_dir=base_dir)
+    assessment_paths, assess_messages = _validate_assessment_references(
+        portfolio=portfolio,
+        base_dir=base_dir,
+        catalog_paths=catalog_paths,
+    )
+    return catalog_paths, assessment_paths, [*cat_messages, *assess_messages]
+
+
+def _validate_catalog_references(
+    *,
+    portfolio: dict[str, Any],
+    base_dir: str | None,
+) -> tuple[list[str], list[ValidationMessage]]:
+    sources = portfolio.get("control_catalogs")
+    if sources is None:
+        return [], []
+    if not isinstance(sources, list):
+        return (
+            [],
+            [
+                ValidationMessage(
+                    level="error",
+                    source="semantic",
+                    path="portfolio -> control_catalogs",
+                    message="portfolio.control_catalogs must be a list of file paths.",
+                )
+            ],
+        )
+
+    paths: list[str] = []
+    messages: list[ValidationMessage] = []
+    for idx, p in enumerate(sources):
+        resolved, entry_messages = _validate_one_catalog_path(p, idx=idx, base_dir=base_dir)
+        messages.extend(entry_messages)
+        if resolved is not None:
+            paths.append(resolved)
+    return paths, messages
+
+
+def _validate_one_catalog_path(
+    p: Any,
+    *,
+    idx: int,
+    base_dir: str | None,
+) -> tuple[str | None, list[ValidationMessage]]:
+    messages: list[ValidationMessage] = []
+    if not isinstance(p, str) or not p:
+        return (
+            None,
+            [
+                ValidationMessage(
+                    level="error",
+                    source="semantic",
+                    path=f"portfolio -> control_catalogs -> {idx}",
+                    message="control catalog path must be a non-empty string.",
+                )
+            ],
+        )
+
+    resolved = _resolve_path(base_dir, p)
+    if not os.path.exists(resolved):
+        messages.append(
+            ValidationMessage(
+                level="error",
+                source="semantic",
+                path=f"portfolio -> control_catalogs -> {idx}",
+                message=f"Control catalog file not found at path: {resolved}",
+            )
+        )
+        return resolved, messages
+
+    cat_report = validate_control_catalog(resolved, source_kind="path")
+    if not cat_report.ok:
+        for e in cat_report.errors:
+            messages.append(
+                ValidationMessage(
+                    level=e.level,
+                    source=e.source,
+                    path=f"portfolio -> control_catalogs -> {idx} -> {e.path}",
+                    message=e.message,
+                    validator=e.validator,
+                )
+            )
+
+    return resolved, messages
+
+
+def _validate_assessment_references(
+    *,
+    portfolio: dict[str, Any],
+    base_dir: str | None,
+    catalog_paths: list[str],
+) -> tuple[list[str], list[ValidationMessage]]:
+    sources = portfolio.get("control_assessments")
+    if sources is None:
+        return [], []
+    if not isinstance(sources, list):
+        return (
+            [],
+            [
+                ValidationMessage(
+                    level="error",
+                    source="semantic",
+                    path="portfolio -> control_assessments",
+                    message="portfolio.control_assessments must be a list of file paths.",
+                )
+            ],
+        )
+
+    paths: list[str] = []
+    messages: list[ValidationMessage] = []
+    for idx, p in enumerate(sources):
+        resolved, entry_messages = _validate_one_assessment_path(
+            p,
+            idx=idx,
+            base_dir=base_dir,
+            catalog_paths=catalog_paths,
+        )
+        messages.extend(entry_messages)
+        if resolved is not None:
+            paths.append(resolved)
+    return paths, messages
+
+
+def _validate_one_assessment_path(
+    p: Any,
+    *,
+    idx: int,
+    base_dir: str | None,
+    catalog_paths: list[str],
+) -> tuple[str | None, list[ValidationMessage]]:
+    if not isinstance(p, str) or not p:
+        return (
+            None,
+            [
+                ValidationMessage(
+                    level="error",
+                    source="semantic",
+                    path=f"portfolio -> control_assessments -> {idx}",
+                    message="control assessment path must be a non-empty string.",
+                )
+            ],
+        )
+
+    resolved = _resolve_path(base_dir, p)
+    if not os.path.exists(resolved):
+        return (
+            resolved,
+            [
+                ValidationMessage(
+                    level="error",
+                    source="semantic",
+                    path=f"portfolio -> control_assessments -> {idx}",
+                    message=f"Control assessment file not found at path: {resolved}",
+                )
+            ],
+        )
+
+    assess_report = validate_control_assessment(
+        resolved,
+        source_kind="path",
+        control_catalogs=catalog_paths if catalog_paths else None,
+        control_catalogs_source_kind="path",
+    )
+
+    messages: list[ValidationMessage] = []
+    if not assess_report.ok:
+        for e in assess_report.errors:
+            messages.append(
+                ValidationMessage(
+                    level=e.level,
+                    source=e.source,
+                    path=f"portfolio -> control_assessments -> {idx} -> {e.path}",
+                    message=e.message,
+                    validator=e.validator,
+                )
+            )
+
+    return resolved, messages
+
+
+def _catalog_ids_from_paths(catalog_paths: list[str]) -> set[str]:
+    out: set[str] = set()
+    for p in catalog_paths:
+        cat_data, cat_io_errors = _load_input(p, source_kind="path")
+        if cat_io_errors or not cat_data:
+            continue
+        out |= _catalog_ids_from_data(cat_data)
+    return out
+
+
+def _catalog_ids_from_data(cat_data: dict[str, Any]) -> set[str]:
+    catalog = cat_data.get("catalog")
+    controls_any = catalog.get("controls") if isinstance(catalog, dict) else None
+    if not isinstance(controls_any, list):
+        return set()
+    return {entry["id"] for entry in controls_any if isinstance(entry, dict) and isinstance(entry.get("id"), str)}
+
+
+def _assessment_ids_from_paths(assessment_paths: list[str]) -> set[str]:
+    out: set[str] = set()
+    for p in assessment_paths:
+        assess_data, assess_io_errors = _load_input(p, source_kind="path")
+        if assess_io_errors or not assess_data:
+            continue
+        out |= _assessment_ids_from_data(assess_data)
+    return out
+
+
+def _assessment_ids_from_data(assess_data: dict[str, Any]) -> set[str]:
+    assessment = assess_data.get("assessment")
+    assessments_any = assessment.get("assessments") if isinstance(assessment, dict) else None
+    if not isinstance(assessments_any, list):
+        return set()
+    return {entry["id"] for entry in assessments_any if isinstance(entry, dict) and isinstance(entry.get("id"), str)}
+
+
+def _scenario_ids_paths(scenarios: list[Any]) -> tuple[list[str], list[str]]:
+    scenario_ids: list[str] = []
+    scenario_paths: list[str] = []
+    for sc in scenarios:
+        if not isinstance(sc, dict):
+            continue
+        sid = sc.get("id")
+        if isinstance(sid, str):
+            scenario_ids.append(sid)
+        spath = sc.get("path")
+        if isinstance(spath, str):
+            scenario_paths.append(spath)
+    return scenario_ids, scenario_paths
+
+
+def _scenario_uniqueness_checks(scenario_ids: list[str], scenario_paths: list[str]) -> list[ValidationMessage]:
+    messages: list[ValidationMessage] = []
+    if len(set(scenario_ids)) != len(scenario_ids):
+        messages.append(
+            ValidationMessage(
+                level="error",
+                source="semantic",
+                path="portfolio -> scenarios -> id",
+                message="Scenario ids must be unique within a portfolio.",
+            )
+        )
+    if len(set(scenario_paths)) != len(scenario_paths):
+        messages.append(
+            ValidationMessage(
+                level="error",
+                source="semantic",
+                path="portfolio -> scenarios -> path",
+                message="Scenario paths must be unique within a portfolio.",
+            )
+        )
+    return messages
+
+
+def _scenario_path_existence_checks(
+    *,
+    scenarios: list[Any],
+    base_dir: str | None,
+) -> list[ValidationMessage]:
+    messages: list[ValidationMessage] = []
+    for idx, sc in enumerate(scenarios):
+        if not isinstance(sc, dict):
+            continue
+        spath = sc.get("path")
+        if not isinstance(spath, str):
+            continue
+        resolved_path = _resolve_path(base_dir, spath)
+        if not os.path.exists(resolved_path):
+            messages.append(
+                ValidationMessage(
+                    level="error",
+                    source="semantic",
+                    path=f"portfolio -> scenarios -> {idx} -> path",
+                    message=f"Scenario file not found at path: {resolved_path}",
+                )
+            )
+    return messages
+
+
+def _weight_semantic_checks(method: Any, scenarios: list[Any]) -> list[ValidationMessage]:
+    messages: list[ValidationMessage] = []
+    if method not in ("mixture", "choose_one"):
+        return messages
+
+    missing_weight_idx: list[int] = []
+    for idx, sc in enumerate(scenarios):
+        if not isinstance(sc, dict):
+            continue
+        if sc.get("weight") is None:
+            missing_weight_idx.append(idx)
+    if missing_weight_idx:
+        messages.append(
+            ValidationMessage(
+                level="error",
+                source="semantic",
+                path="portfolio -> scenarios",
+                message=(
+                    f"All scenarios must define 'weight' when portfolio.semantics.method is '{method}'. "
+                    f"Missing at indices: {missing_weight_idx}"
+                ),
+            )
+        )
+
+    try:
+        weight_sum = 0.0
+        for sc in scenarios:
+            if isinstance(sc, dict) and sc.get("weight") is not None:
+                weight_sum += float(sc["weight"])
+        if abs(weight_sum - 1.0) > 1e-9:
+            messages.append(
+                ValidationMessage(
+                    level="error",
+                    source="semantic",
+                    path="portfolio -> scenarios -> weight",
+                    message=f"Scenario weights must sum to 1.0 for method '{method}' (got {weight_sum}).",
+                )
+            )
+    except Exception:
+        pass
+
+    return messages
+
+
+def _relationship_reference_checks(relationships: Any, scenario_ids: list[str]) -> list[ValidationMessage]:
+    if not isinstance(relationships, list) or not scenario_ids:
+        return []
+    scenario_id_set = set(scenario_ids)
+    messages: list[ValidationMessage] = []
+    for idx, rel in enumerate(relationships):
+        if not isinstance(rel, dict):
+            continue
+        messages.extend(_relationship_check_correlation(rel, idx=idx, scenario_id_set=scenario_id_set))
+        messages.extend(_relationship_check_conditional(rel, idx=idx, scenario_id_set=scenario_id_set))
+    return messages
+
+
+def _relationship_check_correlation(
+    rel: dict[str, Any],
+    *,
+    idx: int,
+    scenario_id_set: set[str],
+) -> list[ValidationMessage]:
+    if rel.get("type") != "correlation":
+        return []
+    between = rel.get("between")
+    if not isinstance(between, list):
+        return []
+    messages: list[ValidationMessage] = []
+    for j, sid in enumerate(between):
+        if isinstance(sid, str) and sid not in scenario_id_set:
+            messages.append(
+                ValidationMessage(
+                    level="error",
+                    source="semantic",
+                    path=f"portfolio -> relationships -> {idx} -> between -> {j}",
+                    message=f"Unknown scenario id referenced in relationship: {sid}",
+                )
+            )
+    return messages
+
+
+def _relationship_check_conditional(
+    rel: dict[str, Any],
+    *,
+    idx: int,
+    scenario_id_set: set[str],
+) -> list[ValidationMessage]:
+    if rel.get("type") != "conditional":
+        return []
+    messages: list[ValidationMessage] = []
+    for key in ("given", "then"):
+        sid = rel.get(key)
+        if isinstance(sid, str) and sid not in scenario_id_set:
+            messages.append(
+                ValidationMessage(
+                    level="error",
+                    source="semantic",
+                    path=f"portfolio -> relationships -> {idx} -> {key}",
+                    message=f"Unknown scenario id referenced in relationship: {sid}",
+                )
+            )
+    return messages
+
+
+def _relevance_checks_for_scenario(
+    *,
+    portfolio_industries: set[str],
+    portfolio_company_sizes: set[str],
+    portfolio_frameworks: set[str],
+    portfolio_countries: set[str],
+    scenario_doc: Any,
+    scenario_id: Any,
+    idx: int,
+) -> list[ValidationMessage]:
+    s_meta = scenario_doc.meta
+    scenario_industries = _norm_list(s_meta.industries)
+    scenario_company_sizes = _norm_list(s_meta.company_sizes)
+    scenario_frameworks = _norm_list(s_meta.regulatory_frameworks)
+    scenario_countries = _locale_countries(s_meta.locale)
+
+    messages = _relevance_overlap_errors(
+        portfolio_industries=portfolio_industries,
+        portfolio_company_sizes=portfolio_company_sizes,
+        portfolio_frameworks=portfolio_frameworks,
+        portfolio_countries=portfolio_countries,
+        scenario_industries=scenario_industries,
+        scenario_company_sizes=scenario_company_sizes,
+        scenario_frameworks=scenario_frameworks,
+        scenario_countries=scenario_countries,
+        scenario_id=scenario_id,
+        idx=idx,
+    )
+    messages.extend(
+        _relevance_control_namespace_warnings(
+            scenario_doc=scenario_doc,
+            scenario_frameworks=scenario_frameworks,
+            scenario_id=scenario_id,
+            idx=idx,
+        )
+    )
+    return messages
+
+
+def _relevance_overlap_errors(
+    *,
+    portfolio_industries: set[str],
+    portfolio_company_sizes: set[str],
+    portfolio_frameworks: set[str],
+    portfolio_countries: set[str],
+    scenario_industries: set[str],
+    scenario_company_sizes: set[str],
+    scenario_frameworks: set[str],
+    scenario_countries: set[str],
+    scenario_id: Any,
+    idx: int,
+) -> list[ValidationMessage]:
+    def _mk(label: str, pset: set[str], sset: set[str]) -> ValidationMessage:
+        return ValidationMessage(
+            level="error",
+            source="semantic",
+            path=f"portfolio -> scenarios -> {idx} -> path",
+            message=(
+                f"Scenario '{scenario_id}' is not relevant for this portfolio based on {label}. "
+                f"Portfolio has {sorted(pset)}, scenario declares {sorted(sset)}."
+            ),
+        )
+
+    messages: list[ValidationMessage] = []
+    if portfolio_industries and scenario_industries and portfolio_industries.isdisjoint(scenario_industries):
+        messages.append(_mk("industries", portfolio_industries, scenario_industries))
+    if portfolio_company_sizes and scenario_company_sizes and portfolio_company_sizes.isdisjoint(scenario_company_sizes):
+        messages.append(_mk("company sizes", portfolio_company_sizes, scenario_company_sizes))
+    if portfolio_frameworks and scenario_frameworks and portfolio_frameworks.isdisjoint(scenario_frameworks):
+        messages.append(_mk("regulatory frameworks", portfolio_frameworks, scenario_frameworks))
+    if portfolio_countries and scenario_countries and portfolio_countries.isdisjoint(scenario_countries):
+        messages.append(_mk("countries", portfolio_countries, scenario_countries))
+    return messages
+
+
+def _relevance_control_namespace_warnings(
+    *,
+    scenario_doc: Any,
+    scenario_frameworks: set[str],
+    scenario_id: Any,
+    idx: int,
+) -> list[ValidationMessage]:
+    if not scenario_frameworks:
+        return []
+    if not (scenario_doc.scenario.controls or []):
+        return []
+    messages: list[ValidationMessage] = []
+    scenario_control_ids = _control_ids_from_controls(scenario_doc.scenario.controls or [])
+    for cid in sorted(scenario_control_ids):
+        ns = cid.split(":", 1)[0] if ":" in cid else ""
+        ns_norm = _norm_token(ns)
+        if ns_norm and ns_norm not in scenario_frameworks:
+            messages.append(
+                ValidationMessage(
+                    level="warning",
+                    source="semantic",
+                    path=f"portfolio -> scenarios -> {idx} -> path",
+                    message=(
+                        f"Scenario '{scenario_id}' references control id '{cid}' with namespace '{ns}', "
+                        "but scenario meta.regulatory_frameworks does not declare that namespace."
+                    ),
+                )
+            )
+    return messages
+
+
+def _load_scenario_doc(resolved_path: str) -> tuple[Any | None, str | None]:
+    try:
+        import yaml
+
+        with open(resolved_path, "r", encoding="utf-8") as f:
+            scenario_data = yaml.safe_load(f)
+
+        from ..models.crml_model import CRScenarioSchema
+
+        scenario_doc = CRScenarioSchema.model_validate(scenario_data)
+        return scenario_doc, None
+    except Exception as e:
+        return None, str(e)
+
+
+def _portfolio_control_namespace_alignment(
+    *,
+    portfolio_control_ids: set[str],
+    portfolio_frameworks: set[str],
+) -> list[ValidationMessage]:
+    messages: list[ValidationMessage] = []
+    if not portfolio_frameworks or not portfolio_control_ids:
+        return messages
+    for cid in sorted(portfolio_control_ids):
+        ns = cid.split(":", 1)[0] if ":" in cid else ""
+        ns_norm = _norm_token(ns)
+        if ns_norm and ns_norm not in portfolio_frameworks:
+            messages.append(
+                ValidationMessage(
+                    level="error",
+                    source="semantic",
+                    path=_PATH_PORTFOLIO_CONTROLS_ID,
+                    message=(
+                        f"Portfolio control id '{cid}' uses namespace '{ns}', but meta.regulatory_frameworks does not declare it. "
+                        "Either add the framework namespace to meta.regulatory_frameworks or adjust the control ids."
+                    ),
+                )
+            )
+    return messages
+
+
+def _scenario_control_mapping_checks(
+    *,
+    scenario_doc: Any,
+    portfolio_control_ids: set[str],
+    scenario_idx: int,
+) -> list[ValidationMessage]:
+    messages: list[ValidationMessage] = []
+    scenario_controls_any = scenario_doc.scenario.controls or []
+    scenario_controls = _control_ids_from_controls(scenario_controls_any)
+    if scenario_controls and not portfolio_control_ids:
+        messages.append(
+            ValidationMessage(
+                level="error",
+                source="semantic",
+                path=_PATH_PORTFOLIO_CONTROLS,
+                message=(
+                    "Scenario(s) reference controls but no control inventory is available. "
+                    "Provide portfolio.controls or reference control_assessments."
+                ),
+            )
+        )
+        return messages
+
+    for cid in scenario_controls:
+        if cid not in portfolio_control_ids:
+            messages.append(
+                ValidationMessage(
+                    level="error",
+                    source="semantic",
+                    path=f"portfolio -> scenarios -> {scenario_idx} -> path",
+                    message=(
+                        f"Scenario references control id '{cid}' but it is not present in portfolio.controls. "
+                        "Add it (e.g. implementation_effectiveness: 0.0) to make the mapping explicit."
+                    ),
+                )
+            )
+
+    return messages
+
+
+def _cross_document_checks(
+    *,
+    scenarios: list[Any],
+    base_dir: str | None,
+    require_paths_exist: bool,
+    validate_scenarios: bool,
+    validate_relevance: bool,
+    portfolio_industries: set[str],
+    portfolio_company_sizes: set[str],
+    portfolio_frameworks: set[str],
+    portfolio_countries: set[str],
+    portfolio: dict[str, Any],
+    assessment_ids: set[str],
+    catalog_ids: set[str],
+) -> list[ValidationMessage]:
+    portfolio_control_ids, using_assessment_controls = _effective_portfolio_control_ids(
+        portfolio=portfolio,
+        assessment_ids=assessment_ids,
+    )
+
+    messages: list[ValidationMessage] = []
+    messages.extend(_validate_controls_exist_in_catalog(catalog_ids=catalog_ids, portfolio_control_ids=portfolio_control_ids))
+
+    if validate_relevance:
+        messages.extend(
+            _portfolio_control_namespace_alignment(
+                portfolio_control_ids=portfolio_control_ids,
+                portfolio_frameworks=portfolio_frameworks,
+            )
+        )
+
+    if using_assessment_controls:
+        messages.append(
+            ValidationMessage(
+                level="warning",
+                source="semantic",
+                path=_PATH_PORTFOLIO_CONTROLS,
+                message="portfolio.controls is missing/empty; using control ids from referenced control assessment pack(s) for scenario mapping.",
+            )
+        )
+
+    messages.extend(
+        _scenario_cross_checks(
+            scenarios=scenarios,
+            base_dir=base_dir,
+            require_paths_exist=require_paths_exist,
+            validate_scenarios=validate_scenarios,
+            validate_relevance=validate_relevance,
+            portfolio_industries=portfolio_industries,
+            portfolio_company_sizes=portfolio_company_sizes,
+            portfolio_frameworks=portfolio_frameworks,
+            portfolio_countries=portfolio_countries,
+            portfolio_control_ids=portfolio_control_ids,
+        )
+    )
+    return messages
+
+
+def _effective_portfolio_control_ids(
+    *,
+    portfolio: dict[str, Any],
+    assessment_ids: set[str],
+) -> tuple[set[str], bool]:
+    portfolio_controls = portfolio.get("controls")
+    ids: set[str] = set()
+    if isinstance(portfolio_controls, list):
+        ids = {c["id"] for c in portfolio_controls if isinstance(c, dict) and isinstance(c.get("id"), str)}
+
+    if ids:
+        return ids, False
+    if assessment_ids:
+        return set(assessment_ids), True
+    return set(), False
+
+
+def _validate_controls_exist_in_catalog(
+    *,
+    catalog_ids: set[str],
+    portfolio_control_ids: set[str],
+) -> list[ValidationMessage]:
+    if not catalog_ids or not portfolio_control_ids:
+        return []
+    missing = [cid for cid in sorted(portfolio_control_ids) if cid not in catalog_ids]
+    return [
+        ValidationMessage(
+            level="error",
+            source="semantic",
+            path=_PATH_PORTFOLIO_CONTROLS_ID,
+            message=f"Portfolio references unknown control id '{cid}' (not found in referenced control catalog pack(s)).",
+        )
+        for cid in missing
+    ]
+
+
+def _scenario_cross_checks(
+    *,
+    scenarios: list[Any],
+    base_dir: str | None,
+    require_paths_exist: bool,
+    validate_scenarios: bool,
+    validate_relevance: bool,
+    portfolio_industries: set[str],
+    portfolio_company_sizes: set[str],
+    portfolio_frameworks: set[str],
+    portfolio_countries: set[str],
+    portfolio_control_ids: set[str],
+) -> list[ValidationMessage]:
+    messages: list[ValidationMessage] = []
+    for idx, sc in enumerate(scenarios):
+        if not isinstance(sc, dict):
+            continue
+        entry_messages, stop = _scenario_cross_checks_one(
+            sc,
+            idx=idx,
+            base_dir=base_dir,
+            require_paths_exist=require_paths_exist,
+            validate_scenarios=validate_scenarios,
+            validate_relevance=validate_relevance,
+            portfolio_industries=portfolio_industries,
+            portfolio_company_sizes=portfolio_company_sizes,
+            portfolio_frameworks=portfolio_frameworks,
+            portfolio_countries=portfolio_countries,
+            portfolio_control_ids=portfolio_control_ids,
+        )
+        messages.extend(entry_messages)
+        if stop:
+            break
+    return messages
+
+
+def _scenario_cross_checks_one(
+    sc: dict[str, Any],
+    *,
+    idx: int,
+    base_dir: str | None,
+    require_paths_exist: bool,
+    validate_scenarios: bool,
+    validate_relevance: bool,
+    portfolio_industries: set[str],
+    portfolio_company_sizes: set[str],
+    portfolio_frameworks: set[str],
+    portfolio_countries: set[str],
+    portfolio_control_ids: set[str],
+) -> tuple[list[ValidationMessage], bool]:
+    spath = sc.get("path")
+    if not isinstance(spath, str) or not spath:
+        return [], False
+
+    resolved_path = _resolve_path(base_dir, spath)
+    if not os.path.exists(resolved_path):
+        if require_paths_exist:
+            return [], False
+        return (
+            [
+                ValidationMessage(
+                    level="warning",
+                    source="semantic",
+                    path=f"portfolio -> scenarios -> {idx} -> path",
+                    message=f"Cannot load scenario document for cross-document checks because file was not found at path: {resolved_path}",
+                )
+            ],
+            False,
+        )
+
+    scenario_doc, load_error = _load_scenario_doc(resolved_path)
+    if scenario_doc is None:
+        return (
+            [
+                ValidationMessage(
+                    level="error",
+                    source="semantic",
+                    path=f"portfolio -> scenarios -> {idx} -> path",
+                    message=f"Failed to load/validate scenario for cross-document checks: {load_error}",
+                )
+            ],
+            False,
+        )
+
+    messages: list[ValidationMessage] = []
+    if validate_relevance:
+        messages.extend(
+            _relevance_checks_for_scenario(
+                portfolio_industries=portfolio_industries,
+                portfolio_company_sizes=portfolio_company_sizes,
+                portfolio_frameworks=portfolio_frameworks,
+                portfolio_countries=portfolio_countries,
+                scenario_doc=scenario_doc,
+                scenario_id=sc.get("id"),
+                idx=idx,
+            )
+        )
+
+    stop = False
+    if validate_scenarios:
+        messages.extend(
+            _scenario_control_mapping_checks(
+                scenario_doc=scenario_doc,
+                portfolio_control_ids=portfolio_control_ids,
+                scenario_idx=idx,
+            )
+        )
+        stop = any(m.level == "error" and m.path == _PATH_PORTFOLIO_CONTROLS for m in messages)
+
+    return messages, stop
+
+
 def _portfolio_semantic_checks(data: dict[str, Any], *, base_dir: str | None = None) -> list[ValidationMessage]:
     messages: list[ValidationMessage] = []
 
@@ -26,39 +981,17 @@ def _portfolio_semantic_checks(data: dict[str, Any], *, base_dir: str | None = N
     if not isinstance(portfolio, dict):
         return messages
 
+    portfolio_meta = data.get("meta") if isinstance(data.get("meta"), dict) else {}
+    portfolio_industries = _norm_list(portfolio_meta.get("industries"))
+    portfolio_company_sizes = _norm_list(portfolio_meta.get("company_sizes"))
+    portfolio_frameworks_declared = _norm_list(portfolio_meta.get("regulatory_frameworks"))
+    portfolio_countries = _locale_countries(portfolio_meta.get("locale"))
+
     scenarios = portfolio.get("scenarios")
     if not isinstance(scenarios, list):
         return messages
 
-    # Controls uniqueness (by canonical id)
-    controls = portfolio.get("controls")
-    if isinstance(controls, list):
-        ids: list[str] = []
-        for idx, c in enumerate(controls):
-            if not isinstance(c, dict):
-                continue
-            cid = c.get("id")
-            if isinstance(cid, str):
-                ids.append(cid)
-            else:
-                messages.append(
-                    ValidationMessage(
-                        level="error",
-                        source="semantic",
-                        path=f"portfolio -> controls -> {idx} -> id",
-                        message="Control id must be a string.",
-                    )
-                )
-
-        if len(ids) != len(set(ids)):
-            messages.append(
-                ValidationMessage(
-                    level="error",
-                    source="semantic",
-                    path="portfolio -> controls -> id",
-                    message="Control ids must be unique within a portfolio.",
-                )
-            )
+    messages.extend(_controls_uniqueness_checks(portfolio))
 
     semantics = portfolio.get("semantics")
     if not isinstance(semantics, dict):
@@ -69,388 +1002,56 @@ def _portfolio_semantic_checks(data: dict[str, Any], *, base_dir: str | None = N
 
     validate_scenarios = isinstance(constraints, dict) and constraints.get("validate_scenarios") is True
     require_paths_exist = isinstance(constraints, dict) and constraints.get("require_paths_exist") is True
+    validate_relevance = isinstance(constraints, dict) and constraints.get("validate_relevance") is True
 
-    def _resolve_path(p: str) -> str:
-        if base_dir and not os.path.isabs(p):
-            return os.path.join(base_dir, p)
-        return p
+    catalog_paths, assessment_paths, pack_messages = _validate_pack_references(portfolio=portfolio, base_dir=base_dir)
+    messages.extend(pack_messages)
 
-    # Optional pack references: load/validate catalogs + assessments.
-    catalog_paths: list[str] = []
-    assessment_paths: list[str] = []
-
-    catalog_sources = portfolio.get("control_catalogs")
-    if catalog_sources is not None:
-        if not isinstance(catalog_sources, list):
-            messages.append(
-                ValidationMessage(
-                    level="error",
-                    source="semantic",
-                    path="portfolio -> control_catalogs",
-                    message="portfolio.control_catalogs must be a list of file paths.",
-                )
-            )
-        else:
-            for idx, p in enumerate(catalog_sources):
-                if not isinstance(p, str) or not p:
-                    messages.append(
-                        ValidationMessage(
-                            level="error",
-                            source="semantic",
-                            path=f"portfolio -> control_catalogs -> {idx}",
-                            message="control catalog path must be a non-empty string.",
-                        )
-                    )
-                    continue
-
-                resolved = _resolve_path(p)
-                catalog_paths.append(resolved)
-
-                if not os.path.exists(resolved):
-                    messages.append(
-                        ValidationMessage(
-                            level="error",
-                            source="semantic",
-                            path=f"portfolio -> control_catalogs -> {idx}",
-                            message=f"Control catalog file not found at path: {resolved}",
-                        )
-                    )
-                    continue
-
-                cat_report = validate_control_catalog(resolved, source_kind="path")
-                if not cat_report.ok:
-                    for e in cat_report.errors:
-                        messages.append(
-                            ValidationMessage(
-                                level=e.level,
-                                source=e.source,
-                                path=f"portfolio -> control_catalogs -> {idx} -> {e.path}",
-                                message=e.message,
-                                validator=e.validator,
-                            )
-                        )
-
-    assessment_sources = portfolio.get("control_assessments")
-    if assessment_sources is not None:
-        if not isinstance(assessment_sources, list):
-            messages.append(
-                ValidationMessage(
-                    level="error",
-                    source="semantic",
-                    path="portfolio -> control_assessments",
-                    message="portfolio.control_assessments must be a list of file paths.",
-                )
-            )
-        else:
-            for idx, p in enumerate(assessment_sources):
-                if not isinstance(p, str) or not p:
-                    messages.append(
-                        ValidationMessage(
-                            level="error",
-                            source="semantic",
-                            path=f"portfolio -> control_assessments -> {idx}",
-                            message="control assessment path must be a non-empty string.",
-                        )
-                    )
-                    continue
-
-                resolved = _resolve_path(p)
-                assessment_paths.append(resolved)
-
-                if not os.path.exists(resolved):
-                    messages.append(
-                        ValidationMessage(
-                            level="error",
-                            source="semantic",
-                            path=f"portfolio -> control_assessments -> {idx}",
-                            message=f"Control assessment file not found at path: {resolved}",
-                        )
-                    )
-                    continue
-
-                assess_report = validate_control_assessment(
-                    resolved,
-                    source_kind="path",
-                    control_catalogs=catalog_paths if catalog_paths else None,
-                    control_catalogs_source_kind="path",
-                )
-                if not assess_report.ok:
-                    for e in assess_report.errors:
-                        messages.append(
-                            ValidationMessage(
-                                level=e.level,
-                                source=e.source,
-                                path=f"portfolio -> control_assessments -> {idx} -> {e.path}",
-                                message=e.message,
-                                validator=e.validator,
-                            )
-                        )
-
-    # Build a catalog-id set (if any catalogs validated) for additional checks.
-    catalog_ids: set[str] = set()
-    if catalog_paths:
-        for p in catalog_paths:
-            cat_data, cat_io_errors = _load_input(p, source_kind="path")
-            if cat_io_errors or not cat_data:
-                continue
-            catalog = cat_data.get("catalog")
-            controls_any = catalog.get("controls") if isinstance(catalog, dict) else None
-            if isinstance(controls_any, list):
-                for entry in controls_any:
-                    if isinstance(entry, dict) and isinstance(entry.get("id"), str):
-                        catalog_ids.add(entry["id"])
-
-    # Derive control ids from assessment packs (if any assessments validated).
-    assessment_ids: set[str] = set()
-    if assessment_paths:
-        for p in assessment_paths:
-            assess_data, assess_io_errors = _load_input(p, source_kind="path")
-            if assess_io_errors or not assess_data:
-                continue
-            assessment = assess_data.get("assessment")
-            assessments_any = assessment.get("assessments") if isinstance(assessment, dict) else None
-            if isinstance(assessments_any, list):
-                for entry in assessments_any:
-                    if isinstance(entry, dict) and isinstance(entry.get("id"), str):
-                        assessment_ids.add(entry["id"])
-
-    # Collect IDs / paths
-    scenario_ids: list[str] = []
-    scenario_paths: list[str] = []
-
-    for sc in scenarios:
-        if not isinstance(sc, dict):
-            continue
-
-        sid = sc.get("id")
-        if isinstance(sid, str):
-            scenario_ids.append(sid)
-
-        spath = sc.get("path")
-        if isinstance(spath, str):
-            scenario_paths.append(spath)
-
-    # Uniqueness checks (JSON Schema cannot enforce unique-by-property)
-    if len(set(scenario_ids)) != len(scenario_ids):
-        messages.append(
-            ValidationMessage(
-                level="error",
-                source="semantic",
-                path="portfolio -> scenarios -> id",
-                message="Scenario ids must be unique within a portfolio.",
-            )
+    messages.extend(
+        _require_catalogs_for_assessments_when_validate_relevance(
+            validate_relevance=validate_relevance,
+            catalog_paths=catalog_paths,
+            assessment_paths=assessment_paths,
         )
+    )
 
-    if len(set(scenario_paths)) != len(scenario_paths):
-        messages.append(
-            ValidationMessage(
-                level="error",
-                source="semantic",
-                path="portfolio -> scenarios -> path",
-                message="Scenario paths must be unique within a portfolio.",
-            )
-        )
+    catalog_ids = _catalog_ids_from_paths(catalog_paths)
+    assessment_ids = _assessment_ids_from_paths(assessment_paths)
 
-    # Optional on-disk existence check for local paths (opt-in)
+    portfolio_frameworks, fw_messages = _effective_portfolio_frameworks(
+        declared_frameworks=portfolio_frameworks_declared,
+        catalog_ids=catalog_ids,
+        validate_relevance=validate_relevance,
+    )
+    messages.extend(fw_messages)
+
+    scenario_ids, scenario_paths = _scenario_ids_paths(scenarios)
+    messages.extend(_scenario_uniqueness_checks(scenario_ids, scenario_paths))
+
     if require_paths_exist:
-        for idx, sc in enumerate(scenarios):
-            if not isinstance(sc, dict):
-                continue
-            spath = sc.get("path")
-            if not isinstance(spath, str):
-                continue
+        messages.extend(_scenario_path_existence_checks(scenarios=scenarios, base_dir=base_dir))
 
-            resolved_path = spath
-            if base_dir and not os.path.isabs(resolved_path):
-                resolved_path = os.path.join(base_dir, resolved_path)
-
-            if not os.path.exists(resolved_path):
-                messages.append(
-                    ValidationMessage(
-                        level="error",
-                        source="semantic",
-                        path=f"portfolio -> scenarios -> {idx} -> path",
-                        message=f"Scenario file not found at path: {resolved_path}",
-                    )
-                )
-
-    # Cross-document check: controls referenced by scenarios must be present in portfolio.controls.
-    if validate_scenarios:
-        portfolio_controls = portfolio.get("controls")
-        portfolio_control_ids: set[str] = set()
-        if isinstance(portfolio_controls, list):
-            for c in portfolio_controls:
-                if isinstance(c, dict) and isinstance(c.get("id"), str):
-                    portfolio_control_ids.add(c["id"])
-
-        # If the portfolio does not provide explicit controls, fall back to the set of ids from assessments.
-        using_assessment_controls = False
-        if not portfolio_control_ids and assessment_ids:
-            portfolio_control_ids = set(assessment_ids)
-            using_assessment_controls = True
-
-        # If a catalog is provided, require portfolio controls to exist in it.
-        if catalog_ids and portfolio_control_ids:
-            for cid in sorted(portfolio_control_ids):
-                if cid not in catalog_ids:
-                    messages.append(
-                        ValidationMessage(
-                            level="error",
-                            source="semantic",
-                            path="portfolio -> controls -> id",
-                            message=f"Portfolio references unknown control id '{cid}' (not found in referenced control catalog pack(s)).",
-                        )
-                    )
-
-        if using_assessment_controls:
-            messages.append(
-                ValidationMessage(
-                    level="warning",
-                    source="semantic",
-                    path="portfolio -> controls",
-                    message="portfolio.controls is missing/empty; using control ids from referenced control assessment pack(s) for scenario mapping.",
-                )
+    if validate_scenarios or validate_relevance:
+        messages.extend(
+            _cross_document_checks(
+                scenarios=scenarios,
+                base_dir=base_dir,
+                require_paths_exist=require_paths_exist,
+                validate_scenarios=validate_scenarios,
+                validate_relevance=validate_relevance,
+                portfolio_industries=portfolio_industries,
+                portfolio_company_sizes=portfolio_company_sizes,
+                portfolio_frameworks=portfolio_frameworks,
+                portfolio_countries=portfolio_countries,
+                portfolio=portfolio,
+                assessment_ids=assessment_ids,
+                catalog_ids=catalog_ids,
             )
+        )
 
-        for idx, sc in enumerate(scenarios):
-            if not isinstance(sc, dict):
-                continue
+    messages.extend(_weight_semantic_checks(method, scenarios))
 
-            spath = sc.get("path")
-            if not isinstance(spath, str) or not spath:
-                continue
-
-            resolved_path = spath
-            if base_dir and not os.path.isabs(resolved_path):
-                resolved_path = os.path.join(base_dir, resolved_path)
-
-            if not os.path.exists(resolved_path):
-                if not require_paths_exist:
-                    messages.append(
-                        ValidationMessage(
-                            level="warning",
-                            source="semantic",
-                            path=f"portfolio -> scenarios -> {idx} -> path",
-                            message=f"Cannot verify scenario control mappings because scenario file was not found at path: {resolved_path}",
-                        )
-                    )
-                continue
-
-            try:
-                import yaml
-
-                with open(resolved_path, "r", encoding="utf-8") as f:
-                    scenario_data = yaml.safe_load(f)
-
-                from ..models.crml_model import CRScenarioSchema
-
-                scenario_doc = CRScenarioSchema.model_validate(scenario_data)
-            except Exception as e:
-                messages.append(
-                    ValidationMessage(
-                        level="error",
-                        source="semantic",
-                        path=f"portfolio -> scenarios -> {idx} -> path",
-                        message=f"Failed to load/validate scenario for control mapping: {e}",
-                    )
-                )
-                continue
-
-            scenario_controls_any = scenario_doc.scenario.controls or []
-            scenario_controls = _control_ids_from_controls(scenario_controls_any)
-            if scenario_controls and not portfolio_control_ids:
-                messages.append(
-                    ValidationMessage(
-                        level="error",
-                        source="semantic",
-                        path="portfolio -> controls",
-                        message="Scenario(s) reference controls but no control inventory is available. Provide portfolio.controls or reference control_assessments.",
-                    )
-                )
-                break
-
-            for cid in scenario_controls:
-                if cid not in portfolio_control_ids:
-                    messages.append(
-                        ValidationMessage(
-                            level="error",
-                            source="semantic",
-                            path=f"portfolio -> scenarios -> {idx} -> path",
-                            message=f"Scenario references control id '{cid}' but it is not present in portfolio.controls. Add it (e.g. implementation_effectiveness: 0.0) to make the mapping explicit.",
-                        )
-                    )
-
-    # Weight semantics
-    if method in ("mixture", "choose_one"):
-        missing_weight_idx: list[int] = []
-        for idx, sc in enumerate(scenarios):
-            if not isinstance(sc, dict):
-                continue
-            if sc.get("weight") is None:
-                missing_weight_idx.append(idx)
-        if missing_weight_idx:
-            messages.append(
-                ValidationMessage(
-                    level="error",
-                    source="semantic",
-                    path="portfolio -> scenarios",
-                    message=f"All scenarios must define 'weight' when portfolio.semantics.method is '{method}'. Missing at indices: {missing_weight_idx}",
-                )
-            )
-
-        # Sum-to-1 check
-        try:
-            weight_sum = 0.0
-            for sc in scenarios:
-                if isinstance(sc, dict) and sc.get("weight") is not None:
-                    weight_sum += float(sc["weight"])
-
-            if abs(weight_sum - 1.0) > 1e-9:
-                messages.append(
-                    ValidationMessage(
-                        level="error",
-                        source="semantic",
-                        path="portfolio -> scenarios -> weight",
-                        message=f"Scenario weights must sum to 1.0 for method '{method}' (got {weight_sum}).",
-                    )
-                )
-        except Exception:
-            pass
-
-    # Relationship references must point to defined scenario ids
-    relationships = portfolio.get("relationships")
-    if isinstance(relationships, list) and scenario_ids:
-        scenario_id_set = set(scenario_ids)
-        for idx, rel in enumerate(relationships):
-            if not isinstance(rel, dict):
-                continue
-            rel_type = rel.get("type")
-            if rel_type == "correlation":
-                between = rel.get("between")
-                if isinstance(between, list):
-                    for j, sid in enumerate(between):
-                        if isinstance(sid, str) and sid not in scenario_id_set:
-                            messages.append(
-                                ValidationMessage(
-                                    level="error",
-                                    source="semantic",
-                                    path=f"portfolio -> relationships -> {idx} -> between -> {j}",
-                                    message=f"Unknown scenario id referenced in relationship: {sid}",
-                                )
-                            )
-
-            if rel_type == "conditional":
-                for key in ("given", "then"):
-                    sid = rel.get(key)
-                    if isinstance(sid, str) and sid not in scenario_id_set:
-                        messages.append(
-                            ValidationMessage(
-                                level="error",
-                                source="semantic",
-                                path=f"portfolio -> relationships -> {idx} -> {key}",
-                                message=f"Unknown scenario id referenced in relationship: {sid}",
-                            )
-                        )
+    messages.extend(_relationship_reference_checks(portfolio.get("relationships"), scenario_ids))
 
     return messages
 

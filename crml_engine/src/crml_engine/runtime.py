@@ -1,7 +1,7 @@
 import json
 from typing import Union, Optional
 from crml_lang.models.crml_model import load_crml_from_yaml_str, CRMLSchema
-from crml_lang import plan_portfolio
+from crml_engine.pipeline import plan_portfolio
 import numpy as np
 
 from .models.result_model import SimulationResult, Metrics, Distribution, Metadata, print_result

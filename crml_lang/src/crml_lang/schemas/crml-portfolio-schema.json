@@ -586,6 +586,12 @@
           "description": "If true, referenced scenario files are schema-validated during portfolio validation.",
           "title": "Validate Scenarios",
           "type": "boolean"
+        },
+        "validate_relevance": {
+          "default": false,
+          "description": "If true, perform additional relevance checks between the portfolio organization context (meta.locale/meta.industries/meta.company_sizes/meta.regulatory_frameworks) and the referenced scenarios. Also validates that portfolio control id namespaces align with declared regulatory frameworks.",
+          "title": "Validate Relevance",
+          "type": "boolean"
         }
       },
       "title": "PortfolioConstraints",
@@ -613,7 +619,7 @@
             }
           ],
           "default": null,
-          "description": "Portfolio-level implementation effectiveness for this control (0..1).",
+          "description": "Portfolio-level implementation strength for this control (0..1). Represents organization-specific vulnerability likelihood (susceptibility) reduction when applied to a scenario's baseline threat frequency.",
           "title": "Implementation Effectiveness"
         },
         "coverage": {
@@ -626,7 +632,7 @@
             }
           ],
           "default": null,
-          "description": "Breadth of deployment/application across the organization."
+          "description": "Breadth of deployment/application across the organization. This contributes to vulnerability likelihood reduction when the control is used to mitigate a scenario's baseline threat frequency."
         },
         "reliability": {
           "anyOf": [
@@ -658,7 +664,7 @@
             }
           ],
           "default": "frequency",
-          "description": "Which loss component this control affects (frequency, severity, or both).",
+          "description": "Which loss component this control is intended to affect (frequency, severity, or both). Note: the current reference engine primarily applies controls to frequency (lambda).",
           "title": "Affects"
         },
         "notes": {

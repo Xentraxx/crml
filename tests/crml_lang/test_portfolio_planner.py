@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from crml_lang import plan_portfolio
+from crml_engine.pipeline import plan_portfolio
 
 
 def test_plan_portfolio_expands_per_asset_cardinality(tmp_path) -> None:

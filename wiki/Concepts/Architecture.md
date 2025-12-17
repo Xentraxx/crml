@@ -1,60 +1,74 @@
 # CRML System Architecture
 
-## Overview
-The CRML (Cyber Risk Modeling Language) Simulation Engine is a modular, high-performance Monte Carlo system designed to quantify cyber risk. It decouples the risk model definition (YAML/JSON schema) from the probabilistic execution engine.
+CRML is organized into three layers:
 
-## High-Level Architecture
+- **Language/spec (`crml_lang`)**: schemas, models, validation, YAML IO
+- **Runtime/engine (`crml_engine`)**: CLI + simulation runtime + portfolio execution + result serialization
+- **Web UI (`web/`)**: CRML Studio (Next.js UI + API routes that call the CLI/runtime)
+
+For the detailed architecture, see:
+
+- [Architecture-Language](Architecture-Language)
+- [Architecture-Engine](Architecture-Engine)
+
+## Document types
+
+- Scenario documents: `crml_scenario: "1.0"` (top-level `scenario:`)
+- Portfolio documents: `crml_portfolio: "1.0"` (top-level `portfolio:`)
+- Control catalog packs: `crml_control_catalog: "1.0"` (top-level `catalog:`)
+- Control assessment packs: `crml_control_assessment: "1.0"` (top-level `assessment:`)
+- FX config documents: `crml_fx_config: "1.0"` (top-level `base_currency`, `output_currency`, `rates`, optional `as_of`; engine-owned config document)
+- Portfolio bundle artifacts: `schema_id: "crml.portfolio.bundle"` (top-level `portfolio`, optional `scenarios`, `control_catalogs`, `control_assessments`, `warnings`, `metadata`)
+- Simulation result artifacts: `schema_id: "crml.simulation.result"` (top-level `engine`, optional `run`, `inputs`, `units`, `results`, plus `success`, `errors`, `warnings`)
+
+## System-level data flow
 
 ```mermaid
-graph TD
-    User[User / CI] -->|1. Define Model| YAML[CRML YAML]
-    YAML -->|2. Parse & Validate| Validator[CRML Validator]
-    Validator -->|3. Schema Object| Model[Pydantic Model]
-    
-    subgraph "Simulation Engine"
-        Model --> Setup[Configuration & Setup]
-        Setup -->|Initialize| Copula[Copula Engine]
-        
-        Copula -->|Correlated Uniforms| FreqEng[Frequency Engine]
-        Model -->|Params| FreqEng
-        
-        FreqEng -->|Event Counts| SevEng[Severity Engine]
-        Model -->|Params| SevEng
-        
-        SevEng -->|Losses| Aggregator[Aggregator]
-        Aggregator -->|Annual Losses| Metrics[Metrics Calculator]
-    end
-    
-    Metrics -->|EAL, VaR| Result[SimulationResult]
-    Result -->|JSON/UI| Frontend[Next.js Frontend]
+flowchart TD
+    DOC[CRML YAML/JSON] --> LANG[crml_lang\nvalidate]
+    LANG -->|ValidationReport| TOOL[CLI/CI/Web tooling]
+
+    DOC --> BUNDLE[crml_lang\nbundle]
+    BUNDLE -->|CRPortfolioBundle| PIPE[crml_engine.pipeline\nplan]
+    PIPE -->|PortfolioExecutionPlan| ENG[crml_engine\nexecute]
+    ENG --> RES[SimulationResultEnvelope]
+    RES --> WEB[CRML Studio UI]
 ```
 
-## Core Components
+## Ecosystem data flow
 
-### 1. Data Model (`src/crml/models`)
-- Defines the `CRMLSchema` using Pydantic.
-- Enforces strict typing for Assets, Frequency, Severity, and Correlations.
-- Components: `crml_model.py`, `fx_model.py`, `result_model.py`.
+CRML is designed so that organizations can assemble *auditable, portable* input artifacts from common upstream sources, and so that any compliant engine can emit results in a shared format that downstream tools can visualize.
 
-### 2. Simulation Engine (`src/crml/simulation`)
-The engine orchestrates the Monte Carlo process.
+In practice:
 
-- **Engine (`engine.py`)**: The main entry point `run_monte_carlo`. Handles:
-    - Parsing and Validation.
-    - **Asset Correlation**: Computes the Gaussian Copula (Cholesky decomposition) to generate correlated random numbers for dependent assets.
-    - **Scenario Loop**: Iterates through each risk scenario (Asset + Frequency + Severity).
-    
-- **Frequency Engine (`frequency.py`)**:
-    - Generates event counts per year.
-    - Supports `Poisson`, `Gamma`, and `Hierarchical Gamma-Poisson`.
-    - Accepts correlated uniforms to induce dependencies.
+- **Threat intelligence** produces or informs *scenario documents* (frequency, severity, narratives, assumptions).
+- **Portfolios** describe the organization's relatively stable assets, business units, and exposure structure. They can be updated via internal tooling (e.g., CMDB/asset inventory imports), but the portfolio document remains the central reference.
+- **Control catalogs** come from recognized authorities and frameworks (e.g., NIS, CIS) or can be commonly defined by the community. These catalogs define the canonical control set and their semantics.
+- **Control assessments** come from assessment/scan tools and audits. They capture which controls exist, how effective they are, and can optionally be used to populate or update the portfolio's control mapping.
 
-- **Severity Engine (`severity.py`)**:
-    - Generates loss magnitudes for each event.
-    - Supports `Lognormal`, `Gamma`, `Pareto`, and `Mixture` models.
-    - Handles currency conversion at the event or aggregate level.
-    
-### 3. Frontend (`web/`)
-- **Next.js** application for interactive validation.
-- **WASM / API**: Runs the Python engine (via API currently) to provide real-time feedback.
-- **Visualizations**: Displays Risk Cards, Loss Distributions, and Correlation status.
+The language layer then provides a deterministic bundling step that inlines the referenced material into a self-contained `CRPortfolioBundle`, which can be handed to any risk engine without requiring filesystem access.
+
+Engines are expected to return results using the **language-owned result envelope** (`SimulationResultEnvelope`). This creates a stable interface for any visualization tool (web UI, BI dashboards, reporting pipelines) to consume outputs without being coupled to a specific engine implementation.
+
+```mermaid
+flowchart LR
+    TI["Threat intelligence<br/>feeds"] --> S["Scenario documents<br/>CRScenario"]
+
+    ORG["Organization asset inventory<br/>relatively static"] --> P["Portfolio document<br/>CRPortfolio"]
+    TOOL["Portfolio tooling<br/>imports and updates"] -.->|optional| P
+
+    AUTH["Recognized authorities<br/>NIS, CIS"] --> CC["Control catalog pack<br/>CRControlCatalog"]
+    SCAN["Assessment and scan tools"] --> CA["Control assessment pack<br/>CRControlAssessment"]
+    SCAN -.->|optional| P
+
+    S --> B["Bundle step<br/>bundle_portfolio"]
+    P --> B
+    CC --> B
+    CA --> B
+
+    B --> PB["CRPortfolioBundle<br/>inlined artifact"]
+
+    PB --> ENG["Risk engines<br/>engine A, engine B"]
+    ENG --> OUT["SimulationResultEnvelope<br/>standard contract"]
+    OUT --> VIZ["Visualization tools<br/>dashboards and reports"]
+```

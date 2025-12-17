@@ -6,10 +6,11 @@ import os
 
 from pydantic import BaseModel, Field
 
-from ..models.portfolio_model import CRPortfolioSchema, Portfolio, ScenarioRef
-from ..models.crml_model import CRScenarioSchema, ScenarioControl as ScenarioControlModel
-from ..models.control_assessment_model import CRControlAssessmentSchema, ControlAssessment
-from ..models.control_catalog_model import CRControlCatalogSchema
+from crml_lang.models.portfolio_bundle import CRPortfolioBundle
+from crml_lang.models.portfolio_model import CRPortfolioSchema, Portfolio, ScenarioRef
+from crml_lang.models.crml_model import CRScenarioSchema, ScenarioControl as ScenarioControlModel
+from crml_lang.models.control_assessment_model import CRControlAssessmentSchema, ControlAssessment
+from crml_lang.models.control_catalog_model import CRControlCatalogSchema
 
 
 class PlanMessage(BaseModel):
@@ -74,9 +75,7 @@ class ResolvedScenario(BaseModel):
         default_factory=list,
         description="Concrete list of portfolio asset names this scenario applies to.",
     )
-    cardinality: int = Field(
-        ..., ge=0, description="Total exposure cardinality implied by applies_to_assets."
-    )
+    cardinality: int = Field(..., ge=0, description="Total exposure cardinality implied by applies_to_assets.")
 
     # Scenario document metadata (useful for reporting)
     scenario_name: Optional[str] = Field(None, description="Scenario meta.name (if present).")
@@ -175,7 +174,9 @@ def _resolve_path(base_dir: str | None, p: str) -> str:
     return p
 
 
-def _scenario_controls_to_objects(controls_any: list[Any]) -> list[tuple[str, Optional[float], Optional[tuple[float, str]]]]:
+def _scenario_controls_to_objects(
+    controls_any: list[Any],
+) -> list[tuple[str, Optional[float], Optional[tuple[float, str]]]]:
     """Normalize scenario.controls into (id, eff_factor, coverage_factor(value,basis))."""
 
     out: list[tuple[str, Optional[float], Optional[tuple[float, str]]]] = []
@@ -596,7 +597,7 @@ def plan_portfolio(
                         path=f"portfolio.scenarios[{idx}].path",
                         message=(
                             f"Control '{cid}' combines coverage with different bases: inventory='{inventory_cov_basis}', scenario='{cov_factor_basis}'. "
-                            "Treating scenario coverage as a pure factor." 
+                            "Treating scenario coverage as a pure factor."
                         ),
                     )
                 )
@@ -606,6 +607,308 @@ def plan_portfolio(
                 id=sref.id,
                 path=sref.path,
                 resolved_path=scenario_path,
+                weight=sref.weight,
+                applies_to_assets=applies_to_assets_list,
+                cardinality=cardinality,
+                scenario_name=scenario_doc.meta.name,
+                controls=resolved_controls,
+            )
+        )
+
+    if errors:
+        return PlanReport(ok=False, errors=errors, warnings=warnings, plan=None)
+
+    plan = PortfolioExecutionPlan(
+        portfolio_name=doc.meta.name,
+        semantics_method=portfolio.semantics.method,
+        assets=[a.model_dump(exclude_none=True) for a in portfolio.assets],
+        scenarios=resolved_scenarios,
+        dependency=dependency_plan,
+    )
+
+    return PlanReport(ok=True, errors=[], warnings=warnings, plan=plan)
+
+
+def plan_bundle(bundle: CRPortfolioBundle) -> PlanReport:
+    """Resolve an inlined CRPortfolioBundle into an execution-friendly plan.
+
+    Unlike `plan_portfolio`, this function does not access the filesystem.
+    It expects scenarios (and optionally control packs) to already be inlined
+    inside the bundle.
+    """
+
+    errors: list[PlanMessage] = []
+    warnings: list[PlanMessage] = []
+
+    doc = bundle.portfolio
+    portfolio: Portfolio = doc.portfolio
+
+    assets_by_name: dict[str, Any] = {a.name: a for a in portfolio.assets}
+    all_asset_names = list(assets_by_name.keys())
+
+    # --- Load packs from the bundle (optional) ---
+    catalog_ids: set[str] = set()
+    assessment_by_id: dict[str, ControlAssessment] = {}
+
+    for cat_doc in bundle.control_catalogs or []:
+        try:
+            for entry in cat_doc.catalog.controls:
+                catalog_ids.add(entry.id)
+        except Exception as e:
+            warnings.append(PlanMessage(level="warning", path="bundle.control_catalogs", message=str(e)))
+
+    for idx, assess_doc in enumerate(bundle.control_assessments or []):
+        try:
+            for a in assess_doc.assessment.assessments:
+                if a.id in assessment_by_id:
+                    warnings.append(
+                        PlanMessage(
+                            level="warning",
+                            path=f"bundle.control_assessments[{idx}]",
+                            message=f"Duplicate assessment for control id '{a.id}' across packs; last one wins.",
+                        )
+                    )
+                assessment_by_id[a.id] = a
+        except Exception as e:
+            warnings.append(PlanMessage(level="warning", path=f"bundle.control_assessments[{idx}]", message=str(e)))
+
+    # --- Build portfolio inventory (highest precedence) ---
+    portfolio_controls_by_id: dict[str, Any] = {}
+    for idx, c in enumerate(portfolio.controls or []):
+        portfolio_controls_by_id[c.id] = c
+        if catalog_ids and c.id not in catalog_ids:
+            errors.append(
+                PlanMessage(
+                    level="error",
+                    path=f"portfolio.controls[{idx}].id",
+                    message=f"Unknown control id '{c.id}' (not present in referenced catalog pack(s)).",
+                )
+            )
+
+    # --- Dependency normalization (optional) ---
+    dependency_plan: Optional[dict[str, Any]] = None
+    if portfolio.dependency is not None and portfolio.dependency.copula is not None:
+        cop = portfolio.dependency.copula
+        targets = list(cop.targets or [])
+        dim = len(targets)
+        bad_targets = [t for t in targets if not _is_control_state_ref(t)]
+        if bad_targets:
+            errors.append(
+                PlanMessage(
+                    level="error",
+                    path="portfolio.dependency.copula.targets",
+                    message=f"Unsupported target reference(s): {bad_targets}. Supported: control:<id>:state",
+                )
+            )
+        else:
+            target_control_ids = [_extract_control_id_from_state_ref(t) for t in targets]
+            for t in target_control_ids:
+                if t not in portfolio_controls_by_id and t not in assessment_by_id:
+                    errors.append(
+                        PlanMessage(
+                            level="error",
+                            path="portfolio.dependency.copula.targets",
+                            message=f"Copula target control id '{t}' not found in portfolio.controls or control assessments.",
+                        )
+                    )
+
+            corr: Optional[list[list[float]]] = None
+            if cop.matrix is not None:
+                corr = [list(row) for row in cop.matrix]
+            else:
+                rho = cop.rho
+                if cop.structure not in (None, "toeplitz"):
+                    errors.append(
+                        PlanMessage(
+                            level="error",
+                            path="portfolio.dependency.copula.structure",
+                            message=f"Unsupported copula structure '{cop.structure}'.",
+                        )
+                    )
+                if rho is None:
+                    errors.append(
+                        PlanMessage(
+                            level="error",
+                            path="portfolio.dependency.copula.rho",
+                            message="Toeplitz copula requires 'rho' when 'matrix' is not provided.",
+                        )
+                    )
+                else:
+                    corr = _toeplitz_corr(dim=dim, rho=float(rho))
+
+            if corr is not None:
+                err = _validate_corr_matrix(corr, dim=dim)
+                if err:
+                    errors.append(PlanMessage(level="error", path="portfolio.dependency.copula", message=err))
+                else:
+                    dependency_plan = {
+                        "copula": {
+                            "type": cop.type,
+                            "targets": targets,
+                            "matrix": corr,
+                        }
+                    }
+
+    # Scenario lookup by id
+    scenario_by_id: dict[str, CRScenarioSchema] = {s.id: s.scenario for s in (bundle.scenarios or [])}
+
+    resolved_scenarios: list[ResolvedScenario] = []
+    for idx, sref in enumerate(portfolio.scenarios):
+        assert isinstance(sref, ScenarioRef)
+
+        scenario_doc = scenario_by_id.get(sref.id)
+        if scenario_doc is None:
+            errors.append(
+                PlanMessage(
+                    level="error",
+                    path=f"portfolio.scenarios[{idx}].id",
+                    message=f"Bundle is missing inlined scenario for id '{sref.id}'.",
+                )
+            )
+            continue
+
+        # Binding resolution
+        applies_to_assets = sref.binding.applies_to_assets
+        if applies_to_assets is None:
+            applies_to_assets_list = list(all_asset_names)
+        else:
+            applies_to_assets_list = list(applies_to_assets)
+
+        basis = scenario_doc.scenario.frequency.basis
+        if basis == "per_organization_per_year" and applies_to_assets is not None:
+            warnings.append(
+                PlanMessage(
+                    level="warning",
+                    path=f"portfolio.scenarios[{idx}].binding.applies_to_assets",
+                    message=(
+                        "Scenario frequency basis is 'per_organization_per_year'; asset binding does not affect cardinality (cardinality stays 1). "
+                        "If you intended per-asset scaling, consider 'per_asset_unit_per_year'."
+                    ),
+                )
+            )
+
+        unknown_assets = [a for a in applies_to_assets_list if a not in assets_by_name]
+        if unknown_assets:
+            errors.append(
+                PlanMessage(
+                    level="error",
+                    path=f"portfolio.scenarios[{idx}].binding.applies_to_assets",
+                    message=f"Unknown asset(s) referenced: {unknown_assets}",
+                )
+            )
+            continue
+
+        if basis == "per_asset_unit_per_year":
+            if not applies_to_assets_list:
+                errors.append(
+                    PlanMessage(
+                        level="error",
+                        path=f"portfolio.scenarios[{idx}].binding.applies_to_assets",
+                        message="Scenario uses per_asset_unit_per_year but no assets are bound (empty applies_to_assets).",
+                    )
+                )
+                continue
+            cardinality = int(sum(int(assets_by_name[a].cardinality) for a in applies_to_assets_list))
+        else:
+            cardinality = 1
+
+        # Controls
+        controls_any = scenario_doc.scenario.controls or []
+        controls_norm = _scenario_controls_to_objects(list(controls_any))
+        resolved_controls: list[ResolvedScenarioControl] = []
+
+        for (cid, scenario_eff_factor, scenario_cov_factor) in controls_norm:
+            inventory_eff: Optional[float] = None
+            inventory_cov_val: Optional[float] = None
+            inventory_cov_basis: Optional[str] = None
+            inventory_rel: Optional[float] = None
+            affects: Optional[str] = None
+
+            inv = portfolio_controls_by_id.get(cid)
+            if inv is not None:
+                if inv.implementation_effectiveness is not None:
+                    inventory_eff = float(inv.implementation_effectiveness)
+                if inv.coverage is not None:
+                    inventory_cov_val = float(inv.coverage.value)
+                    inventory_cov_basis = str(inv.coverage.basis)
+                if getattr(inv, "reliability", None) is not None:
+                    inventory_rel = float(inv.reliability)
+                if getattr(inv, "affects", None) is not None:
+                    affects = str(inv.affects)
+            else:
+                assess = assessment_by_id.get(cid)
+                if assess is not None:
+                    if assess.implementation_effectiveness is not None:
+                        inventory_eff = float(assess.implementation_effectiveness)
+                    if assess.coverage is not None:
+                        inventory_cov_val = float(assess.coverage.value)
+                        inventory_cov_basis = str(assess.coverage.basis)
+                    if getattr(assess, "reliability", None) is not None:
+                        inventory_rel = float(assess.reliability)
+                    if getattr(assess, "affects", None) is not None:
+                        affects = str(assess.affects)
+
+            if inventory_eff is None and inventory_cov_val is None:
+                errors.append(
+                    PlanMessage(
+                        level="error",
+                        path=f"portfolio.scenarios[{idx}].id",
+                        message=f"Scenario references control id '{cid}' but no inventory/assessment data is available for it.",
+                    )
+                )
+                continue
+
+            eff_factor = float(scenario_eff_factor) if scenario_eff_factor is not None else None
+            cov_factor_val: Optional[float] = None
+            cov_factor_basis: Optional[str] = None
+            if scenario_cov_factor is not None:
+                cov_factor_val = float(scenario_cov_factor[0])
+                cov_factor_basis = str(scenario_cov_factor[1])
+
+            combined_eff = None
+            if inventory_eff is not None:
+                combined_eff = _clamp01(inventory_eff * (eff_factor if eff_factor is not None else 1.0))
+
+            combined_cov = None
+            if inventory_cov_val is not None:
+                combined_cov = _clamp01(inventory_cov_val * (cov_factor_val if cov_factor_val is not None else 1.0))
+
+            combined_rel = _clamp01(inventory_rel if inventory_rel is not None else 1.0)
+
+            resolved_controls.append(
+                ResolvedScenarioControl(
+                    id=cid,
+                    inventory_implementation_effectiveness=inventory_eff,
+                    inventory_coverage_value=inventory_cov_val,
+                    inventory_coverage_basis=inventory_cov_basis,
+                    inventory_reliability=inventory_rel,
+                    affects=affects,
+                    scenario_implementation_effectiveness_factor=eff_factor,
+                    scenario_coverage_factor=cov_factor_val,
+                    scenario_coverage_basis=cov_factor_basis,
+                    combined_implementation_effectiveness=combined_eff,
+                    combined_coverage_value=combined_cov,
+                    combined_reliability=combined_rel,
+                )
+            )
+
+            if inventory_cov_basis and cov_factor_basis and inventory_cov_basis != cov_factor_basis:
+                warnings.append(
+                    PlanMessage(
+                        level="warning",
+                        path=f"portfolio.scenarios[{idx}].id",
+                        message=(
+                            f"Control '{cid}' combines coverage with different bases: inventory='{inventory_cov_basis}', scenario='{cov_factor_basis}'. "
+                            "Treating scenario coverage as a pure factor."
+                        ),
+                    )
+                )
+
+        resolved_scenarios.append(
+            ResolvedScenario(
+                id=sref.id,
+                path=sref.path,
+                resolved_path=None,
                 weight=sref.weight,
                 applies_to_assets=applies_to_assets_list,
                 cardinality=cardinality,
