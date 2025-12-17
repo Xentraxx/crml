@@ -23,6 +23,9 @@ from typing import Optional, List, Any
 
 from pydantic import BaseModel, Field
 
+
+_BANNER_WIDTH = 50
+
 class Metrics(BaseModel):
     eal: Optional[float] = Field(None, description="Expected annual loss (mean of the annual loss distribution).")
     var_95: Optional[float] = Field(None, description="Value at Risk at the 95th percentile.")
@@ -63,38 +66,79 @@ class SimulationResult(BaseModel):
     metadata: Optional[Metadata] = Field(None, description="Run metadata and context.")
     errors: List[str] = Field(default_factory=list, description="List of error messages (if any).")
 
-def print_result(result: 'SimulationResult'):
-    """
-    Pretty-print a SimulationResult object to the console.
-    """
-    if not result.success:
-        print("❌ Simulation failed:")
-        for error in result.errors:
-            print(f"  • {error}")
-        return
-    meta = result.metadata
-    metrics = result.metrics
-    curr = meta.currency or '$' if meta else '$'
-    curr_code = meta.currency_code or 'USD' if meta else 'USD'
-    print(f"\n{'='*50}")
-    print(f"CRML Simulation Results")
-    print(f"{'='*50}")
-    print(f"Model: {meta.model_name if meta else ''}")
-    print(f"Runs: {meta.runs:,}" if meta and meta.runs else "")
-    print(f"Runtime: {meta.runtime_ms:.2f} ms" if meta and meta.runtime_ms else "")
+def _banner(title: str) -> None:
+    line = "=" * _BANNER_WIDTH
+    print("\n" + line)
+    print(title)
+    print(line)
+
+
+def _currency_display(meta: Optional[Metadata]) -> tuple[str, str]:
+    symbol = meta.currency if (meta and meta.currency) else "$"
+    code = meta.currency_code if (meta and meta.currency_code) else "USD"
+    return symbol, code
+
+
+def _print_failure(errors: List[str]) -> None:
+    print("❌ Simulation failed:")
+    for error in errors:
+        print(f"  • {error}")
+
+
+def _print_metadata(meta: Optional[Metadata], *, currency_symbol: str, currency_code: str) -> None:
+    model_name = meta.model_name if (meta and meta.model_name) else ""
+    print(f"Model: {model_name}")
+
+    if meta and meta.runs:
+        print(f"Runs: {meta.runs:,}")
+    if meta and meta.runtime_ms is not None:
+        print(f"Runtime: {meta.runtime_ms:.2f} ms")
     if meta and meta.seed:
         print(f"Seed: {meta.seed}")
-    print(f"Currency: {curr_code} ({curr})")
-    print(f"\n{'='*50}")
-    print(f"Risk Metrics")
-    print(f"{'='*50}")
-    if metrics:
-        print(f"EAL (Expected Annual Loss):  {curr}{metrics.eal:,.2f}" if metrics.eal is not None else "")
-        print(f"VaR 95%:                      {curr}{metrics.var_95:,.2f}" if metrics.var_95 is not None else "")
-        print(f"VaR 99%:                      {curr}{metrics.var_99:,.2f}" if metrics.var_99 is not None else "")
-        print(f"VaR 99.9%:                    {curr}{metrics.var_999:,.2f}" if metrics.var_999 is not None else "")
-        print(f"\nMin Loss:                     {curr}{metrics.min:,.2f}" if metrics.min is not None else "")
-        print(f"Max Loss:                     {curr}{metrics.max:,.2f}" if metrics.max is not None else "")
-        print(f"Median Loss:                  {curr}{metrics.median:,.2f}" if metrics.median is not None else "")
-        print(f"Std Deviation:                {curr}{metrics.std_dev:,.2f}" if metrics.std_dev is not None else "")
-    print(f"{'='*50}\n")
+
+    print(f"Currency: {currency_code} ({currency_symbol})")
+
+
+def _print_metrics(metrics: Optional[Metrics], *, currency_symbol: str) -> None:
+    if not metrics:
+        return
+
+    if metrics.eal is not None:
+        print(f"EAL (Expected Annual Loss):  {currency_symbol}{metrics.eal:,.2f}")
+    if metrics.var_95 is not None:
+        print(f"VaR 95%:                      {currency_symbol}{metrics.var_95:,.2f}")
+    if metrics.var_99 is not None:
+        print(f"VaR 99%:                      {currency_symbol}{metrics.var_99:,.2f}")
+    if metrics.var_999 is not None:
+        print(f"VaR 99.9%:                    {currency_symbol}{metrics.var_999:,.2f}")
+
+    if any(v is not None for v in (metrics.min, metrics.max, metrics.median, metrics.std_dev)):
+        print("")
+    if metrics.min is not None:
+        print(f"Min Loss:                     {currency_symbol}{metrics.min:,.2f}")
+    if metrics.max is not None:
+        print(f"Max Loss:                     {currency_symbol}{metrics.max:,.2f}")
+    if metrics.median is not None:
+        print(f"Median Loss:                  {currency_symbol}{metrics.median:,.2f}")
+    if metrics.std_dev is not None:
+        print(f"Std Deviation:                {currency_symbol}{metrics.std_dev:,.2f}")
+
+
+def print_result(result: "SimulationResult") -> None:
+    """Pretty-print a SimulationResult object to the console."""
+
+    if not result.success:
+        _print_failure(result.errors)
+        return
+
+    meta = result.metadata
+    metrics = result.metrics
+    curr_symbol, curr_code = _currency_display(meta)
+
+    _banner("CRML Simulation Results")
+    _print_metadata(meta, currency_symbol=curr_symbol, currency_code=curr_code)
+
+    _banner("Risk Metrics")
+    _print_metrics(metrics, currency_symbol=curr_symbol)
+
+    print("=" * _BANNER_WIDTH + "\n")
