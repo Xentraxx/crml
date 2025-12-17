@@ -52,11 +52,12 @@ async function runSimulation(yamlContent: string, runs: number, seed?: number, o
     return new Promise(async (resolve, reject) => {
         // Read YAML from stdin instead of embedding in code
         const pythonCode = `
-import sys
-import json
-sys.path.insert(0, r'${path.join(process.cwd(), '..', 'src')}')
+    import sys
+    import json
+    sys.path.insert(0, r'${path.join(process.cwd(), '..', 'crml_engine', 'src')}')
+    sys.path.insert(0, r'${path.join(process.cwd(), '..', 'crml_lang', 'src')}')
 
-from crml.runtime import run_simulation
+from crml_engine.runtime import run_simulation_envelope
 
 # Read YAML from stdin
 yaml_content = sys.stdin.read()
@@ -67,7 +68,7 @@ fx_config = {
     "rates": None  # Use default rates
 }
 
-result = run_simulation(yaml_content, n_runs=${runs}${seed ? `, seed=${seed}` : ''}, fx_config=fx_config)
+result = run_simulation_envelope(yaml_content, n_runs=${runs}${seed ? `, seed=${seed}` : ''}, fx_config=fx_config)
 print(json.dumps(result.model_dump()))
 `;
 

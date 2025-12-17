@@ -1,0 +1,318 @@
+{
+  "$defs": {
+    "ControlCatalogEntry": {
+      "description": "Portable metadata about a control id.\n\nImportant: do not embed copyrighted standard text here.\nKeep this to identifiers and tool-friendly metadata.",
+      "properties": {
+        "id": {
+          "description": "Canonical unique control id present in this catalog.",
+          "maxLength": 256,
+          "minLength": 1,
+          "pattern": "^[a-z][a-z0-9_-]{0,31}:[^\\s]{1,223}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "ref": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ControlStructuredRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional structured locator to map the id to an external standard."
+        },
+        "title": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional short human-readable title for the control.",
+          "title": "Title"
+        },
+        "url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional URL for additional reference material.",
+          "title": "Url"
+        },
+        "tags": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional list of tags for grouping/filtering.",
+          "title": "Tags"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "title": "ControlCatalogEntry",
+      "type": "object"
+    },
+    "ControlCatalogPack": {
+      "properties": {
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional identifier for this catalog pack (organization-owned).",
+          "title": "Id"
+        },
+        "framework": {
+          "description": "Free-form framework label for humans/tools.",
+          "title": "Framework",
+          "type": "string"
+        },
+        "controls": {
+          "description": "List of catalog entries.",
+          "items": {
+            "$ref": "#/$defs/ControlCatalogEntry"
+          },
+          "title": "Controls",
+          "type": "array"
+        }
+      },
+      "required": [
+        "framework",
+        "controls"
+      ],
+      "title": "ControlCatalogPack",
+      "type": "object"
+    },
+    "ControlStructuredRef": {
+      "description": "Standard-independent structured control locator.\n\nThis is optional metadata that can be used by tools/UI to help users map\ncontrols, but *referencing* in scenarios/portfolios should be done via\n`ControlId`.\n\nExample:\n    {standard: \"CIS\", version: \"v8\", control: \"2\", safeguard: \"3\"}",
+      "properties": {
+        "standard": {
+          "description": "Standard identifier (e.g. CISv8, ISO27001).",
+          "title": "Standard",
+          "type": "string"
+        },
+        "version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional standard version string.",
+          "title": "Version"
+        },
+        "control": {
+          "description": "Control identifier within the referenced standard.",
+          "title": "Control",
+          "type": "string"
+        },
+        "safeguard": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional sub-control/safeguard identifier.",
+          "title": "Safeguard"
+        }
+      },
+      "required": [
+        "standard",
+        "control"
+      ],
+      "title": "ControlStructuredRef",
+      "type": "object"
+    },
+    "Meta": {
+      "properties": {
+        "name": {
+          "description": "Human-friendly name for this document.",
+          "title": "Name",
+          "type": "string"
+        },
+        "version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional version string for this document.",
+          "title": "Version"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional free-form description.",
+          "title": "Description"
+        },
+        "author": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional author/owner.",
+          "title": "Author"
+        },
+        "organization": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional organization name.",
+          "title": "Organization"
+        },
+        "industries": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional list of industry tags.",
+          "title": "Industries"
+        },
+        "locale": {
+          "additionalProperties": true,
+          "description": "Optional locale/region information and arbitrary locale metadata.",
+          "title": "Locale",
+          "type": "object"
+        },
+        "company_sizes": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional company size tags.",
+          "title": "Company Sizes"
+        },
+        "regulatory_frameworks": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional list of regulatory frameworks relevant to this document.",
+          "title": "Regulatory Frameworks"
+        },
+        "tags": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional list of user-defined tags.",
+          "title": "Tags"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "Meta",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "crml_control_catalog": {
+      "const": "1.0",
+      "description": "Control catalog document version identifier.",
+      "title": "Crml Control Catalog",
+      "type": "string"
+    },
+    "meta": {
+      "$ref": "#/$defs/Meta",
+      "description": "Document metadata (name, description, tags, etc.)."
+    },
+    "catalog": {
+      "$ref": "#/$defs/ControlCatalogPack",
+      "description": "The control catalog pack payload."
+    }
+  },
+  "required": [
+    "crml_control_catalog",
+    "meta",
+    "catalog"
+  ],
+  "title": "CRControlCatalogSchema",
+  "type": "object"
+}

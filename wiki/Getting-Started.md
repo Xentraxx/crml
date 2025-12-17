@@ -6,28 +6,20 @@ This guide will help you install CRML and run your first cyber risk simulation.
 
 ## Installation
 
-### Prerequisites
+For platform-specific install steps, see:
 
-- Python 3.7 or higher
-- pip (Python package manager)
+- [Installation](Installation)
+- [Quickstart](Quickstart)
 
-### Install from PyPI
-
-```bash
-pip install crml-lang
-```
-
-### Verify Installation
+If you want the CLI, install:
 
 ```bash
-crml --version
+pip install crml-engine
 ```
-
-You should see: `CRML CLI version 1.2.0`
 
 ---
 
-## Your First Model
+## Your First Scenario
 
 Let's create a simple ransomware risk model.
 
@@ -36,15 +28,16 @@ Let's create a simple ransomware risk model.
 Create a file named `ransomware.yaml`:
 
 ```yaml
-crml: "1.1"
+crml_scenario: "1.0"
 
 meta:
   name: "simple-ransomware"
   description: "Basic ransomware risk model"
   author: "Your Name"
 
-model:
+scenario:
   frequency:
+    basis: per_organization_per_year
     model: poisson
     parameters:
       lambda: 0.12  # 12% annual probability
@@ -65,7 +58,7 @@ crml validate ransomware.yaml
 
 Expected output:
 ```
-[OK] ransomware.yaml is a valid CRML 1.1 document.
+[OK] ransomware.yaml is a valid CRML scenario document.
 ```
 
 ### 3. Run a Simulation
@@ -106,66 +99,79 @@ The maximum loss at a given confidence level.
 
 ## Adding Security Controls
 
-Now let's add an email filtering control to reduce risk.
+In current CRML, controls are typically applied via a **portfolio**:
 
-Update `ransomware.yaml`:
+- The **scenario** references controls by id (and can add scenario-specific applicability factors).
+- The **portfolio** provides the control inventory/assessment (effectiveness, coverage, reliability, and optional dependency).
+
+### 1) Reference a control from the scenario
+
+Update `ransomware.yaml` to include a control id (example uses the sample control pack id `org:edr`):
 
 ```yaml
-crml: "1.1"
+crml_scenario: "1.0"
 
 meta:
-  name: "ransomware-with-controls"
-  description: "Ransomware risk with email filtering"
+  name: "simple-ransomware"
+  description: "Basic ransomware risk model"
+  author: "Your Name"
 
-model:
+scenario:
   frequency:
+    basis: per_organization_per_year
     model: poisson
     parameters:
-      lambda: 0.12  # 12% baseline probability
-  
-  controls:
-    layers:
-      - name: "email_security"
-        controls:
-          - id: "email_filtering"
-            type: "preventive"
-            effectiveness: 0.85  # Blocks 85% of attacks
-            coverage: 1.0        # Covers all users
-            reliability: 0.95    # 95% uptime
-            cost: 50000
-            currency: USD
-  
+      lambda: 0.12
+
   severity:
     model: lognormal
     parameters:
       median: "500 000"
       currency: USD
       sigma: 1.5
+
+  controls:
+    - id: "org:edr"
+      implementation_effectiveness: 1.0
+      coverage:
+        value: 1.0
+        basis: endpoints
 ```
 
-Run the simulation again:
+### 2) Create a portfolio that supplies control data
+
+Create `ransomware-portfolio.yaml` (in the repo root, so the `examples/...` paths resolve):
+
+```yaml
+crml_portfolio: "1.0"
+meta:
+  name: "ransomware-portfolio"
+
+portfolio:
+  semantics:
+    method: sum
+    constraints:
+      require_paths_exist: true
+      validate_scenarios: true
+
+  control_catalogs:
+    - examples/control_cataloges/control-catalog.yaml
+  control_assessments:
+    - examples/control_assessments/control-assessment.yaml
+
+  # Note: when using `control_assessments`, you must also provide `control_catalogs` so
+  # assessment ids are grounded against a canonical control set.
+
+  scenarios:
+    - id: ransomware
+      path: ransomware.yaml
+```
+
+### 3) Simulate the portfolio
 
 ```bash
-crml simulate ransomware.yaml --runs 10000
+crml simulate ransomware-portfolio.yaml --runs 10000
 ```
-
-Expected output:
-```
-CONTROL EFFECTIVENESS RESULTS
-==============================
-Baseline Lambda (no controls):    0.120000
-Effective Lambda (with controls): 0.018000
-Risk Reduction:                   85.0%
-
-SIMULATION RESULTS
-==================
-Expected Annual Loss (EAL):    $9,000
-Value at Risk (95%):           $187,500
-Value at Risk (99%):           $525,000
-Value at Risk (99.9%):         $1,230,000
-```
-
-**Impact:** Email filtering reduced EAL from $60K to $9K (85% reduction!)
 
 ---
 
@@ -174,7 +180,7 @@ Value at Risk (99.9%):         $1,230,000
 Model risks in different currencies:
 
 ```yaml
-model:
+scenario:
   severity:
     model: mixture
     components:
@@ -183,7 +189,7 @@ model:
           median: "175 000"
           currency: EUR
           sigma: 1.8
-      
+
       - lognormal:  # CCPA fines in USD
           weight: 0.7
           median: "250 000"
@@ -191,10 +197,10 @@ model:
           sigma: 1.5
 ```
 
-Specify output currency:
+Specify output currency via an FX config file:
 
 ```bash
-crml simulate model.yaml --output-currency EUR
+crml simulate scenario.yaml --fx-config examples/fx_configs/fx-config.yaml
 ```
 
 ---
@@ -204,23 +210,25 @@ crml simulate model.yaml --output-currency EUR
 Have historical loss data? Let CRML calibrate parameters automatically:
 
 ```yaml
-data:
-  sources:
-    - type: "inline"
-      single_losses:
-        - "125 000"
-        - "450 000"
-        - "89 000"
-        - "1 200 000"
-        - "67 000"
-      currency: USD
+crml_scenario: "1.0"
+meta: {name: "calibrated-example"}
+scenario:
+  frequency:
+    basis: per_organization_per_year
+    model: poisson
+    parameters: {lambda: 0.1}
 
-model:
   severity:
     model: lognormal
     parameters:
-      calibrate_from: "single_losses"
-      # CRML will calculate median and sigma automatically
+      currency: USD
+      single_losses:
+        - 125000
+        - 450000
+        - 89000
+        - 1200000
+        - 67000
+      # If provided, the reference engine auto-calibrates lognormal mu/sigma from these samples.
 ```
 
 ---
@@ -245,30 +253,21 @@ Make sure Python's bin directory is in your PATH:
 export PATH="$PATH:$HOME/.local/bin"
 
 # Or use python -m
-python3 -m crml.cli validate model.yaml
+python -m crml_engine.cli validate model.yaml
 ```
 
 ### "Invalid CRML document"
 
 Check that:
 1. YAML syntax is correct (use a YAML validator)
-2. `crml: "1.1"` is specified at the top
+2. `crml_scenario: "1.0"` is specified at the top
 3. All required fields are present
 4. Parameter values are in valid ranges
-
-### "ModuleNotFoundError"
-
-Reinstall CRML:
-
-```bash
-pip uninstall crml-lang
-pip install crml-lang
-```
 
 ---
 
 ## Getting Help
 
-- **Documentation:** [CRML Specification](https://github.com/Faux16/crml/blob/main/spec/crml-1.1.md)
+- **Documentation:** [CRML Specification](Reference/CRML-1.1)
 - **Issues:** [GitHub Issues](https://github.com/Faux16/crml/issues)
 - **Discussions:** [GitHub Discussions](https://github.com/Faux16/crml/discussions)

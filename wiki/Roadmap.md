@@ -1,61 +1,21 @@
-# CRML Roadmap
+# Roadmap
 
-This roadmap outlines the planned features and enhancements for CRML. Items are organized by release version and priority.
+This documentation set intentionally avoids embedding forward-looking roadmaps.
 
----
+For current capabilities, use:
 
-## ✅ Released
+- the language and engine pages in the navigation
+- the package changelogs for historical changes
 
-### v1.2.0 - Control Effectiveness Modeling
+For discussions, suggestions, ideas and work tracking, use the repository issue tracker.
 
-**Status:** ✅ Released
+This information is just being kept here for retention reasons and might be deleted later:
 
-Comprehensive security control effectiveness modeling to quantify how controls reduce cyber risk.
-
-**Features:**
-- ✅ Control layers (preventive, detective, recovery)
-- ✅ Effectiveness, coverage, and reliability parameters
-- ✅ Defense-in-depth calculations
-- ✅ Control dependencies and correlations
-- ✅ ROI calculations
-- ✅ Web UI integration
-- ✅ 19 comprehensive tests
-- ✅ Full documentation
-
-**Example:**
-```yaml
-controls:
-  layers:
-    - name: "email_security"
-      controls:
-        - id: "email_filtering"
-          effectiveness: 0.90
-          coverage: 1.0
-          reliability: 0.95
-```
-
-**Impact:** Enables quantifying security investments and optimizing control portfolios.
-
----
-
-### v1.1.0 - Enhanced Usability
-
-**Status:** ✅ Released
-
-- ✅ Median-based parameterization for lognormal distributions
-- ✅ Multi-currency support (15+ currencies)
-- ✅ Auto-calibration from raw loss data
-- ✅ JSON Schema validation
-- ✅ CRML CLI tool
-- ✅ Web playground
-
----
-
-## 🚧 In Progress
+## Draft (In Progress)
 
 ### v1.3.0 - Attack Chain Modeling
 
-**Status:** 🚧 Planning
+**Status:** Draft
 
 **Priority:** High
 
@@ -94,11 +54,11 @@ attack_chain:
 
 ---
 
-## 📋 Planned
+## Draft (Planned)
 
 ### v1.4.0 - Threat Actor Modeling
 
-**Status:** 📋 Planned
+**Status:** Draft
 
 **Priority:** High
 
@@ -127,7 +87,7 @@ threat_actors:
 
 ### v1.5.0 - Data-Driven Calibration
 
-**Status:** 📋 Planned
+**Status:** Draft
 
 **Priority:** Medium
 
@@ -161,7 +121,7 @@ data:
 
 ### v1.6.0 - Temporal Dynamics
 
-**Status:** 📋 Planned
+**Status:** Draft
 
 **Priority:** Medium
 
@@ -195,7 +155,7 @@ temporal:
 
 ### v1.7.0 - Vulnerability & Exposure Modeling
 
-**Status:** 📋 Planned
+**Status:** Draft
 
 **Priority:** Medium
 
@@ -226,7 +186,7 @@ assets:
 
 ### v1.8.0 - Breach Cost Modeling
 
-**Status:** 📋 Planned
+**Status:** Draft
 
 **Priority:** Low
 
@@ -263,7 +223,7 @@ severity:
 
 ### v1.9.0 - Insurance & Risk Transfer
 
-**Status:** 📋 Planned
+**Status:** 🔮 Research
 
 **Priority:** Medium
 
@@ -290,7 +250,7 @@ insurance:
 
 ---
 
-## 🔮 Future (v2.0+)
+## Draft (Future v2.0+)
 
 ### v2.0.0 - Bayesian Inference with MCMC
 
@@ -332,7 +292,7 @@ pipeline:
 Aggregate multiple correlated risk models at enterprise level.
 
 **Planned Features:**
-- Multi-scenario aggregation
+- Multi-file scenario aggregation
 - Correlation modeling between scenarios
 - Portfolio-level VaR
 - Diversification benefits
@@ -399,11 +359,9 @@ Want to help implement these features?
 
 - Timeline estimates are subject to change based on community feedback and priorities
 - Effort estimates assume experienced Python developer
-- Features may be released in different order based on demand
+- Features may be delivered in a different order based on demand
 - Breaking changes will follow semantic versioning (major version bumps)
 
 ---
 
-**Last Updated:** December 15, 2024  
-**Current Version:** 1.2.0  
-**Next Release:** 1.3.0
+**Last Updated:** December 15, 2024
