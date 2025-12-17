@@ -14,7 +14,7 @@ For the detailed architecture, see:
 ## Document types
 
 - Scenario documents: `crml_scenario: "1.0"` (top-level `scenario:`)
-- Portfolio documents: `crml_portfolio: "1.0"` (top-level `portfolio:`)
+- Portfolio documents: `crml_portfolio: "1.0"` (top-level `portfolio:`; if `portfolio.control_assessments` is used, `portfolio.control_catalogs` must also be provided)
 - Control catalog packs: `crml_control_catalog: "1.0"` (top-level `catalog:`)
 - Control assessment packs: `crml_control_assessment: "1.0"` (top-level `assessment:`)
 - FX config documents: `crml_fx_config: "1.0"` (top-level `base_currency`, `output_currency`, `rates`, optional `as_of`; engine-owned config document)
@@ -52,12 +52,12 @@ Engines are expected to return results using the **language-owned result envelop
 
 ```mermaid
 flowchart LR
-    TI["Threat intelligence<br/>feeds"] --> S["Scenario documents<br/>CRScenario"]
+    TI["Threat intelligence<br/>feeds"] -->|publish| S["Scenario documents<br/>CRScenario"]
 
-    ORG["Organization asset inventory<br/>relatively static"] --> P["Portfolio document<br/>CRPortfolio"]
-    TOOL["Portfolio tooling<br/>imports and updates"] -.->|optional| P
+    ORG["Organization asset inventory<br/>(relatively static)"] --> P["Portfolio document<br/>CRPortfolio"]
+    TOOL["Tooling (e.g. SIEM)<br/>imports and updates"] -.->|optional| P
 
-    AUTH["Recognized authorities<br/>NIS, CIS"] --> CC["Control catalog pack<br/>CRControlCatalog"]
+    AUTH["Recognized authorities<br/>NIS, CIS"] -->|publish| CC["Control catalog pack<br/>CRControlCatalog"]
     SCAN["Assessment and scan tools"] --> CA["Control assessment pack<br/>CRControlAssessment"]
     SCAN -.->|optional| P
 

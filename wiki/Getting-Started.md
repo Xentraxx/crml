@@ -159,6 +159,9 @@ portfolio:
   control_assessments:
     - examples/control_assessments/control-assessment.yaml
 
+  # Note: when using `control_assessments`, you must also provide `control_catalogs` so
+  # assessment ids are grounded against a canonical control set.
+
   scenarios:
     - id: ransomware
       path: ransomware.yaml

@@ -154,7 +154,7 @@ portfolio:
     assert any("regulatory frameworks" in e.message for e in report.errors)
 
 
-def test_validate_portfolio_relevance_requires_catalog_when_assessments_used(tmp_path) -> None:
+def test_validate_portfolio_requires_catalog_when_assessments_used(tmp_path) -> None:
     assessment_path = tmp_path / "control-assessment.yaml"
     assessment_path.write_text(
         """
@@ -202,8 +202,6 @@ portfolio:
     - {assessment_path.name}
   semantics:
     method: sum
-    constraints:
-      validate_relevance: true
   scenarios:
     - id: s1
       path: {scenario_path.name}

@@ -70,6 +70,21 @@ scenario:
         encoding="utf-8",
     )
 
+    catalog_path = tmp_path / "catalog.yaml"
+    catalog_path.write_text(
+        """
+crml_control_catalog: "1.0"
+meta:
+  name: "ISO27001 minimal catalog"
+catalog:
+  framework: "ISO27001:2022"
+  controls:
+    - id: "iso27001:2022:A.5.1"
+      title: "Policies for information security"
+""".lstrip(),
+        encoding="utf-8",
+    )
+
     assessment_path = tmp_path / "assessment.yaml"
     assessment_path.write_text(
         """
@@ -97,6 +112,8 @@ portfolio:
     constraints:
       require_paths_exist: true
       validate_scenarios: true
+  control_catalogs:
+    - {catalog_path.name}
   control_assessments:
     - {assessment_path.name}
   scenarios:

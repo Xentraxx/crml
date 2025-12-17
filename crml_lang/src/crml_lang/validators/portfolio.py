@@ -108,14 +108,11 @@ def _effective_portfolio_frameworks(
     return declared_frameworks, []
 
 
-def _require_catalogs_for_assessments_when_validate_relevance(
+def _require_catalogs_for_assessments(
     *,
-    validate_relevance: bool,
     catalog_paths: list[str],
     assessment_paths: list[str],
 ) -> list[ValidationMessage]:
-    if not validate_relevance:
-        return []
     if not assessment_paths:
         return []
     if catalog_paths:
@@ -126,8 +123,8 @@ def _require_catalogs_for_assessments_when_validate_relevance(
             source="semantic",
             path="portfolio -> control_catalogs",
             message=(
-                "When semantics.constraints.validate_relevance is enabled and portfolio.control_assessments is used, "
-                "portfolio.control_catalogs must also be provided so assessment ids can be validated against a canonical control catalog."
+                "When portfolio.control_assessments is used, portfolio.control_catalogs must also be provided so assessment ids "
+                "can be validated against a canonical control catalog."
             ),
         )
     ]
@@ -1008,8 +1005,7 @@ def _portfolio_semantic_checks(data: dict[str, Any], *, base_dir: str | None = N
     messages.extend(pack_messages)
 
     messages.extend(
-        _require_catalogs_for_assessments_when_validate_relevance(
-            validate_relevance=validate_relevance,
+        _require_catalogs_for_assessments(
             catalog_paths=catalog_paths,
             assessment_paths=assessment_paths,
         )
