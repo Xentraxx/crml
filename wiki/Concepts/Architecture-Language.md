@@ -24,8 +24,9 @@ It intentionally does **not** run simulations.
 
 - Scenario document (`crml_scenario: "1.0"`)
 - Portfolio document (`crml_portfolio: "1.0"`)
-- Control catalog pack
-- Control assessment pack
+- Control cataloge
+- Assessment cataloge
+- Control relationships pack (`crml_control_relationships: "1.0"`)
 
 ### Outputs
 
@@ -34,7 +35,7 @@ It intentionally does **not** run simulations.
 
 ## Bundle contract
 
-`crml_lang` defines `CRPortfolioBundle` as an engine-agnostic, self-contained artifact that inlines a portfolio's referenced scenarios (and optionally control packs).
+`crml_lang` defines `CRPortfolioBundle` as an engine-agnostic, self-contained artifact that inlines a portfolio's referenced scenarios (and optionally control cataloges, assessments, and control relationships packs).
 
 This bundle is *inlined-only*: it does not contain planning-derived fields (e.g., per-scenario cardinality or resolved control effects).
 

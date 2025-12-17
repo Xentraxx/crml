@@ -1,6 +1,5 @@
 import json
 from typing import Union, Optional
-from crml_lang.models.crml_model import load_crml_from_yaml_str, CRMLSchema
 from crml_engine.pipeline import plan_portfolio
 import numpy as np
 
@@ -231,9 +230,10 @@ def run_simulation(
     fx_config: Optional[FXConfig] = None
 ) -> SimulationResult:
     """
-    Backward compatible wrapper for run_monte_carlo.
-    
-    See crml_engine.simulation.engine.run_monte_carlo for documentation.
+    Run a Monte Carlo simulation for a CRML scenario.
+
+    This is a convenience wrapper around
+    `crml_engine.simulation.engine.run_monte_carlo`.
     """
     return run_monte_carlo(yaml_content, n_runs, seed, fx_config)
 
@@ -367,7 +367,7 @@ def calibrate_lognormal_from_single_losses(
     fx_config: FXConfig,
 ) -> tuple[float, float]:
     """
-    Backward compatible wrapper for severity calibration.
+    Convenience wrapper for severity calibration.
     """
     return SeverityEngine.calibrate_lognormal_from_single_losses(
         single_losses, currency, base_currency, fx_config

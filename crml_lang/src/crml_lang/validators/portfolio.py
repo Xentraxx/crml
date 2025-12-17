@@ -16,7 +16,8 @@ from .common import (
     _control_ids_from_controls,
 )
 from .control_catalog import validate_control_catalog
-from .control_assessment import validate_control_assessment
+from .assessment import validate_assessment
+from .control_relationships import validate_control_relationships
 
 
 _PATH_PORTFOLIO_CONTROLS_ID = "portfolio -> controls -> id"
@@ -123,7 +124,7 @@ def _require_catalogs_for_assessments(
             source="semantic",
             path="portfolio -> control_catalogs",
             message=(
-                "When portfolio.control_assessments is used, portfolio.control_catalogs must also be provided so assessment ids "
+                "When portfolio.assessments is used, portfolio.control_catalogs must also be provided so assessment ids "
                 "can be validated against a canonical control catalog."
             ),
         )
@@ -187,7 +188,7 @@ def _controls_uniqueness_checks(portfolio: dict[str, Any]) -> list[ValidationMes
     return messages
 
 
-def _validate_pack_references(
+def _validate_cataloge_references(
     *,
     portfolio: dict[str, Any],
     base_dir: str | None,
@@ -199,6 +200,72 @@ def _validate_pack_references(
         catalog_paths=catalog_paths,
     )
     return catalog_paths, assessment_paths, [*cat_messages, *assess_messages]
+
+
+def _validate_control_relationships_references(
+    *,
+    portfolio: dict[str, Any],
+    base_dir: str | None,
+) -> tuple[list[str], list[ValidationMessage]]:
+    sources = portfolio.get("control_relationships")
+    if sources is None:
+        return [], []
+    if not isinstance(sources, list):
+        return (
+            [],
+            [
+                ValidationMessage(
+                    level="error",
+                    source="semantic",
+                    path="portfolio -> control_relationships",
+                    message="portfolio.control_relationships must be a list of file paths.",
+                )
+            ],
+        )
+
+    paths: list[str] = []
+    messages: list[ValidationMessage] = []
+    for idx, p in enumerate(sources):
+        if not isinstance(p, str) or not p:
+            messages.append(
+                ValidationMessage(
+                    level="error",
+                    source="semantic",
+                    path=f"portfolio -> control_relationships -> {idx}",
+                    message="control relationships pack path must be a non-empty string.",
+                )
+            )
+            continue
+
+        resolved = _resolve_path(base_dir, p)
+        if not os.path.exists(resolved):
+            messages.append(
+                ValidationMessage(
+                    level="error",
+                    source="semantic",
+                    path=f"portfolio -> control_relationships -> {idx}",
+                    message=f"Control relationships file not found at path: {resolved}",
+                )
+            )
+            paths.append(resolved)
+            continue
+
+        rel_report = validate_control_relationships(resolved, source_kind="path")
+        if not rel_report.ok:
+            for e in rel_report.errors:
+                messages.append(
+                    ValidationMessage(
+                        level=e.level,
+                        source=e.source,
+                        path=f"portfolio -> control_relationships -> {idx} -> {e.path}",
+                        message=e.message,
+                        validator=e.validator,
+                    )
+                )
+
+        paths.append(resolved)
+
+    return paths, messages
 
 
 def _validate_catalog_references(
@@ -286,7 +353,9 @@ def _validate_assessment_references(
     base_dir: str | None,
     catalog_paths: list[str],
 ) -> tuple[list[str], list[ValidationMessage]]:
-    sources = portfolio.get("control_assessments")
+    sources = portfolio.get("assessments")
+    if sources is None:
+        sources = portfolio.get("control_assessments")
     if sources is None:
         return [], []
     if not isinstance(sources, list):
@@ -296,8 +365,8 @@ def _validate_assessment_references(
                 ValidationMessage(
                     level="error",
                     source="semantic",
-                    path="portfolio -> control_assessments",
-                    message="portfolio.control_assessments must be a list of file paths.",
+                    path="portfolio -> assessments",
+                    message="portfolio.assessments must be a list of file paths.",
                 )
             ],
         )
@@ -331,8 +400,8 @@ def _validate_one_assessment_path(
                 ValidationMessage(
                     level="error",
                     source="semantic",
-                    path=f"portfolio -> control_assessments -> {idx}",
-                    message="control assessment path must be a non-empty string.",
+                    path=f"portfolio -> assessments -> {idx}",
+                    message="assessment path must be a non-empty string.",
                 )
             ],
         )
@@ -345,13 +414,13 @@ def _validate_one_assessment_path(
                 ValidationMessage(
                     level="error",
                     source="semantic",
-                    path=f"portfolio -> control_assessments -> {idx}",
-                    message=f"Control assessment file not found at path: {resolved}",
+                    path=f"portfolio -> assessments -> {idx}",
+                    message=f"Assessment file not found at path: {resolved}",
                 )
             ],
         )
 
-    assess_report = validate_control_assessment(
+    assess_report = validate_assessment(
         resolved,
         source_kind="path",
         control_catalogs=catalog_paths if catalog_paths else None,
@@ -365,7 +434,7 @@ def _validate_one_assessment_path(
                 ValidationMessage(
                     level=e.level,
                     source=e.source,
-                    path=f"portfolio -> control_assessments -> {idx} -> {e.path}",
+                    path=f"portfolio -> assessments -> {idx} -> {e.path}",
                     message=e.message,
                     validator=e.validator,
                 )
@@ -699,6 +768,107 @@ def _load_scenario_doc(resolved_path: str) -> tuple[Any | None, str | None]:
         return None, str(e)
 
 
+def _asset_cardinalities_by_name(portfolio: dict[str, Any]) -> dict[str, int]:
+    assets = portfolio.get("assets")
+    if not isinstance(assets, list):
+        return {}
+    out: dict[str, int] = {}
+    for a in assets:
+        if not isinstance(a, dict):
+            continue
+        name = a.get("name")
+        card = a.get("cardinality")
+        if not isinstance(name, str) or not name:
+            continue
+        if not isinstance(card, int):
+            continue
+        out[name] = card
+    return out
+
+
+def _binding_applies_to_assets(sc: dict[str, Any]) -> tuple[bool, Any]:
+    binding = sc.get("binding")
+    if not isinstance(binding, dict):
+        return False, None
+    if "applies_to_assets" not in binding:
+        return False, None
+    return True, binding.get("applies_to_assets")
+
+
+def _bound_assets_from_binding(*, applies_present: bool, applies_value: Any, asset_cardinalities: dict[str, int]) -> list[str]:
+    if not asset_cardinalities:
+        return []
+    if not applies_present or applies_value is None:
+        return list(asset_cardinalities.keys())
+    if isinstance(applies_value, list):
+        return [x for x in applies_value if isinstance(x, str)]
+    return []
+
+
+def _total_exposure(bound_assets: list[str], asset_cardinalities: dict[str, int]) -> int:
+    return int(sum(int(asset_cardinalities.get(name, 0) or 0) for name in bound_assets))
+
+
+def _frequency_binding_warnings(
+    *,
+    sc: dict[str, Any],
+    scenario_doc: Any,
+    idx: int,
+    asset_cardinalities: dict[str, int],
+) -> list[ValidationMessage]:
+    """Language-level validation guidance for portfolio scenario bindings.
+
+    - If frequency basis is per_asset_unit_per_year and total bound exposure E=0, warn.
+    - If basis is per_organization_per_year and applies_to_assets is explicitly provided (non-null), warn.
+    """
+
+    try:
+        basis = scenario_doc.scenario.frequency.basis
+    except Exception:
+        return []
+
+    applies_present, applies_value = _binding_applies_to_assets(sc)
+
+    messages: list[ValidationMessage] = []
+
+    if basis == "per_organization_per_year" and applies_present and applies_value is not None:
+        messages.append(
+            ValidationMessage(
+                level="warning",
+                source="semantic",
+                path=f"portfolio -> scenarios -> {idx} -> binding -> applies_to_assets",
+                message=(
+                    "Scenario frequency basis is 'per_organization_per_year'; asset binding does not affect frequency scaling "
+                    "(expected annual event count is not multiplied by exposure). "
+                    "If you intended per-asset scaling, use 'per_asset_unit_per_year'."
+                ),
+            )
+        )
+
+    if basis == "per_asset_unit_per_year":
+        bound_assets = _bound_assets_from_binding(
+            applies_present=applies_present,
+            applies_value=applies_value,
+            asset_cardinalities=asset_cardinalities,
+        )
+        exposure = _total_exposure(bound_assets, asset_cardinalities)
+
+        if exposure == 0:
+            messages.append(
+                ValidationMessage(
+                    level="warning",
+                    source="semantic",
+                    path=f"portfolio -> scenarios -> {idx} -> binding -> applies_to_assets",
+                    message=(
+                        "Scenario frequency basis is 'per_asset_unit_per_year' but total bound exposure E=0 (no assets bound). "
+                        "Add portfolio.assets and/or bind this scenario to one or more assets."
+                    ),
+                )
+            )
+
+    return messages
+
+
 def _portfolio_control_namespace_alignment(
     *,
     portfolio_control_ids: set[str],
@@ -742,7 +912,7 @@ def _scenario_control_mapping_checks(
                 path=_PATH_PORTFOLIO_CONTROLS,
                 message=(
                     "Scenario(s) reference controls but no control inventory is available. "
-                    "Provide portfolio.controls or reference control_assessments."
+                    "Provide portfolio.controls or reference assessments."
                 ),
             )
         )
@@ -777,6 +947,7 @@ def _cross_document_checks(
     portfolio_frameworks: set[str],
     portfolio_countries: set[str],
     portfolio: dict[str, Any],
+    asset_cardinalities: dict[str, int],
     assessment_ids: set[str],
     catalog_ids: set[str],
 ) -> list[ValidationMessage]:
@@ -802,7 +973,7 @@ def _cross_document_checks(
                 level="warning",
                 source="semantic",
                 path=_PATH_PORTFOLIO_CONTROLS,
-                message="portfolio.controls is missing/empty; using control ids from referenced control assessment pack(s) for scenario mapping.",
+                message="portfolio.controls is missing/empty; using control ids from referenced control assessment cataloge(s) for scenario mapping.",
             )
         )
 
@@ -818,6 +989,7 @@ def _cross_document_checks(
             portfolio_frameworks=portfolio_frameworks,
             portfolio_countries=portfolio_countries,
             portfolio_control_ids=portfolio_control_ids,
+            asset_cardinalities=asset_cardinalities,
         )
     )
     return messages
@@ -853,7 +1025,7 @@ def _validate_controls_exist_in_catalog(
             level="error",
             source="semantic",
             path=_PATH_PORTFOLIO_CONTROLS_ID,
-            message=f"Portfolio references unknown control id '{cid}' (not found in referenced control catalog pack(s)).",
+            message=f"Portfolio references unknown control id '{cid}' (not found in referenced control cataloge(s)).",
         )
         for cid in missing
     ]
@@ -871,6 +1043,7 @@ def _scenario_cross_checks(
     portfolio_frameworks: set[str],
     portfolio_countries: set[str],
     portfolio_control_ids: set[str],
+    asset_cardinalities: dict[str, int],
 ) -> list[ValidationMessage]:
     messages: list[ValidationMessage] = []
     for idx, sc in enumerate(scenarios):
@@ -888,6 +1061,7 @@ def _scenario_cross_checks(
             portfolio_frameworks=portfolio_frameworks,
             portfolio_countries=portfolio_countries,
             portfolio_control_ids=portfolio_control_ids,
+            asset_cardinalities=asset_cardinalities,
         )
         messages.extend(entry_messages)
         if stop:
@@ -908,6 +1082,7 @@ def _scenario_cross_checks_one(
     portfolio_frameworks: set[str],
     portfolio_countries: set[str],
     portfolio_control_ids: set[str],
+    asset_cardinalities: dict[str, int],
 ) -> tuple[list[ValidationMessage], bool]:
     spath = sc.get("path")
     if not isinstance(spath, str) or not spath:
@@ -944,6 +1119,16 @@ def _scenario_cross_checks_one(
         )
 
     messages: list[ValidationMessage] = []
+
+    messages.extend(
+        _frequency_binding_warnings(
+            sc=sc,
+            scenario_doc=scenario_doc,
+            idx=idx,
+            asset_cardinalities=asset_cardinalities,
+        )
+    )
+
     if validate_relevance:
         messages.extend(
             _relevance_checks_for_scenario(
@@ -988,6 +1173,8 @@ def _portfolio_semantic_checks(data: dict[str, Any], *, base_dir: str | None = N
     if not isinstance(scenarios, list):
         return messages
 
+    asset_cardinalities = _asset_cardinalities_by_name(portfolio)
+
     messages.extend(_controls_uniqueness_checks(portfolio))
 
     semantics = portfolio.get("semantics")
@@ -1001,8 +1188,14 @@ def _portfolio_semantic_checks(data: dict[str, Any], *, base_dir: str | None = N
     require_paths_exist = isinstance(constraints, dict) and constraints.get("require_paths_exist") is True
     validate_relevance = isinstance(constraints, dict) and constraints.get("validate_relevance") is True
 
-    catalog_paths, assessment_paths, pack_messages = _validate_pack_references(portfolio=portfolio, base_dir=base_dir)
-    messages.extend(pack_messages)
+    catalog_paths, assessment_paths, cataloge_messages = _validate_cataloge_references(portfolio=portfolio, base_dir=base_dir)
+    messages.extend(cataloge_messages)
+
+    _, relationship_messages = _validate_control_relationships_references(
+        portfolio=portfolio,
+        base_dir=base_dir,
+    )
+    messages.extend(relationship_messages)
 
     messages.extend(
         _require_catalogs_for_assessments(
@@ -1040,6 +1233,7 @@ def _portfolio_semantic_checks(data: dict[str, Any], *, base_dir: str | None = N
                 portfolio_frameworks=portfolio_frameworks,
                 portfolio_countries=portfolio_countries,
                 portfolio=portfolio,
+                asset_cardinalities=asset_cardinalities,
                 assessment_ids=assessment_ids,
                 catalog_ids=catalog_ids,
             )

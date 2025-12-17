@@ -493,10 +493,10 @@
             }
           ],
           "default": null,
-          "description": "Optional list of file paths to referenced control catalog packs.",
+          "description": "Optional list of file paths to referenced control cataloges.",
           "title": "Control Catalogs"
         },
-        "control_assessments": {
+        "assessments": {
           "anyOf": [
             {
               "items": {
@@ -509,8 +509,24 @@
             }
           ],
           "default": null,
-          "description": "Optional list of file paths to referenced control assessment packs.",
-          "title": "Control Assessments"
+          "description": "Optional list of file paths to referenced assessment cataloges.",
+          "title": "Assessments"
+        },
+        "control_relationships": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional list of file paths to referenced control relationships packs (control-to-control mappings). These can be used by tools/engines to resolve scenario control ids to implemented portfolio controls with quantitative overlap metadata.",
+          "title": "Control Relationships"
         },
         "scenarios": {
           "description": "List of scenario references included in the portfolio.",

@@ -24,8 +24,8 @@ class ControlCatalogEntry(BaseModel):
     tags: Optional[List[str]] = Field(None, description="Optional list of tags for grouping/filtering.")
 
 
-class ControlCatalogPack(BaseModel):
-    id: Optional[str] = Field(None, description="Optional identifier for this catalog pack (organization-owned).")
+class ControlCataloge(BaseModel):
+    id: Optional[str] = Field(None, description="Optional identifier for this cataloge (organization-owned).")
     # Free-form label for humans/tools (e.g. "CIS v8", "ISO 27001:2022").
     framework: str = Field(..., description="Free-form framework label for humans/tools.")
     controls: List[ControlCatalogEntry] = Field(..., description="List of catalog entries.")
@@ -36,6 +36,6 @@ class CRControlCatalogSchema(BaseModel):
         ..., description="Control catalog document version identifier."
     )
     meta: Meta = Field(..., description="Document metadata (name, description, tags, etc.).")
-    catalog: ControlCatalogPack = Field(..., description="The control catalog pack payload.")
+    catalog: ControlCataloge = Field(..., description="The control cataloge payload.")
 
     model_config: ConfigDict = ConfigDict(populate_by_name=True)

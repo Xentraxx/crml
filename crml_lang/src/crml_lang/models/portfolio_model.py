@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Literal, Optional
 
-from pydantic import BaseModel, Field, ConfigDict, field_validator
+from pydantic import AliasChoices, BaseModel, Field, ConfigDict, field_validator
 
 from .crml_model import Meta
 from .control_ref import ControlId
@@ -203,13 +203,24 @@ class Portfolio(BaseModel):
         None, description="Optional list of controls present in the organization/portfolio."
     )
 
-    # Optional pack references (paths). These allow portfolios to point at
+    # Optional cataloge references (paths). These allow portfolios to point at
     # portable catalogs/assessments without duplicating their contents.
     control_catalogs: Optional[List[str]] = Field(
-        None, description="Optional list of file paths to referenced control catalog packs."
+        None, description="Optional list of file paths to referenced control cataloges."
     )
-    control_assessments: Optional[List[str]] = Field(
-        None, description="Optional list of file paths to referenced control assessment packs."
+    assessments: Optional[List[str]] = Field(
+        None,
+        validation_alias=AliasChoices("assessments", "control_assessments"),
+        serialization_alias="assessments",
+        description="Optional list of file paths to referenced assessment cataloges.",
+    )
+
+    control_relationships: Optional[List[str]] = Field(
+        None,
+        description=(
+            "Optional list of file paths to referenced control relationships packs (control-to-control mappings). "
+            "These can be used by tools/engines to resolve scenario control ids to implemented portfolio controls with quantitative overlap metadata."
+        ),
     )
 
     scenarios: List[ScenarioRef] = Field(..., description="List of scenario references included in the portfolio.")

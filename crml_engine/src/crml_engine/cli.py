@@ -12,7 +12,7 @@ The primary, supported programmatic API lives in `crml_lang.api` and
 import argparse
 import sys
 
-from crml_lang.validator import validate
+from crml_lang import validate_document
 from crml_engine.runtime import run_simulation_cli
 
 def main(argv=None, *, exit_on_return: bool = True):
@@ -49,12 +49,6 @@ def main(argv=None, *, exit_on_return: bool = True):
     simulate_parser.add_argument('--fx-config', type=str, default=None,
                                 help='Path to FX configuration YAML file for currency settings')
     
-    # Legacy 'run' command (alias for simulate)
-    run_parser = subparsers.add_parser('run', help='Run a Monte Carlo simulation (alias for simulate)')
-    run_parser.add_argument('file', help='Path to CRML YAML file')
-    run_parser.add_argument('--runs', type=int, default=10000,
-                           help='Number of simulation runs (default: 10000)')
-    
     args = parser.parse_args(argv)
     
     if not args.command:
@@ -65,7 +59,7 @@ def main(argv=None, *, exit_on_return: bool = True):
         return exit_code
     
     if args.command == 'validate':
-        report = validate(args.file, source_kind="path")
+        report = validate_document(args.file, source_kind="path")
         print(report.render_text(source_label=args.file))
         exit_code = 0 if report.ok else 1
         if exit_on_return:
@@ -82,14 +76,6 @@ def main(argv=None, *, exit_on_return: bool = True):
     
     elif args.command == 'simulate':
         success = run_simulation_cli(args.file, n_runs=args.runs, output_format=args.format, fx_config_path=args.fx_config)
-        exit_code = 0 if success else 1
-        if exit_on_return:
-            raise SystemExit(exit_code)
-        return exit_code
-    
-    elif args.command == 'run':
-        # Legacy command - use text format
-        success = run_simulation_cli(args.file, n_runs=args.runs, output_format='text')
         exit_code = 0 if success else 1
         if exit_on_return:
             raise SystemExit(exit_code)

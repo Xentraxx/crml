@@ -221,9 +221,6 @@ class CRScenarioSchema(BaseModel):
         return v
 
 
-# Backward-compatible alias used by the engine/tests.
-CRMLSchema = CRScenarioSchema
-
 # Usage: CRScenarioSchema.model_validate(your_json_dict)
 
 

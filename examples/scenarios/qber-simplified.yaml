@@ -24,6 +24,7 @@ scenario:
       beta_base: 1.5
   severity:
     model: mixture  # Mixture of distributions
+    parameters: {}
     components:
       - lognormal:
           weight: 0.7  # 70% of losses follow lognormal
@@ -34,6 +35,7 @@ scenario:
           weight: 0.3  # 30% follow gamma (catastrophic losses)
           shape: 2.5
           scale: 10000
+          currency: USD
 
 # Note: Full QBER models use MCMC (Markov Chain Monte Carlo) for Bayesian inference.
 # This simplified version uses Monte Carlo simulation as an approximation.

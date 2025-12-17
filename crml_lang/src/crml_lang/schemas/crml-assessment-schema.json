@@ -1,6 +1,6 @@
 {
   "$defs": {
-    "ControlAssessment": {
+    "Assessment": {
       "properties": {
         "id": {
           "description": "Canonical unique control id in the form 'namespace:key' (no whitespace).",
@@ -79,8 +79,34 @@
             }
           ],
           "default": "frequency",
-          "description": "Which loss component this control affects. Default is 'frequency' (frequency-first). Note: the current reference engine primarily applies controls to frequency (lambda).",
+          "description": "Which loss component this assessment affects. Default is 'frequency' (frequency-first). Note: the current reference engine primarily applies controls to frequency (lambda).",
           "title": "Affects"
+        },
+        "question": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional assessment prompt/question text for this control (tool/community-defined). Useful for questionnaires and evidence collection.",
+          "title": "Question"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional additional description for this assessment entry (tool/community-defined). Avoid embedding copyrighted standard text unless you have rights.",
+          "title": "Description"
         },
         "notes": {
           "anyOf": [
@@ -99,10 +125,10 @@
       "required": [
         "id"
       ],
-      "title": "ControlAssessment",
+      "title": "Assessment",
       "type": "object"
     },
-    "ControlAssessmentPack": {
+    "AssessmentCataloge": {
       "properties": {
         "id": {
           "anyOf": [
@@ -114,7 +140,7 @@
             }
           ],
           "default": null,
-          "description": "Optional identifier for this assessment pack (organization-owned).",
+          "description": "Optional identifier for this assessment cataloge (organization-owned).",
           "title": "Id"
         },
         "framework": {
@@ -133,13 +159,13 @@
             }
           ],
           "default": null,
-          "description": "When this assessment pack was performed/recorded (ISO 8601 date-time). Example: '2025-12-17T10:15:30Z'.",
+          "description": "When this assessment cataloge was performed/recorded (ISO 8601 date-time). Example: '2025-12-17T10:15:30Z'.",
           "title": "Assessed At"
         },
         "assessments": {
           "description": "List of per-control assessment entries.",
           "items": {
-            "$ref": "#/$defs/ControlAssessment"
+            "$ref": "#/$defs/Assessment"
           },
           "title": "Assessments",
           "type": "array"
@@ -149,7 +175,7 @@
         "framework",
         "assessments"
       ],
-      "title": "ControlAssessmentPack",
+      "title": "AssessmentCataloge",
       "type": "object"
     },
     "ControlStructuredRef": {
@@ -382,10 +408,10 @@
     }
   },
   "properties": {
-    "crml_control_assessment": {
+    "crml_assessment": {
       "const": "1.0",
-      "description": "Control assessment document version identifier.",
-      "title": "Crml Control Assessment",
+      "description": "Assessment document version identifier.",
+      "title": "Crml Assessment",
       "type": "string"
     },
     "meta": {
@@ -393,15 +419,15 @@
       "description": "Document metadata (name, description, tags, etc.)."
     },
     "assessment": {
-      "$ref": "#/$defs/ControlAssessmentPack",
-      "description": "The control assessment pack payload."
+      "$ref": "#/$defs/AssessmentCataloge",
+      "description": "The assessment cataloge payload."
     }
   },
   "required": [
-    "crml_control_assessment",
+    "crml_assessment",
     "meta",
     "assessment"
   ],
-  "title": "CRControlAssessmentSchema",
+  "title": "CRAssessmentSchema",
   "type": "object"
 }

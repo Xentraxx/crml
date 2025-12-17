@@ -16,80 +16,106 @@ from .common import (
 )
 
 
-def _semantic_warnings(data: dict[str, Any]) -> list[ValidationMessage]:
-    warnings: list[ValidationMessage] = []
+_ROOT_PATH = "(root)"
+_CURRENT_VERSION = "1.0"
+_RECOMMENDED_META_KEYS = ("version", "description", "author", "industries")
 
+
+def _warn_non_current_version(*, data: dict[str, Any], warnings: list[ValidationMessage]) -> None:
     # Warn if using non-current CRML version
     # Note: the JSON schema currently enforces the version, so this is mainly
     # forward-compatible documentation for future schema relaxations.
-    current_version = "1.0"
-    if data.get("crml_scenario") != current_version:
+    if data.get("crml_scenario") != _CURRENT_VERSION:
         warnings.append(
             ValidationMessage(
                 level="warning",
                 source="semantic",
                 path="crml_scenario",
-                message=f"CRML scenario version '{data.get('crml_scenario')}' is not current. Consider upgrading to '{current_version}'.",
+                message=(
+                    f"CRML scenario version '{data.get('crml_scenario')}' is not current. "
+                    f"Consider upgrading to '{_CURRENT_VERSION}'."
+                ),
             )
         )
 
-    meta = data.get("meta", {}) if isinstance(data.get("meta"), dict) else {}
-    for key in ["version", "description", "author", "industries"]:
+
+def _warn_missing_meta_fields(*, meta: dict[str, Any], warnings: list[ValidationMessage]) -> None:
+    for key in _RECOMMENDED_META_KEYS:
         if key not in meta or meta.get(key) in ([], ""):
             warnings.append(
                 ValidationMessage(
                     level="warning",
                     source="semantic",
                     path=f"meta -> {key}",
-                    message=f"'meta.{key}' is missing or empty. It is not required, but strongly recommended for documentation and context.",
+                    message=(
+                        f"'meta.{key}' is missing or empty. It is not required, "
+                        "but strongly recommended for documentation and context."
+                    ),
                 )
             )
 
-    locale = meta.get("locale", {}) if isinstance(meta.get("locale"), dict) else {}
+
+def _warn_missing_regions(*, locale: dict[str, Any], warnings: list[ValidationMessage]) -> None:
     if "regions" not in locale or locale.get("regions") in ([], ""):
         warnings.append(
             ValidationMessage(
                 level="warning",
                 source="semantic",
                 path="meta -> locale -> regions",
-                message="'meta.locale.regions' is missing or empty. It is not required, but strongly recommended for documentation and context.",
+                message=(
+                    "'meta.locale.regions' is missing or empty. It is not required, "
+                    "but strongly recommended for documentation and context."
+                ),
             )
         )
 
-    scenario = data.get("scenario", {}) if isinstance(data.get("scenario"), dict) else {}
-    severity = scenario.get("severity", {}) if isinstance(scenario.get("severity"), dict) else {}
 
+def _warn_mixture_weights(*, severity: dict[str, Any], warnings: list[ValidationMessage]) -> None:
     # Warn if mixture weights don't sum to 1
-    if severity.get("model") == "mixture" and isinstance(severity.get("components"), list):
-        total_weight = 0.0
-        for comp in severity.get("components", []):
-            if not isinstance(comp, dict) or not comp:
-                continue
-            dist_key = list(comp.keys())[0]
-            if isinstance(comp.get(dist_key), dict):
-                total_weight += float(comp[dist_key].get("weight", 0) or 0)
-        if abs(total_weight - 1.0) > 0.001:
-            warnings.append(
-                ValidationMessage(
-                    level="warning",
-                    source="semantic",
-                    path="scenario -> severity -> components",
-                    message=f"Mixture weights sum to {total_weight:.3f}, should sum to 1.0",
-                )
-            )
+    if severity.get("model") != "mixture" or not isinstance(severity.get("components"), list):
+        return
 
+    total_weight = 0.0
+    for comp in severity.get("components", []):
+        if not isinstance(comp, dict) or not comp:
+            continue
+        dist_key = next(iter(comp.keys()), None)
+        if not dist_key:
+            continue
+        dist = comp.get(dist_key)
+        if isinstance(dist, dict):
+            total_weight += float(dist.get("weight", 0) or 0)
+
+    if abs(total_weight - 1.0) > 0.001:
+        warnings.append(
+            ValidationMessage(
+                level="warning",
+                source="semantic",
+                path="scenario -> severity -> components",
+                message=f"Mixture weights sum to {total_weight:.3f}, should sum to 1.0",
+            )
+        )
+
+
+def _warn_missing_currency(*, severity: dict[str, Any], warnings: list[ValidationMessage]) -> None:
     # Warn if severity node appears to contain monetary values but no currency property
     params = severity.get("parameters", {}) if isinstance(severity.get("parameters"), dict) else {}
-    if any(k in params for k in ("median", "mu", "mean", "single_losses")) and "currency" not in params:
+    has_money_fields = any(k in params for k in ("median", "mu", "mean", "single_losses"))
+    if has_money_fields and "currency" not in params:
         warnings.append(
             ValidationMessage(
                 level="warning",
                 source="semantic",
                 path="scenario -> severity -> parameters",
-                message="Severity node has monetary values but no 'currency' property. Specify the currency to avoid implicit assumptions.",
+                message=(
+                    "Severity node has monetary values but no 'currency' property. "
+                    "Specify the currency to avoid implicit assumptions."
+                ),
             )
         )
 
+
+def _warn_duplicate_scenario_control_ids(*, scenario: dict[str, Any], warnings: list[ValidationMessage]) -> None:
     # Warn if scenario control ids contain duplicates
     scenario_controls = scenario.get("controls") if isinstance(scenario, dict) else None
     ids = _control_ids_from_controls(scenario_controls)
@@ -102,6 +128,81 @@ def _semantic_warnings(data: dict[str, Any]) -> list[ValidationMessage]:
                 message="Scenario 'controls' contains duplicate control ids.",
             )
         )
+
+
+def _schema_errors(data: dict[str, Any]) -> list[ValidationMessage]:
+    schema = _load_scenario_schema()
+    validator = Draft202012Validator(schema)
+
+    errors: list[ValidationMessage] = []
+    for err in validator.iter_errors(data):
+        errors.append(
+            ValidationMessage(
+                level="error",
+                source="schema",
+                path=_jsonschema_path(err),
+                message=_format_jsonschema_error(err),
+                validator=getattr(err, "validator", None),
+            )
+        )
+    return errors
+
+
+def _pydantic_strict_model_errors(data: dict[str, Any]) -> list[ValidationMessage]:
+    errors: list[ValidationMessage] = []
+    try:
+        from ..models.crml_model import CRScenarioSchema
+
+        CRScenarioSchema.model_validate(data)
+    except Exception as e:
+        try:
+            pydantic_errors = e.errors()  # type: ignore[attr-defined]
+        except Exception:
+            pydantic_errors = None
+
+        if isinstance(pydantic_errors, list):
+            for pe in pydantic_errors:
+                loc = pe.get("loc", ())
+                path = " -> ".join(map(str, loc)) if loc else _ROOT_PATH
+                errors.append(
+                    ValidationMessage(
+                        level="error",
+                        source="pydantic",
+                        path=path,
+                        message=str(pe.get("msg", "Pydantic validation failed")),
+                        validator="pydantic",
+                    )
+                )
+        else:
+            errors.append(
+                ValidationMessage(
+                    level="error",
+                    source="pydantic",
+                    path=_ROOT_PATH,
+                    message=f"Pydantic validation failed: {e}",
+                    validator="pydantic",
+                )
+            )
+
+    return errors
+
+
+def _semantic_warnings(data: dict[str, Any]) -> list[ValidationMessage]:
+    warnings: list[ValidationMessage] = []
+
+    _warn_non_current_version(data=data, warnings=warnings)
+
+    meta = data.get("meta", {}) if isinstance(data.get("meta"), dict) else {}
+    _warn_missing_meta_fields(meta=meta, warnings=warnings)
+
+    locale = meta.get("locale", {}) if isinstance(meta.get("locale"), dict) else {}
+    _warn_missing_regions(locale=locale, warnings=warnings)
+
+    scenario = data.get("scenario", {}) if isinstance(data.get("scenario"), dict) else {}
+    severity = scenario.get("severity", {}) if isinstance(scenario.get("severity"), dict) else {}
+    _warn_mixture_weights(severity=severity, warnings=warnings)
+    _warn_missing_currency(severity=severity, warnings=warnings)
+    _warn_duplicate_scenario_control_ids(scenario=scenario, warnings=warnings)
 
     return warnings
 
@@ -120,7 +221,7 @@ def validate(
     assert data is not None
 
     try:
-        schema = _load_scenario_schema()
+        errors = _schema_errors(data)
     except FileNotFoundError:
         return ValidationReport(
             ok=False,
@@ -128,61 +229,16 @@ def validate(
                 ValidationMessage(
                     level="error",
                     source="io",
-                    path="(root)",
+                    path=_ROOT_PATH,
                     message=f"Schema file not found at {SCENARIO_SCHEMA_PATH}",
                 )
             ],
             warnings=[],
         )
 
-    validator = Draft202012Validator(schema)
-    errors: list[ValidationMessage] = []
-    for err in validator.iter_errors(data):
-        errors.append(
-            ValidationMessage(
-                level="error",
-                source="schema",
-                path=_jsonschema_path(err),
-                message=_format_jsonschema_error(err),
-                validator=getattr(err, "validator", None),
-            )
-        )
-
     warnings = _semantic_warnings(data) if not errors else []
 
     if strict_model and not errors:
-        try:
-            from ..models.crml_model import CRScenarioSchema
-
-            CRScenarioSchema.model_validate(data)
-        except Exception as e:
-            try:
-                pydantic_errors = e.errors()  # type: ignore[attr-defined]
-            except Exception:
-                pydantic_errors = None
-
-            if isinstance(pydantic_errors, list):
-                for pe in pydantic_errors:
-                    loc = pe.get("loc", ())
-                    path = " -> ".join(map(str, loc)) if loc else "(root)"
-                    errors.append(
-                        ValidationMessage(
-                            level="error",
-                            source="pydantic",
-                            path=path,
-                            message=str(pe.get("msg", "Pydantic validation failed")),
-                            validator="pydantic",
-                        )
-                    )
-            else:
-                errors.append(
-                    ValidationMessage(
-                        level="error",
-                        source="pydantic",
-                        path="(root)",
-                        message=f"Pydantic validation failed: {e}",
-                        validator="pydantic",
-                    )
-                )
+        errors.extend(_pydantic_strict_model_errors(data))
 
     return ValidationReport(ok=(len(errors) == 0), errors=errors, warnings=warnings)

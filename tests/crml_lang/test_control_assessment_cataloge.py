@@ -1,9 +1,9 @@
-from crml_lang import validate_control_assessment
+from crml_lang import validate_assessment
 
 
-def test_validate_control_assessment_pack_valid() -> None:
+def test_validate_assessment_cataloge_valid() -> None:
     yaml_text = """
-crml_control_assessment: "1.0"
+crml_assessment: "1.0"
 meta:
   name: "acme-cisv8-assessment"
 assessment:
@@ -17,5 +17,5 @@ assessment:
       coverage: {value: 0.8, basis: endpoints}
 """
 
-    report = validate_control_assessment(yaml_text, source_kind="yaml")
+    report = validate_assessment(yaml_text, source_kind="yaml")
     assert report.ok, report.render_text(source_label="inline")
