@@ -78,7 +78,38 @@ class PortfolioControl(BaseModel):
     id: ControlId
     implementation_effectiveness: Optional[float] = Field(None, ge=0.0, le=1.0)
     coverage: Optional[Coverage] = None
+    # Reliability/uptime of the control as a probability of being effective in a given period.
+    # This is a portfolio/inventory attribute; runtimes may treat it as a stochastic state.
+    reliability: Optional[float] = Field(None, ge=0.0, le=1.0)
+
+    # Effect surface for this control. Default is frequency-first.
+    affects: Optional[Literal["frequency", "severity", "both"]] = "frequency"
     notes: Optional[str] = None
+
+
+class DependencyCopula(BaseModel):
+    """Engine-independent copula dependency specification.
+
+    The copula operates over `targets` in the given order.
+    This version is intentionally minimal and supports Gaussian copulas.
+
+    Targets are language-level references. Currently supported targets:
+    - control:<id>:state  (a control availability/performance state)
+    """
+
+    type: Literal["gaussian"] = "gaussian"
+
+    # Ordered list of target references; length defines the copula dimension.
+    targets: List[str] = Field(..., min_length=1)
+
+    # Correlation specification: either Toeplitz (rho) or an explicit matrix.
+    structure: Optional[Literal["toeplitz"]] = None
+    rho: Optional[float] = Field(None, ge=-1.0, le=1.0)
+    matrix: Optional[List[List[float]]] = None
+
+
+class PortfolioDependency(BaseModel):
+    copula: Optional[DependencyCopula] = None
 
 
 class Portfolio(BaseModel):
@@ -93,6 +124,7 @@ class Portfolio(BaseModel):
     scenarios: List[ScenarioRef]
     semantics: PortfolioSemantics
     relationships: Optional[List[Relationship]] = None
+    dependency: Optional[PortfolioDependency] = None
     context: Dict[str, Any] = Field(default_factory=dict)
 
 

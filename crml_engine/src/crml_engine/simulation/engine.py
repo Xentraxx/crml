@@ -20,6 +20,9 @@ def run_monte_carlo(
     seed: int = None,
     fx_config: Optional[FXConfig] = None,
     cardinality: int = 1,
+    frequency_rate_multiplier: Optional[object] = None,
+    severity_loss_multiplier: Optional[object] = None,
+    raw_data_limit: Optional[int] = 1000,
 ) -> SimulationResult:
     """
     Orchestrates the Monte Carlo simulation.
@@ -87,6 +90,29 @@ def run_monte_carlo(
         cardinality = 1
     if cardinality < 1:
         cardinality = 1
+
+    # Optional per-run multipliers (portfolio/runtime concern)
+    freq_mult = None
+    if frequency_rate_multiplier is not None:
+        if isinstance(frequency_rate_multiplier, (int, float, np.floating)):
+            freq_mult = float(frequency_rate_multiplier)
+        else:
+            arr = np.asarray(frequency_rate_multiplier, dtype=np.float64)
+            if arr.shape != (n_runs,):
+                result.errors.append("frequency_rate_multiplier must be a scalar or shape (n_runs,)")
+                return result
+            freq_mult = arr
+
+    sev_mult = None
+    if severity_loss_multiplier is not None:
+        if isinstance(severity_loss_multiplier, (int, float, np.floating)):
+            sev_mult = float(severity_loss_multiplier)
+        else:
+            arr = np.asarray(severity_loss_multiplier, dtype=np.float64)
+            if arr.shape != (n_runs,):
+                result.errors.append("severity_loss_multiplier must be a scalar or shape (n_runs,)")
+                return result
+            sev_mult = arr
         
     # Controls Application (Heuristic/Multiplicative)
     freq_model = freq.model if freq else ''
@@ -151,7 +177,8 @@ def run_monte_carlo(
                 n_runs=n_runs,
                 cardinality=cardinality,
                 seed=seed,
-                uniforms=uniforms
+                uniforms=uniforms,
+                rate_multiplier=freq_mult,
             )
             
             scenario_losses = np.zeros(n_runs)
@@ -184,6 +211,8 @@ def run_monte_carlo(
                 scenario_losses = np.array(temp_losses)
             
             # Add to total
+            if sev_mult is not None:
+                scenario_losses = scenario_losses * sev_mult
             total_annual_losses += scenario_losses
 
         annual_losses = total_annual_losses
@@ -209,10 +238,15 @@ def run_monte_carlo(
         )
 
         hist, bin_edges = np.histogram(annual_losses, bins=50)
+        if raw_data_limit is None:
+            raw = annual_losses.tolist()
+        else:
+            raw = annual_losses.tolist()[: int(raw_data_limit)]
+
         result.distribution = Distribution(
             bins=bin_edges.tolist(),
             frequencies=hist.tolist(),
-            raw_data=annual_losses.tolist()[:1000]
+            raw_data=raw
         )
 
         result.metadata.runtime_ms = (time.time() - start_time) * 1000

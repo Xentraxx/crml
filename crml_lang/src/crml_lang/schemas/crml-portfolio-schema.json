@@ -437,6 +437,18 @@
           "default": null,
           "title": "Relationships"
         },
+        "dependency": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PortfolioDependency"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Dependency"
+        },
         "context": {
           "additionalProperties": true,
           "title": "Context",
@@ -501,6 +513,37 @@
           ],
           "default": null
         },
+        "reliability": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reliability"
+        },
+        "affects": {
+          "anyOf": [
+            {
+              "enum": [
+                "frequency",
+                "severity",
+                "both"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "frequency",
+          "title": "Affects"
+        },
         "notes": {
           "anyOf": [
             {
@@ -518,6 +561,94 @@
         "id"
       ],
       "title": "PortfolioControl",
+      "type": "object"
+    },
+    "DependencyCopula": {
+      "properties": {
+        "type": {
+          "const": "gaussian",
+          "default": "gaussian",
+          "title": "Type",
+          "type": "string"
+        },
+        "targets": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Targets",
+          "type": "array"
+        },
+        "structure": {
+          "anyOf": [
+            {
+              "enum": [
+                "toeplitz"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Structure"
+        },
+        "rho": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": -1.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rho"
+        },
+        "matrix": {
+          "anyOf": [
+            {
+              "items": {
+                "items": {
+                  "type": "number"
+                },
+                "type": "array"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Matrix"
+        }
+      },
+      "required": [
+        "targets"
+      ],
+      "title": "DependencyCopula",
+      "type": "object"
+    },
+    "PortfolioDependency": {
+      "properties": {
+        "copula": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DependencyCopula"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Copula"
+        }
+      },
+      "title": "PortfolioDependency",
       "type": "object"
     },
     "PortfolioSemantics": {

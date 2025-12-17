@@ -15,7 +15,8 @@ class FrequencyEngine:
         n_runs: int, 
         cardinality: int,
         seed: Optional[int] = None,
-        uniforms: Optional[np.ndarray] = None
+        uniforms: Optional[np.ndarray] = None,
+        rate_multiplier: Optional[object] = None,
     ) -> np.ndarray:
         """
         Generate an array of shape (n_runs,) containing event counts.
@@ -40,7 +41,18 @@ class FrequencyEngine:
                 return np.zeros(n_runs, dtype=int)
                 
             # Scale lambda by asset count
-            total_lambda = lambda_val * cardinality
+            total_lambda: object = lambda_val * cardinality
+
+            if rate_multiplier is not None:
+                rm = rate_multiplier
+                # Support scalar or per-run array.
+                if isinstance(rm, (int, float, np.floating)):
+                    total_lambda = float(total_lambda) * float(rm)
+                else:
+                    rm_arr = np.asarray(rm, dtype=np.float64)
+                    if rm_arr.shape != (n_runs,):
+                        raise ValueError("rate_multiplier must be a scalar or shape (n_runs,)")
+                    total_lambda = float(total_lambda) * rm_arr
             
             if uniforms is not None:
                 # Use Copula method (Inverse CDF)

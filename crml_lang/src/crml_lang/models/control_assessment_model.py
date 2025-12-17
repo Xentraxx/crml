@@ -20,6 +20,12 @@ class ControlAssessment(BaseModel):
     # Breadth of deployment/application across the organization.
     coverage: Optional[Coverage] = None
 
+    # Reliability/uptime of the control as a probability of being effective in a given period.
+    reliability: Optional[float] = Field(None, ge=0.0, le=1.0)
+
+    # Effect surface for this control. Default is frequency-first.
+    affects: Optional[Literal["frequency", "severity", "both"]] = "frequency"
+
     notes: Optional[str] = None
 
 

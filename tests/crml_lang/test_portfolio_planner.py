@@ -218,3 +218,81 @@ portfolio:
     report = plan_portfolio(str(portfolio_path), source_kind="path")
     assert report.ok is False
     assert any("no inventory/assessment data" in e.message for e in report.errors)
+
+
+def test_plan_portfolio_resolves_control_copula_to_matrix(tmp_path) -> None:
+    scenario_path = tmp_path / "scenario.yaml"
+    scenario_path.write_text(
+        """
+crml_scenario: "1.0"
+meta:
+  name: "Threat scenario"
+scenario:
+  controls:
+    - "cap:edr"
+    - "cap:mfa"
+  frequency:
+    basis: per_organization_per_year
+    model: poisson
+    parameters: {lambda: 0.5}
+  severity:
+    model: lognormal
+    parameters: {mu: 10, sigma: 1}
+""".lstrip(),
+        encoding="utf-8",
+    )
+
+    # Inventory in portfolio (reliability + affects)
+    portfolio_path = tmp_path / "portfolio.yaml"
+    portfolio_path.write_text(
+        f"""
+crml_portfolio: "1.0"
+meta:
+  name: "Org portfolio"
+portfolio:
+  semantics:
+    method: sum
+  controls:
+    - id: "cap:edr"
+      implementation_effectiveness: 0.6
+      coverage: {{value: 1.0, basis: applications}}
+      reliability: 0.8
+      affects: frequency
+    - id: "cap:mfa"
+      implementation_effectiveness: 0.7
+      coverage: {{value: 0.9, basis: applications}}
+      reliability: 0.9
+      affects: both
+  dependency:
+    copula:
+      type: gaussian
+      structure: toeplitz
+      rho: 0.65
+      targets:
+        - control:cap:edr:state
+        - control:cap:mfa:state
+  scenarios:
+    - id: s1
+      path: {scenario_path.name}
+""".lstrip(),
+        encoding="utf-8",
+    )
+
+    report = plan_portfolio(str(portfolio_path), source_kind="path")
+    assert report.ok is True
+    assert report.plan is not None
+    assert report.plan.dependency is not None
+    cop = report.plan.dependency["copula"]
+    assert cop["type"] == "gaussian"
+    assert cop["targets"] == ["control:cap:edr:state", "control:cap:mfa:state"]
+    assert len(cop["matrix"]) == 2
+    assert len(cop["matrix"][0]) == 2
+
+    # Planner should also resolve absolute scenario paths.
+    assert report.plan.scenarios[0].resolved_path is not None
+
+    # Reliability should be carried through.
+    ctrls = report.plan.scenarios[0].controls
+    by_id = {c.id: c for c in ctrls}
+    assert by_id["cap:edr"].combined_reliability == 0.8
+    assert by_id["cap:mfa"].combined_reliability == 0.9

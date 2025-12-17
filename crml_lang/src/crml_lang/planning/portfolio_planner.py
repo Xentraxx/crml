@@ -26,6 +26,9 @@ class ResolvedScenarioControl(BaseModel):
     inventory_coverage_value: Optional[float] = Field(None, ge=0.0, le=1.0)
     inventory_coverage_basis: Optional[str] = None
 
+    inventory_reliability: Optional[float] = Field(None, ge=0.0, le=1.0)
+    affects: Optional[str] = None
+
     # Scenario-scoped factors (optional)
     scenario_implementation_effectiveness_factor: Optional[float] = Field(None, ge=0.0, le=1.0)
     scenario_coverage_factor: Optional[float] = Field(None, ge=0.0, le=1.0)
@@ -35,10 +38,13 @@ class ResolvedScenarioControl(BaseModel):
     combined_implementation_effectiveness: Optional[float] = Field(None, ge=0.0, le=1.0)
     combined_coverage_value: Optional[float] = Field(None, ge=0.0, le=1.0)
 
+    combined_reliability: Optional[float] = Field(None, ge=0.0, le=1.0)
+
 
 class ResolvedScenario(BaseModel):
     id: str
     path: str
+    resolved_path: Optional[str] = None
     weight: Optional[float] = None
 
     # Portfolio binding resolution
@@ -59,6 +65,51 @@ class PortfolioExecutionPlan(BaseModel):
 
     assets: list[dict[str, Any]] = Field(default_factory=list)
     scenarios: list[ResolvedScenario]
+    dependency: Optional[dict[str, Any]] = None
+
+
+def _is_control_state_ref(ref: str) -> bool:
+    # Minimal v1: control:<id>:state
+    if not isinstance(ref, str):
+        return False
+    if not ref.startswith("control:"):
+        return False
+    if not ref.endswith(":state"):
+        return False
+    middle = ref[len("control:") : -len(":state")]
+    return bool(middle)
+
+
+def _extract_control_id_from_state_ref(ref: str) -> str:
+    return ref[len("control:") : -len(":state")]
+
+
+def _toeplitz_corr(dim: int, rho: float) -> list[list[float]]:
+    r = float(rho)
+    return [[(r ** abs(i - j)) for j in range(dim)] for i in range(dim)]
+
+
+def _validate_corr_matrix(matrix: list[list[float]], dim: int) -> Optional[str]:
+    if len(matrix) != dim:
+        return f"matrix must have {dim} rows"
+    for i, row in enumerate(matrix):
+        if not isinstance(row, list) or len(row) != dim:
+            return f"matrix row {i} must have length {dim}"
+        for j, v in enumerate(row):
+            try:
+                fv = float(v)
+            except Exception:
+                return f"matrix[{i}][{j}] must be a number"
+            if i == j and abs(fv - 1.0) > 1e-9:
+                return "matrix diagonal entries must be 1.0"
+            if fv < -1.0 or fv > 1.0:
+                return "matrix entries must be in [-1, 1]"
+    # symmetry
+    for i in range(dim):
+        for j in range(i + 1, dim):
+            if abs(float(matrix[i][j]) - float(matrix[j][i])) > 1e-9:
+                return "matrix must be symmetric"
+    return None
 
 
 class PlanReport(BaseModel):
@@ -240,6 +291,77 @@ def plan_portfolio(
 
     resolved_scenarios: list[ResolvedScenario] = []
 
+    # --- Dependency normalization (optional) ---
+    dependency_plan: Optional[dict[str, Any]] = None
+    if portfolio.dependency is not None and portfolio.dependency.copula is not None:
+        cop = portfolio.dependency.copula
+        targets = list(cop.targets or [])
+        dim = len(targets)
+        bad_targets = [t for t in targets if not _is_control_state_ref(t)]
+        if bad_targets:
+            errors.append(
+                PlanMessage(
+                    level="error",
+                    path="portfolio.dependency.copula.targets",
+                    message=f"Unsupported target reference(s): {bad_targets}. Supported: control:<id>:state",
+                )
+            )
+        else:
+            target_control_ids = [_extract_control_id_from_state_ref(t) for t in targets]
+            # Ensure targets exist in inventory or assessment packs (since scenario controls must resolve).
+            for t in target_control_ids:
+                if t not in portfolio_controls_by_id and t not in assessment_by_id:
+                    errors.append(
+                        PlanMessage(
+                            level="error",
+                            path="portfolio.dependency.copula.targets",
+                            message=f"Copula target control id '{t}' not found in portfolio.controls or control assessments.",
+                        )
+                    )
+
+            corr: Optional[list[list[float]]] = None
+            if cop.matrix is not None:
+                corr = [list(row) for row in cop.matrix]
+            else:
+                rho = cop.rho
+                if cop.structure not in (None, "toeplitz"):
+                    errors.append(
+                        PlanMessage(
+                            level="error",
+                            path="portfolio.dependency.copula.structure",
+                            message=f"Unsupported copula structure '{cop.structure}'.",
+                        )
+                    )
+                if rho is None:
+                    errors.append(
+                        PlanMessage(
+                            level="error",
+                            path="portfolio.dependency.copula.rho",
+                            message="Toeplitz copula requires 'rho' when 'matrix' is not provided.",
+                        )
+                    )
+                else:
+                    corr = _toeplitz_corr(dim=dim, rho=float(rho))
+
+            if corr is not None:
+                err = _validate_corr_matrix(corr, dim=dim)
+                if err:
+                    errors.append(
+                        PlanMessage(
+                            level="error",
+                            path="portfolio.dependency.copula",
+                            message=err,
+                        )
+                    )
+                else:
+                    dependency_plan = {
+                        "copula": {
+                            "type": cop.type,
+                            "targets": targets,
+                            "matrix": corr,
+                        }
+                    }
+
     for idx, sref in enumerate(portfolio.scenarios):
         assert isinstance(sref, ScenarioRef)
         scenario_path = _resolve_path(base_dir, sref.path)
@@ -359,6 +481,8 @@ def plan_portfolio(
             inventory_eff: Optional[float] = None
             inventory_cov_val: Optional[float] = None
             inventory_cov_basis: Optional[str] = None
+            inventory_rel: Optional[float] = None
+            affects: Optional[str] = None
 
             inv = portfolio_controls_by_id.get(cid)
             if inv is not None:
@@ -367,6 +491,10 @@ def plan_portfolio(
                 if inv.coverage is not None:
                     inventory_cov_val = float(inv.coverage.value)
                     inventory_cov_basis = str(inv.coverage.basis)
+                if getattr(inv, "reliability", None) is not None:
+                    inventory_rel = float(inv.reliability)
+                if getattr(inv, "affects", None) is not None:
+                    affects = str(inv.affects)
             else:
                 assess = assessment_by_id.get(cid)
                 if assess is not None:
@@ -375,6 +503,10 @@ def plan_portfolio(
                     if assess.coverage is not None:
                         inventory_cov_val = float(assess.coverage.value)
                         inventory_cov_basis = str(assess.coverage.basis)
+                    if getattr(assess, "reliability", None) is not None:
+                        inventory_rel = float(assess.reliability)
+                    if getattr(assess, "affects", None) is not None:
+                        affects = str(assess.affects)
 
             if inventory_eff is None and inventory_cov_val is None:
                 errors.append(
@@ -402,17 +534,22 @@ def plan_portfolio(
             if inventory_cov_val is not None:
                 combined_cov = _clamp01(inventory_cov_val * (cov_factor_val if cov_factor_val is not None else 1.0))
 
+            combined_rel = _clamp01(inventory_rel if inventory_rel is not None else 1.0)
+
             resolved_controls.append(
                 ResolvedScenarioControl(
                     id=cid,
                     inventory_implementation_effectiveness=inventory_eff,
                     inventory_coverage_value=inventory_cov_val,
                     inventory_coverage_basis=inventory_cov_basis,
+                    inventory_reliability=inventory_rel,
+                    affects=affects,
                     scenario_implementation_effectiveness_factor=eff_factor,
                     scenario_coverage_factor=cov_factor_val,
                     scenario_coverage_basis=cov_factor_basis,
                     combined_implementation_effectiveness=combined_eff,
                     combined_coverage_value=combined_cov,
+                    combined_reliability=combined_rel,
                 )
             )
 
@@ -432,6 +569,7 @@ def plan_portfolio(
             ResolvedScenario(
                 id=sref.id,
                 path=sref.path,
+                resolved_path=scenario_path,
                 weight=sref.weight,
                 applies_to_assets=applies_to_assets_list,
                 cardinality=cardinality,
@@ -448,6 +586,7 @@ def plan_portfolio(
         semantics_method=portfolio.semantics.method,
         assets=[a.model_dump(exclude_none=True) for a in portfolio.assets],
         scenarios=resolved_scenarios,
+        dependency=dependency_plan,
     )
 
     return PlanReport(ok=True, errors=[], warnings=warnings, plan=plan)
