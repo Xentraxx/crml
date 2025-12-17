@@ -57,8 +57,8 @@ flowchart LR
     ORG["Organization asset inventory<br/>(relatively static)"] --> P["Portfolio document<br/>CRPortfolio"]
     TOOL["Tooling (e.g. SIEM)<br/>imports and updates"] -.->|optional| P
 
-    AUTH["Recognized authorities<br/>NIS, CIS"] -->|publish| CC["Control catalog pack<br/>CRControlCatalog"]
-    SCAN["Assessment and scan tools"] --> CA["Control assessment pack<br/>CRControlAssessment"]
+    AUTH["Recognized authorities<br/>NIS, CIS"] -->|publish| CC["Control cataloge<br/>CRControlCatalog"]
+    SCAN["Assessment and scan tools"] --> CA["Control assessment cataloge<br/>CRControlAssessment"]
 
     CC -.->|basis| CA
 

@@ -22,7 +22,7 @@ class PlanMessage(BaseModel):
 class ResolvedScenarioControl(BaseModel):
     id: str = Field(..., description="Canonical control id.")
 
-    # Inventory inputs (portfolio.controls, assessment packs)
+    # Inventory inputs (portfolio.controls, assessment cataloges)
     inventory_implementation_effectiveness: Optional[float] = Field(
         None, ge=0.0, le=1.0, description="Implementation effectiveness from inventory sources (0..1)."
     )
@@ -237,7 +237,7 @@ def plan_portfolio(
     This is intentionally *not* a simulator. It resolves:
     - portfolio asset bindings (applies_to_assets -> concrete exposures)
     - referenced scenario documents
-    - referenced control packs (catalogs/assessments)
+    - referenced control cataloges (catalogs/assessments)
     - scenario control refs -> resolved, combined control effects
 
     The resulting plan is designed to be consumed by `crml_engine`.
@@ -280,7 +280,7 @@ def plan_portfolio(
     assets_by_name: dict[str, Any] = {a.name: a for a in portfolio.assets}
     all_asset_names = list(assets_by_name.keys())
 
-    # --- Load packs (optional) ---
+    # --- Load cataloges (optional) ---
     catalog_ids: set[str] = set()
     assessment_by_id: dict[str, ControlAssessment] = {}
 
@@ -304,7 +304,7 @@ def plan_portfolio(
             for entry in cat_doc.catalog.controls:
                 catalog_ids.add(entry.id)
         except Exception as e:
-            errors.append(PlanMessage(level="error", path=f"portfolio.control_catalogs[{idx}]", message=f"Invalid control catalog pack: {e}"))
+            errors.append(PlanMessage(level="error", path=f"portfolio.control_catalogs[{idx}]", message=f"Invalid control cataloge: {e}"))
 
     for idx, p in enumerate(assessment_paths):
         if not os.path.exists(p):
@@ -318,12 +318,12 @@ def plan_portfolio(
                         PlanMessage(
                             level="warning",
                             path=f"portfolio.control_assessments[{idx}]",
-                            message=f"Duplicate assessment for control id '{a.id}' across packs; last one wins.",
+                            message=f"Duplicate assessment for control id '{a.id}' across cataloges; last one wins.",
                         )
                     )
                 assessment_by_id[a.id] = a
         except Exception as e:
-            errors.append(PlanMessage(level="error", path=f"portfolio.control_assessments[{idx}]", message=f"Invalid control assessment pack: {e}"))
+            errors.append(PlanMessage(level="error", path=f"portfolio.control_assessments[{idx}]", message=f"Invalid control assessment cataloge: {e}"))
 
     # --- Build portfolio inventory (highest precedence) ---
     portfolio_controls_by_id: dict[str, Any] = {}
@@ -334,7 +334,7 @@ def plan_portfolio(
                 PlanMessage(
                     level="error",
                     path=f"portfolio.controls[{idx}].id",
-                    message=f"Unknown control id '{c.id}' (not present in referenced catalog pack(s)).",
+                    message=f"Unknown control id '{c.id}' (not present in referenced cataloge(s)).",
                 )
             )
 
@@ -357,7 +357,7 @@ def plan_portfolio(
             )
         else:
             target_control_ids = [_extract_control_id_from_state_ref(t) for t in targets]
-            # Ensure targets exist in inventory or assessment packs (since scenario controls must resolve).
+            # Ensure targets exist in inventory or assessment cataloges (since scenario controls must resolve).
             for t in target_control_ids:
                 if t not in portfolio_controls_by_id and t not in assessment_by_id:
                     errors.append(
@@ -651,7 +651,7 @@ def plan_bundle(bundle: CRPortfolioBundle) -> PlanReport:
     """Resolve an inlined CRPortfolioBundle into an execution-friendly plan.
 
     Unlike `plan_portfolio`, this function does not access the filesystem.
-    It expects scenarios (and optionally control packs) to already be inlined
+    It expects scenarios (and optionally control cataloges) to already be inlined
     inside the bundle.
     """
 
@@ -665,7 +665,7 @@ def plan_bundle(bundle: CRPortfolioBundle) -> PlanReport:
     assets_by_name: dict[str, Any] = {a.name: a for a in portfolio.assets}
     all_asset_names = list(assets_by_name.keys())
 
-    # --- Load packs from the bundle (optional) ---
+    # --- Load cataloges from the bundle (optional) ---
     catalog_ids: set[str] = set()
     assessment_by_id: dict[str, ControlAssessment] = {}
 
@@ -684,7 +684,7 @@ def plan_bundle(bundle: CRPortfolioBundle) -> PlanReport:
                         PlanMessage(
                             level="warning",
                             path=f"bundle.control_assessments[{idx}]",
-                            message=f"Duplicate assessment for control id '{a.id}' across packs; last one wins.",
+                            message=f"Duplicate assessment for control id '{a.id}' across cataloges; last one wins.",
                         )
                     )
                 assessment_by_id[a.id] = a
@@ -700,7 +700,7 @@ def plan_bundle(bundle: CRPortfolioBundle) -> PlanReport:
                 PlanMessage(
                     level="error",
                     path=f"portfolio.controls[{idx}].id",
-                    message=f"Unknown control id '{c.id}' (not present in referenced catalog pack(s)).",
+                    message=f"Unknown control id '{c.id}' (not present in referenced cataloge(s)).",
                 )
             )
 

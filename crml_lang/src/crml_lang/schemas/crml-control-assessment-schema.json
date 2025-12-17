@@ -102,7 +102,7 @@
       "title": "ControlAssessment",
       "type": "object"
     },
-    "ControlAssessmentPack": {
+    "ControlAssessmentCataloge": {
       "properties": {
         "id": {
           "anyOf": [
@@ -114,7 +114,7 @@
             }
           ],
           "default": null,
-          "description": "Optional identifier for this assessment pack (organization-owned).",
+          "description": "Optional identifier for this assessment cataloge (organization-owned).",
           "title": "Id"
         },
         "framework": {
@@ -133,7 +133,7 @@
             }
           ],
           "default": null,
-          "description": "When this assessment pack was performed/recorded (ISO 8601 date-time). Example: '2025-12-17T10:15:30Z'.",
+          "description": "When this assessment cataloge was performed/recorded (ISO 8601 date-time). Example: '2025-12-17T10:15:30Z'.",
           "title": "Assessed At"
         },
         "assessments": {
@@ -149,7 +149,7 @@
         "framework",
         "assessments"
       ],
-      "title": "ControlAssessmentPack",
+      "title": "ControlAssessmentCataloge",
       "type": "object"
     },
     "ControlStructuredRef": {
@@ -393,8 +393,8 @@
       "description": "Document metadata (name, description, tags, etc.)."
     },
     "assessment": {
-      "$ref": "#/$defs/ControlAssessmentPack",
-      "description": "The control assessment pack payload."
+      "$ref": "#/$defs/ControlAssessmentCataloge",
+      "description": "The control assessment cataloge payload."
     }
   },
   "required": [

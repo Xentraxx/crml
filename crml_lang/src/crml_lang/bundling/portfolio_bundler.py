@@ -120,7 +120,7 @@ def bundle_portfolio(
             errors.append(BundleMessage(level="error", path="(schema)", message=str(e)))
             return BundleReport(ok=False, errors=errors, warnings=warnings, bundle=None)
 
-    # Inline packs referenced by the portfolio.
+    # Inline cataloges referenced by the portfolio.
     control_catalogs_out: list[CRControlCatalogSchema] = list(control_catalogs or [])
     control_assessments_out: list[CRControlAssessmentSchema] = list(control_assessments or [])
 
@@ -134,7 +134,7 @@ def bundle_portfolio(
                     path=f"portfolio.control_catalogs[{idx}]",
                     message=(
                         "Portfolio references a control catalog path, but bundling is in model-mode; "
-                        "provide `control_catalogs` to inline pack content."
+                        "provide `control_catalogs` to inline cataloge content."
                     ),
                 )
             )
@@ -162,7 +162,7 @@ def bundle_portfolio(
                     path=f"portfolio.control_assessments[{idx}]",
                     message=(
                         "Portfolio references a control assessment path, but bundling is in model-mode; "
-                        "provide `control_assessments` to inline pack content."
+                        "provide `control_assessments` to inline cataloge content."
                     ),
                 )
             )

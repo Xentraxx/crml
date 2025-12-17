@@ -66,11 +66,11 @@ class ControlAssessment(BaseModel):
     notes: Optional[str] = Field(None, description="Free-form notes about this assessment entry.")
 
 
-class ControlAssessmentPack(BaseModel):
-    # Controls assessment packs are organization-owned artifacts.
+class ControlAssessmentCataloge(BaseModel):
+    # Controls assessment cataloges are organization-owned artifacts.
     # They capture "what do we have" and optionally "how well".
     id: Optional[str] = Field(
-        None, description="Optional identifier for this assessment pack (organization-owned)."
+        None, description="Optional identifier for this assessment cataloge (organization-owned)."
     )
     # Free-form label for humans/tools (e.g. "CISv8", "ISO27001:2022", "HIPAA").
     framework: str = Field(
@@ -80,7 +80,7 @@ class ControlAssessmentPack(BaseModel):
     assessed_at: Optional[datetime] = Field(
         None,
         description=(
-            "When this assessment pack was performed/recorded (ISO 8601 date-time). "
+            "When this assessment cataloge was performed/recorded (ISO 8601 date-time). "
             "Example: '2025-12-17T10:15:30Z'."
         ),
     )
@@ -94,8 +94,8 @@ class CRControlAssessmentSchema(BaseModel):
         ..., description="Control assessment document version identifier."
     )
     meta: Meta = Field(..., description="Document metadata (name, description, tags, etc.).")
-    assessment: ControlAssessmentPack = Field(
-        ..., description="The control assessment pack payload."
+    assessment: ControlAssessmentCataloge = Field(
+        ..., description="The control assessment cataloge payload."
     )
 
     model_config: ConfigDict = ConfigDict(populate_by_name=True)

@@ -1,7 +1,7 @@
 from crml_lang import validate_control_assessment
 
 
-def test_validate_control_assessment_pack_valid() -> None:
+def test_validate_control_assessment_cataloge_valid() -> None:
     yaml_text = """
 crml_control_assessment: "1.0"
 meta:

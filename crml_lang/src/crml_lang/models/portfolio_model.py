@@ -203,13 +203,13 @@ class Portfolio(BaseModel):
         None, description="Optional list of controls present in the organization/portfolio."
     )
 
-    # Optional pack references (paths). These allow portfolios to point at
+    # Optional cataloge references (paths). These allow portfolios to point at
     # portable catalogs/assessments without duplicating their contents.
     control_catalogs: Optional[List[str]] = Field(
-        None, description="Optional list of file paths to referenced control catalog packs."
+        None, description="Optional list of file paths to referenced control cataloges."
     )
     control_assessments: Optional[List[str]] = Field(
-        None, description="Optional list of file paths to referenced control assessment packs."
+        None, description="Optional list of file paths to referenced control assessment cataloges."
     )
 
     scenarios: List[ScenarioRef] = Field(..., description="List of scenario references included in the portfolio.")

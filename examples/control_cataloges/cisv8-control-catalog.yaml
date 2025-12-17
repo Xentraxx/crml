@@ -1,0 +1,98 @@
+crml_control_catalog: "1.0"
+meta:
+  name: "CISv8 control cataloge (example)"
+  description: "Example control cataloge for CIS Critical Security Controls v8. Titles are short identifiers only; no standard text."
+catalog:
+  id: "cisv8"
+  framework: "CIS v8"
+  controls:
+    - id: "cisv8:1"
+      ref: {standard: "CIS", version: "v8", control: "1"}
+      title: "Inventory and Control of Enterprise Assets"
+      url: "https://www.cisecurity.org/controls"
+      tags: ["inventory", "assets"]
+    - id: "cisv8:2"
+      ref: {standard: "CIS", version: "v8", control: "2"}
+      title: "Inventory and Control of Software Assets"
+      url: "https://www.cisecurity.org/controls"
+      tags: ["inventory", "software"]
+    - id: "cisv8:3"
+      ref: {standard: "CIS", version: "v8", control: "3"}
+      title: "Data Protection"
+      url: "https://www.cisecurity.org/controls"
+      tags: ["data"]
+    - id: "cisv8:4"
+      ref: {standard: "CIS", version: "v8", control: "4"}
+      title: "Secure Configuration of Enterprise Assets and Software"
+      url: "https://www.cisecurity.org/controls"
+      tags: ["configuration", "hardening"]
+    - id: "cisv8:5"
+      ref: {standard: "CIS", version: "v8", control: "5"}
+      title: "Account Management"
+      url: "https://www.cisecurity.org/controls"
+      tags: ["identity"]
+    - id: "cisv8:6"
+      ref: {standard: "CIS", version: "v8", control: "6"}
+      title: "Access Control Management"
+      url: "https://www.cisecurity.org/controls"
+      tags: ["identity", "access"]
+    - id: "cisv8:7"
+      ref: {standard: "CIS", version: "v8", control: "7"}
+      title: "Continuous Vulnerability Management"
+      url: "https://www.cisecurity.org/controls"
+      tags: ["vulnerability"]
+    - id: "cisv8:8"
+      ref: {standard: "CIS", version: "v8", control: "8"}
+      title: "Audit Log Management"
+      url: "https://www.cisecurity.org/controls"
+      tags: ["logging"]
+    - id: "cisv8:9"
+      ref: {standard: "CIS", version: "v8", control: "9"}
+      title: "Email and Web Browser Protections"
+      url: "https://www.cisecurity.org/controls"
+      tags: ["email", "web"]
+    - id: "cisv8:10"
+      ref: {standard: "CIS", version: "v8", control: "10"}
+      title: "Malware Defenses"
+      url: "https://www.cisecurity.org/controls"
+      tags: ["malware"]
+    - id: "cisv8:11"
+      ref: {standard: "CIS", version: "v8", control: "11"}
+      title: "Data Recovery"
+      url: "https://www.cisecurity.org/controls"
+      tags: ["backup", "recovery"]
+    - id: "cisv8:12"
+      ref: {standard: "CIS", version: "v8", control: "12"}
+      title: "Network Infrastructure Management"
+      url: "https://www.cisecurity.org/controls"
+      tags: ["network"]
+    - id: "cisv8:13"
+      ref: {standard: "CIS", version: "v8", control: "13"}
+      title: "Network Monitoring and Defense"
+      url: "https://www.cisecurity.org/controls"
+      tags: ["network", "detection"]
+    - id: "cisv8:14"
+      ref: {standard: "CIS", version: "v8", control: "14"}
+      title: "Security Awareness and Skills Training"
+      url: "https://www.cisecurity.org/controls"
+      tags: ["training"]
+    - id: "cisv8:15"
+      ref: {standard: "CIS", version: "v8", control: "15"}
+      title: "Service Provider Management"
+      url: "https://www.cisecurity.org/controls"
+      tags: ["third_party"]
+    - id: "cisv8:16"
+      ref: {standard: "CIS", version: "v8", control: "16"}
+      title: "Application Software Security"
+      url: "https://www.cisecurity.org/controls"
+      tags: ["appsec"]
+    - id: "cisv8:17"
+      ref: {standard: "CIS", version: "v8", control: "17"}
+      title: "Incident Response Management"
+      url: "https://www.cisecurity.org/controls"
+      tags: ["incident_response"]
+    - id: "cisv8:18"
+      ref: {standard: "CIS", version: "v8", control: "18"}
+      title: "Penetration Testing"
+      url: "https://www.cisecurity.org/controls"
+      tags: ["testing"]

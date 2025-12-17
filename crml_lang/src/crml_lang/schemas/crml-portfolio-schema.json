@@ -493,7 +493,7 @@
             }
           ],
           "default": null,
-          "description": "Optional list of file paths to referenced control catalog packs.",
+          "description": "Optional list of file paths to referenced control cataloges.",
           "title": "Control Catalogs"
         },
         "control_assessments": {
@@ -509,7 +509,7 @@
             }
           ],
           "default": null,
-          "description": "Optional list of file paths to referenced control assessment packs.",
+          "description": "Optional list of file paths to referenced control assessment cataloges.",
           "title": "Control Assessments"
         },
         "scenarios": {

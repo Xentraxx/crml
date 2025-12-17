@@ -24,8 +24,8 @@ It intentionally does **not** run simulations.
 
 - Scenario document (`crml_scenario: "1.0"`)
 - Portfolio document (`crml_portfolio: "1.0"`)
-- Control catalog pack
-- Control assessment pack
+- Control cataloge
+- Control assessment cataloge
 
 ### Outputs
 

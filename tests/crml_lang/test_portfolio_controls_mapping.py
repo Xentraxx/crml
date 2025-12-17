@@ -49,7 +49,7 @@ portfolio:
     assert any("no control inventory is available" in e.message for e in report.errors)
 
 
-def test_portfolio_can_use_assessment_pack_for_scenario_control_mapping(tmp_path) -> None:
+def test_portfolio_can_use_assessment_cataloge_for_scenario_control_mapping(tmp_path) -> None:
     scenario_path = tmp_path / "scenario.yaml"
     scenario_path.write_text(
         """

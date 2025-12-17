@@ -72,7 +72,7 @@
       "title": "ControlCatalogEntry",
       "type": "object"
     },
-    "ControlCatalogPack": {
+    "ControlCataloge": {
       "properties": {
         "id": {
           "anyOf": [
@@ -84,7 +84,7 @@
             }
           ],
           "default": null,
-          "description": "Optional identifier for this catalog pack (organization-owned).",
+          "description": "Optional identifier for this cataloge (organization-owned).",
           "title": "Id"
         },
         "framework": {
@@ -105,7 +105,7 @@
         "framework",
         "controls"
       ],
-      "title": "ControlCatalogPack",
+      "title": "ControlCataloge",
       "type": "object"
     },
     "ControlStructuredRef": {
@@ -304,8 +304,8 @@
       "description": "Document metadata (name, description, tags, etc.)."
     },
     "catalog": {
-      "$ref": "#/$defs/ControlCatalogPack",
-      "description": "The control catalog pack payload."
+      "$ref": "#/$defs/ControlCataloge",
+      "description": "The control cataloge payload."
     }
   },
   "required": [

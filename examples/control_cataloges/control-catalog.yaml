@@ -2,7 +2,8 @@ crml_control_catalog: "1.0"
 meta:
   name: "Example control catalog"
 catalog:
-  name: "Org control IDs"
+  id: "org"
+  framework: "Org"
   controls:
     - id: "org:iam.mfa"
       title: "Multi-factor authentication"

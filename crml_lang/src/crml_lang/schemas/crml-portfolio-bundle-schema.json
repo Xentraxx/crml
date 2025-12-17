@@ -137,8 +137,8 @@
           "description": "Document metadata (name, description, tags, etc.)."
         },
         "assessment": {
-          "$ref": "#/$defs/ControlAssessmentPack",
-          "description": "The control assessment pack payload."
+          "$ref": "#/$defs/ControlAssessmentCataloge",
+          "description": "The control assessment cataloge payload."
         }
       },
       "required": [
@@ -162,8 +162,8 @@
           "description": "Document metadata (name, description, tags, etc.)."
         },
         "catalog": {
-          "$ref": "#/$defs/ControlCatalogPack",
-          "description": "The control catalog pack payload."
+          "$ref": "#/$defs/ControlCataloge",
+          "description": "The control cataloge payload."
         }
       },
       "required": [
@@ -374,7 +374,7 @@
       "title": "ControlAssessment",
       "type": "object"
     },
-    "ControlAssessmentPack": {
+    "ControlAssessmentCataloge": {
       "properties": {
         "id": {
           "anyOf": [
@@ -386,7 +386,7 @@
             }
           ],
           "default": null,
-          "description": "Optional identifier for this assessment pack (organization-owned).",
+          "description": "Optional identifier for this assessment cataloge (organization-owned).",
           "title": "Id"
         },
         "framework": {
@@ -405,7 +405,7 @@
             }
           ],
           "default": null,
-          "description": "When this assessment pack was performed/recorded (ISO 8601 date-time). Example: '2025-12-17T10:15:30Z'.",
+          "description": "When this assessment cataloge was performed/recorded (ISO 8601 date-time). Example: '2025-12-17T10:15:30Z'.",
           "title": "Assessed At"
         },
         "assessments": {
@@ -421,7 +421,7 @@
         "framework",
         "assessments"
       ],
-      "title": "ControlAssessmentPack",
+      "title": "ControlAssessmentCataloge",
       "type": "object"
     },
     "ControlCatalogEntry": {
@@ -496,7 +496,7 @@
       "title": "ControlCatalogEntry",
       "type": "object"
     },
-    "ControlCatalogPack": {
+    "ControlCataloge": {
       "properties": {
         "id": {
           "anyOf": [
@@ -508,7 +508,7 @@
             }
           ],
           "default": null,
-          "description": "Optional identifier for this catalog pack (organization-owned).",
+          "description": "Optional identifier for this cataloge (organization-owned).",
           "title": "Id"
         },
         "framework": {
@@ -529,7 +529,7 @@
         "framework",
         "controls"
       ],
-      "title": "ControlCatalogPack",
+      "title": "ControlCataloge",
       "type": "object"
     },
     "ControlStructuredRef": {
@@ -1156,7 +1156,7 @@
             }
           ],
           "default": null,
-          "description": "Optional list of file paths to referenced control catalog packs.",
+          "description": "Optional list of file paths to referenced control cataloges.",
           "title": "Control Catalogs"
         },
         "control_assessments": {
@@ -1172,7 +1172,7 @@
             }
           ],
           "default": null,
-          "description": "Optional list of file paths to referenced control assessment packs.",
+          "description": "Optional list of file paths to referenced control assessment cataloges.",
           "title": "Control Assessments"
         },
         "scenarios": {

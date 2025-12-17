@@ -24,7 +24,7 @@ def validate_control_assessment(
     control_catalogs_source_kind: Literal["path", "yaml", "data"] | None = None,
     strict_model: bool = False,
 ) -> ValidationReport:
-    """Validate a CRML Control Assessment Pack document."""
+    """Validate a CRML Control Assessment Cataloge document."""
 
     data, io_errors = _load_input(source, source_kind=source_kind)
     if io_errors:
@@ -108,7 +108,7 @@ def validate_control_assessment(
                     )
                 )
 
-            # Cross-pack check: if catalogs are provided, every assessment id must exist in them.
+            # Cross-cataloge check: if catalogs are provided, every assessment id must exist in them.
             if control_catalogs:
                 catalog_ids: set[str] = set()
                 for cidx, catalog_source in enumerate(control_catalogs):
@@ -164,7 +164,7 @@ def validate_control_assessment(
                                     level="error",
                                     source="semantic",
                                     path="assessment -> assessments -> id",
-                                    message=f"Control assessment references unknown control id '{cid}' (not found in provided control catalog pack(s)).",
+                                    message=f"Control assessment references unknown control id '{cid}' (not found in provided control cataloge(s)).",
                                 )
                             )
 
