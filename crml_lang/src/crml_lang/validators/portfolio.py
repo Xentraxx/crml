@@ -699,6 +699,107 @@ def _load_scenario_doc(resolved_path: str) -> tuple[Any | None, str | None]:
         return None, str(e)
 
 
+def _asset_cardinalities_by_name(portfolio: dict[str, Any]) -> dict[str, int]:
+    assets = portfolio.get("assets")
+    if not isinstance(assets, list):
+        return {}
+    out: dict[str, int] = {}
+    for a in assets:
+        if not isinstance(a, dict):
+            continue
+        name = a.get("name")
+        card = a.get("cardinality")
+        if not isinstance(name, str) or not name:
+            continue
+        if not isinstance(card, int):
+            continue
+        out[name] = card
+    return out
+
+
+def _binding_applies_to_assets(sc: dict[str, Any]) -> tuple[bool, Any]:
+    binding = sc.get("binding")
+    if not isinstance(binding, dict):
+        return False, None
+    if "applies_to_assets" not in binding:
+        return False, None
+    return True, binding.get("applies_to_assets")
+
+
+def _bound_assets_from_binding(*, applies_present: bool, applies_value: Any, asset_cardinalities: dict[str, int]) -> list[str]:
+    if not asset_cardinalities:
+        return []
+    if not applies_present or applies_value is None:
+        return list(asset_cardinalities.keys())
+    if isinstance(applies_value, list):
+        return [x for x in applies_value if isinstance(x, str)]
+    return []
+
+
+def _total_exposure(bound_assets: list[str], asset_cardinalities: dict[str, int]) -> int:
+    return int(sum(int(asset_cardinalities.get(name, 0) or 0) for name in bound_assets))
+
+
+def _frequency_binding_warnings(
+    *,
+    sc: dict[str, Any],
+    scenario_doc: Any,
+    idx: int,
+    asset_cardinalities: dict[str, int],
+) -> list[ValidationMessage]:
+    """Language-level validation guidance for portfolio scenario bindings.
+
+    - If frequency basis is per_asset_unit_per_year and total bound exposure E=0, warn.
+    - If basis is per_organization_per_year and applies_to_assets is explicitly provided (non-null), warn.
+    """
+
+    try:
+        basis = scenario_doc.scenario.frequency.basis
+    except Exception:
+        return []
+
+    applies_present, applies_value = _binding_applies_to_assets(sc)
+
+    messages: list[ValidationMessage] = []
+
+    if basis == "per_organization_per_year" and applies_present and applies_value is not None:
+        messages.append(
+            ValidationMessage(
+                level="warning",
+                source="semantic",
+                path=f"portfolio -> scenarios -> {idx} -> binding -> applies_to_assets",
+                message=(
+                    "Scenario frequency basis is 'per_organization_per_year'; asset binding does not affect frequency scaling "
+                    "(expected annual event count is not multiplied by exposure). "
+                    "If you intended per-asset scaling, use 'per_asset_unit_per_year'."
+                ),
+            )
+        )
+
+    if basis == "per_asset_unit_per_year":
+        bound_assets = _bound_assets_from_binding(
+            applies_present=applies_present,
+            applies_value=applies_value,
+            asset_cardinalities=asset_cardinalities,
+        )
+        exposure = _total_exposure(bound_assets, asset_cardinalities)
+
+        if exposure == 0:
+            messages.append(
+                ValidationMessage(
+                    level="warning",
+                    source="semantic",
+                    path=f"portfolio -> scenarios -> {idx} -> binding -> applies_to_assets",
+                    message=(
+                        "Scenario frequency basis is 'per_asset_unit_per_year' but total bound exposure E=0 (no assets bound). "
+                        "Add portfolio.assets and/or bind this scenario to one or more assets."
+                    ),
+                )
+            )
+
+    return messages
+
+
 def _portfolio_control_namespace_alignment(
     *,
     portfolio_control_ids: set[str],
@@ -777,6 +878,7 @@ def _cross_document_checks(
     portfolio_frameworks: set[str],
     portfolio_countries: set[str],
     portfolio: dict[str, Any],
+    asset_cardinalities: dict[str, int],
     assessment_ids: set[str],
     catalog_ids: set[str],
 ) -> list[ValidationMessage]:
@@ -818,6 +920,7 @@ def _cross_document_checks(
             portfolio_frameworks=portfolio_frameworks,
             portfolio_countries=portfolio_countries,
             portfolio_control_ids=portfolio_control_ids,
+            asset_cardinalities=asset_cardinalities,
         )
     )
     return messages
@@ -871,6 +974,7 @@ def _scenario_cross_checks(
     portfolio_frameworks: set[str],
     portfolio_countries: set[str],
     portfolio_control_ids: set[str],
+    asset_cardinalities: dict[str, int],
 ) -> list[ValidationMessage]:
     messages: list[ValidationMessage] = []
     for idx, sc in enumerate(scenarios):
@@ -888,6 +992,7 @@ def _scenario_cross_checks(
             portfolio_frameworks=portfolio_frameworks,
             portfolio_countries=portfolio_countries,
             portfolio_control_ids=portfolio_control_ids,
+            asset_cardinalities=asset_cardinalities,
         )
         messages.extend(entry_messages)
         if stop:
@@ -908,6 +1013,7 @@ def _scenario_cross_checks_one(
     portfolio_frameworks: set[str],
     portfolio_countries: set[str],
     portfolio_control_ids: set[str],
+    asset_cardinalities: dict[str, int],
 ) -> tuple[list[ValidationMessage], bool]:
     spath = sc.get("path")
     if not isinstance(spath, str) or not spath:
@@ -944,6 +1050,16 @@ def _scenario_cross_checks_one(
         )
 
     messages: list[ValidationMessage] = []
+
+    messages.extend(
+        _frequency_binding_warnings(
+            sc=sc,
+            scenario_doc=scenario_doc,
+            idx=idx,
+            asset_cardinalities=asset_cardinalities,
+        )
+    )
+
     if validate_relevance:
         messages.extend(
             _relevance_checks_for_scenario(
@@ -987,6 +1103,8 @@ def _portfolio_semantic_checks(data: dict[str, Any], *, base_dir: str | None = N
     scenarios = portfolio.get("scenarios")
     if not isinstance(scenarios, list):
         return messages
+
+    asset_cardinalities = _asset_cardinalities_by_name(portfolio)
 
     messages.extend(_controls_uniqueness_checks(portfolio))
 
@@ -1040,6 +1158,7 @@ def _portfolio_semantic_checks(data: dict[str, Any], *, base_dir: str | None = N
                 portfolio_frameworks=portfolio_frameworks,
                 portfolio_countries=portfolio_countries,
                 portfolio=portfolio,
+                asset_cardinalities=asset_cardinalities,
                 assessment_ids=assessment_ids,
                 catalog_ids=catalog_ids,
             )

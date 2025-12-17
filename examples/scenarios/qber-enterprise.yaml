@@ -1,26 +1,29 @@
 crml_scenario: "1.0"
 meta:
   name: qber-enterprise-v1
-  version: '2025.1'
-  description: QBER-style hierarchical Bayesian model with entropy-based CI and MCMC
+  version: "2025.1"
+  description: |
+    QBER-inspired enterprise scenario example.
+
+    CRML standardizes the document structure (scenario + portfolio), but it does not
+    standardize Bayesian inference pipelines (e.g. MCMC), diagnostics, or export settings.
+    Those belong to your chosen engine/tool configuration.
   author: CRML Team
-  locale:
-    regions: ["world"]
-    countries: ["US"]
   tags:
     - qber
+    - enterprise
     - bayesian
-    - mcmc
     - pam
     - dlp
     - iam
     - xdr
     - waf
-  company_size:
-    - enterprise
-    - large-enterprise
   industries:
     - all
+  locale:
+    regions: [world]
+    countries: [US]
+
 data:
   sources:
     pam:
@@ -63,6 +66,7 @@ data:
     iam_entropy: iam.identity_graph_entropy
     xdr_entropy: xdr.process_tree_entropy
     waf_entropy: waf.request_entropy
+
 scenario:
   frequency:
     basis: per_organization_per_year
@@ -70,53 +74,18 @@ scenario:
     parameters:
       alpha_base: 2.0
       beta_base: 1.0
+
   severity:
     model: mixture
     parameters: {}
     components:
       - lognormal:
-          median: "162 755"  # ~$163K median loss (ISO 80000-1 format)
+          weight: 0.7
+          median: "162 755"
           currency: USD
           sigma: 1.2
       - gamma:
+          weight: 0.3
           shape: 2.5
           scale: "10 000"
           currency: USD
-      - lambda_vendor * E[I_vendor]
-      target: annual_loss
-      ewma_alpha: 0.3
-pipeline:
-  simulation:
-    monte_carlo:
-      enabled: true
-      runs: 20000
-      random_seed: 42
-    mcmc:
-      enabled: true
-      algorithm: metropolis_hastings
-      iterations: 15000
-      burn_in: 3000
-      chains: 4
-      thinning: 1
-  validation:
-    mcmc:
-      rhat_threshold: 1.05
-      ess_min: 5000
-    loss_distribution:
-      var_stability_tolerance: 0.02
-output:
-  metrics:
-  - EAL
-  - VaR_95
-  - VaR_99
-  - VaR_999
-  distributions:
-    annual_loss: true
-    component_losses: true
-  diagnostics:
-    mcmc_trace: true
-    rhat: true
-  export:
-    csv: qber_enterprise_results.csv
-    json: qber_posterior.json
-    latex_table: qber_results_table.tex

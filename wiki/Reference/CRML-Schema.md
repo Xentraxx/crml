@@ -1,67 +1,62 @@
-# CRML Schema
+# CRML Schemas
 
-The CRML schema is implemented in JSON Schema (2020-12 draft) and is used by
-the `crml_lang` validator. The `crml validate` CLI command (from `crml_engine`)
-delegates validation to `crml_lang`.
+The CRML language is validated via JSON Schema (Draft 2020-12) plus additional semantic checks.
 
-At a high level, the schema enforces:
+- `crml_lang` provides the **language** schemas and the validator.
+- The `crml` CLI (from `crml_engine`) delegates document validation to `crml_lang`.
 
-- presence of top-level keys: `crml`, `meta`, `model`
-- types of primitive fields (strings, numbers, arrays, objects)
-- minimal structure for `model.frequency` and `model.severity`
+CRML is **not** a single schema: it is a set of document types, each with its own schema.
 
-The canonical schema lives in:
+---
 
-```text
-crml_lang/src/crml_lang/schemas/crml-schema.json
-```
+## Language schemas (`crml_lang`)
 
-The portfolio schema (for linking multiple scenario files with validated aggregation semantics) lives in:
+Canonical schema files live in:
 
 ```text
-crml_lang/src/crml_lang/schemas/crml-portfolio-schema.json
+crml_lang/src/crml_lang/schemas/
 ```
 
-Example (truncated):
+Specifically:
 
-```json
-{
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "CRML 1.1",
-  "type": "object",
-  "required": ["crml", "meta", "model"],
-  "properties": {
-    "crml": { "type": "string" },
-    "meta": {
-      "type": "object",
-      "required": ["name"],
-      "properties": {
-        "name": { "type": "string" },
-        "version": { "type": "string" },
-        "description": { "type": "string" }
-      }
-    },
-    "model": {
-      "type": "object",
-      "required": ["frequency", "severity"],
-      "properties": {
-        "assets": { "type": "object" },
-        "frequency": { "type": "object" },
-        "severity": { "type": "object" }
-      }
-    }
-  }
-}
+- `crml-scenario-schema.json` (`crml_scenario: "1.0"`)
+- `crml-portfolio-schema.json` (`crml_portfolio: "1.0"`)
+- `crml-control-catalog-schema.json` (`crml_control_catalog: "1.0"`)
+- `crml-control-assessment-schema.json` (`crml_control_assessment: "1.0"`)
+- `crml-portfolio-bundle-schema.json` (`crml_portfolio_bundle: "1.0"`)
+- `crml-simulation-result-schema.json` (`crml_simulation_result: "1.0"`)
+
+In addition to JSON Schema validation, `crml_lang` performs semantic validation (examples):
+
+- Cross-references exist and types match (e.g. portfolios reference valid scenarios).
+- Consistency rules (e.g. portfolios that reference `control_assessments` must also reference `control_catalogs`).
+
+---
+
+## Engine-owned schemas (`crml_engine`)
+
+Some documents are **execution-time configuration** and belong to an engine rather than to the language.
+
+The reference engine includes an FX config schema:
+
+```text
+crml_engine/src/crml_engine/schemas/crml-fx-config-schema.json
 ```
 
-To validate a model programmatically:
+Engines MAY define additional runtime config documents; those are not part of the CRML language unless adopted into `crml_lang`.
+
+---
+
+## Programmatic validation
+
+To validate programmatically:
 
 ```python
 from crml_lang import validate
 
-report = validate("model.yaml", source_kind="path")
+report = validate("doc.yaml", source_kind="path")
 if not report.ok:
-  raise SystemExit(report.render_text(source_label="model.yaml"))
+    raise SystemExit(report.render_text(source_label="doc.yaml"))
 ```
 
-For exact field-by-field constraints, open `crml-schema.json` directly.
+For exact field-by-field constraints, open the schema JSON files directly.

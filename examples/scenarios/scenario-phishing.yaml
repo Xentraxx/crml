@@ -2,7 +2,6 @@ crml_scenario: "1.0"
 meta:
   name: "Phishing -> account takeover"
 scenario:
-  id: "phishing_ato"
   controls:
     - "org:iam.mfa"
   frequency:

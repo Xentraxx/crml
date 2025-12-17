@@ -8,6 +8,7 @@ scenario:
     parameters: {lambda: 2.0}
   severity:
     model: mixture
+    parameters: {}
     components:
       - lognormal:
           weight: 0.5

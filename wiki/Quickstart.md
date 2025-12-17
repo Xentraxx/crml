@@ -119,8 +119,8 @@ Visit http://localhost:3000/simulation
 ## Next Steps
 
 ### Learn More
-- **[Writing CRML Models](Guides/Writing-CRML)** - Comprehensive guide
-- **[Understanding Parameters](Guides/Understanding-Parameters)** - How to choose values
+- **[CRML Specification](Reference/CRML-Specification)** - Current language contracts + semantics
+- **[Best Practices](Examples/Best-Practices)** - Practical modeling guidance and limitations
 - **[Examples](Examples/Full-Examples)** - Pre-built models
 
 ### Try Different Scenarios
@@ -159,4 +159,4 @@ Visit http://localhost:3000/simulation
 - 💬 [GitHub Issues](https://github.com/Faux16/crml/issues)
 - 📧 [Email Support](mailto:research@zeron.one)
 
-**Ready to build real risk models?** Check out the [Writing CRML guide](Guides/Writing-CRML)!
+**Ready to build real risk models?** Start with [Best Practices](Examples/Best-Practices) and then consult the [CRML Specification](Reference/CRML-Specification).

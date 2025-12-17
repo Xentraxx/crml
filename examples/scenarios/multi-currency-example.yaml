@@ -29,20 +29,12 @@ scenario:
   frequency:
     basis: per_organization_per_year
     model: poisson
-    description: |
-      Combined probability of a reportable PII breach across all jurisdictions.
-      Based on industry data: ~3% of organizations experience a reportable breach annually.
     parameters:
       lambda: 0.03  # 3% annual probability per database
 
   severity:
     model: mixture
-    description: |
-      Mixture model representing fines from two regulatory regimes:
-      - Component 1 (60%): GDPR fines in EUR (German DPA)
-      - Component 2 (40%): CCPA fines in USD (California AG)
-      
-      Weights reflect the proportion of databases in each jurisdiction.
+    parameters: {}
     components:
       # GDPR fines (Germany / EU)
       # German DPAs have issued fines ranging from €10K to €35M
