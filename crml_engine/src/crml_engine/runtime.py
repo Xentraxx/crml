@@ -277,25 +277,28 @@ def run_simulation_envelope(
         currency_unit = CurrencyUnit(code=currency_code, symbol=currency_symbol)
 
     envelope = SimulationResultEnvelope(
-        success=result.success,
-        errors=list(result.errors or []),
-        engine=EngineInfo(name="crml_engine", version=engine_version),
-        run=RunInfo(
-            runs=runs,
-            seed=seed,
-            runtime_ms=runtime_ms,
-            started_at=now_utc(),
-        ),
-        inputs=InputInfo(model_name=model_name, model_version=model_version, description=description),
-        units=Units(
-            currency=CurrencyUnit(code=currency_code or "USD", symbol=currency_symbol),
-            horizon="annual",
-        ),
+        result=SimulationResult(
+            success=result.success,
+            errors=list(result.errors or []),
+            warnings=list(result.warnings or []),
+            engine=EngineInfo(name="crml_engine", version=engine_version),
+            run=RunInfo(
+                runs=runs,
+                seed=seed,
+                runtime_ms=runtime_ms,
+                started_at=now_utc(),
+            ),
+            inputs=InputInfo(model_name=model_name, model_version=model_version, description=description),
+            units=Units(
+                currency=CurrencyUnit(code=currency_code or "USD", symbol=currency_symbol),
+                horizon="annual",
+            ),
+        )
     )
 
     metrics = result.metrics
     if metrics is not None:
-        envelope.results.measures.extend(
+        envelope.result.results.measures.extend(
             [
                 Measure(id="loss.eal", label="Expected Annual Loss", value=metrics.eal, unit=currency_unit),
                 Measure(id="loss.min", label="Minimum Loss", value=metrics.min, unit=currency_unit),
@@ -305,7 +308,7 @@ def run_simulation_envelope(
             ]
         )
 
-        envelope.results.measures.extend(
+        envelope.result.results.measures.extend(
             [
                 Measure(
                     id="loss.var",
@@ -334,7 +337,7 @@ def run_simulation_envelope(
     distribution = result.distribution
     if distribution is not None:
         if distribution.bins and distribution.frequencies:
-            envelope.results.artifacts.append(
+            envelope.result.results.artifacts.append(
                 HistogramArtifact(
                     id="loss.annual",
                     unit=currency_unit,
@@ -344,7 +347,7 @@ def run_simulation_envelope(
                 )
             )
         if distribution.raw_data:
-            envelope.results.artifacts.append(
+            envelope.result.results.artifacts.append(
                 SamplesArtifact(
                     id="loss.annual",
                     unit=currency_unit,

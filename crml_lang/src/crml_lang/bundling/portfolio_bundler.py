@@ -7,7 +7,12 @@ from typing import Any, Literal, Mapping, Optional
 from crml_lang.models.control_assessment_model import CRControlAssessmentSchema
 from crml_lang.models.control_catalog_model import CRControlCatalogSchema
 from crml_lang.models.crml_model import CRScenarioSchema
-from crml_lang.models.portfolio_bundle import BundleMessage, BundledScenario, CRPortfolioBundle
+from crml_lang.models.portfolio_bundle import (
+    BundleMessage,
+    BundledScenario,
+    CRPortfolioBundle,
+    PortfolioBundlePayload,
+)
 from crml_lang.models.portfolio_model import CRPortfolioSchema
 
 
@@ -225,7 +230,7 @@ def bundle_portfolio(
             )
         )
 
-    bundle = CRPortfolioBundle(
+    payload = PortfolioBundlePayload(
         portfolio=portfolio_doc,
         scenarios=bundled_scenarios,
         control_catalogs=control_catalogs_out,
@@ -236,5 +241,7 @@ def bundle_portfolio(
             **({"source_path": os.path.abspath(source)} if source_kind == "path" and isinstance(source, str) else {}),
         },
     )
+
+    bundle = CRPortfolioBundle(portfolio_bundle=payload)
 
     return BundleReport(ok=True, errors=[], warnings=warnings, bundle=bundle)

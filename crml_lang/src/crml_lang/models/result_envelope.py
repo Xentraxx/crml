@@ -82,17 +82,8 @@ class ResultPayload(BaseModel):
     artifacts: List[Artifact] = Field(default_factory=list, description="List of computed artifacts (histograms/samples).")
 
 
-class SimulationResultEnvelope(BaseModel):
-    """Engine-agnostic, visualization-agnostic simulation result envelope.
-
-    This model lives in `crml_lang` so engines and UIs can share a stable contract.
-    """
-
-    schema_id: Literal["crml.simulation.result"] = Field(
-        "crml.simulation.result",
-        description="Envelope schema identifier.",
-    )
-    schema_version: str = Field("1.0.0", description="Envelope schema version.")
+class SimulationResult(BaseModel):
+    """Simulation result payload for `SimulationResultEnvelope`."""
 
     success: bool = Field(False, description="True if the run completed successfully.")
     errors: List[str] = Field(default_factory=list, description="List of error messages (if any).")
@@ -101,9 +92,23 @@ class SimulationResultEnvelope(BaseModel):
     engine: EngineInfo = Field(..., description="Engine identification and version metadata.")
     run: RunInfo = Field(default_factory=RunInfo, description="Execution/run metadata.")
     inputs: InputInfo = Field(default_factory=InputInfo, description="Input model metadata captured for reporting.")
-    units: Optional[Units] = Field(None, description="Optional unit metadata for values in this envelope.")
+    units: Optional[Units] = Field(None, description="Optional unit metadata for values in this result.")
 
     results: ResultPayload = Field(default_factory=ResultPayload, description="The result payload (measures/artifacts).")
+
+
+class SimulationResultEnvelope(BaseModel):
+    """Engine-agnostic, visualization-agnostic simulation result envelope.
+
+    This model lives in `crml_lang` so engines and UIs can share a stable contract.
+    """
+
+    crml_simulation_result: Literal["1.0"] = Field(
+        "1.0",
+        description="Simulation result document version identifier.",
+    )
+
+    result: SimulationResult = Field(..., description="The simulation result payload.")
 
 
 def now_utc() -> datetime:

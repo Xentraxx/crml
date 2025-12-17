@@ -41,9 +41,12 @@ portfolio:
     report = bundle_portfolio(str(portfolio_path), source_kind="path")
     assert report.ok is True
     assert report.bundle is not None
-    assert report.bundle.schema_id == "crml.portfolio.bundle"
-    assert len(report.bundle.scenarios) == 1
-    assert report.bundle.scenarios[0].scenario.meta.name == "Threat scenario"
+    assert report.bundle.crml_portfolio_bundle == "1.0"
+    assert len(report.bundle.portfolio_bundle.scenarios) == 1
+    assert (
+      report.bundle.portfolio_bundle.scenarios[0].scenario.meta.name
+      == "Threat scenario"
+    )
 
 
 def test_bundle_portfolio_model_mode_inlines_scenario() -> None:
@@ -80,6 +83,9 @@ portfolio:
     report = bundle_portfolio(portfolio, source_kind="model", scenarios={"s1": scenario})
     assert report.ok is True
     assert report.bundle is not None
-    assert len(report.bundle.scenarios) == 1
-    assert report.bundle.scenarios[0].id == "s1"
-    assert report.bundle.scenarios[0].scenario.meta.name == "Threat scenario"
+    assert len(report.bundle.portfolio_bundle.scenarios) == 1
+    assert report.bundle.portfolio_bundle.scenarios[0].id == "s1"
+    assert (
+      report.bundle.portfolio_bundle.scenarios[0].scenario.meta.name
+      == "Threat scenario"
+    )

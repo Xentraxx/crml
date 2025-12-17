@@ -25,22 +25,11 @@ class BundledScenario(BaseModel):
     scenario: CRScenarioSchema = Field(..., description="Inlined, validated CRML scenario document.")
 
 
-class CRPortfolioBundle(BaseModel):
-    """Engine-agnostic bundle produced by the language layer.
+class PortfolioBundlePayload(BaseModel):
+    """Portfolio bundle payload for `CRPortfolioBundle`.
 
-    A portfolio bundle is a single, self-contained artifact that contains:
-    - the portfolio document
-    - referenced scenario documents inlined
-    - optionally, referenced control packs inlined
-
-    The bundle is intended as the contract between `crml_lang` and engines.
+    This is intentionally the inlined artifact content; engines should not require filesystem access.
     """
-
-    schema_id: Literal["crml.portfolio.bundle"] = Field(
-        "crml.portfolio.bundle",
-        description="Bundle schema identifier.",
-    )
-    schema_version: str = Field("1.0.0", description="Bundle schema version.")
 
     portfolio: CRPortfolioSchema = Field(..., description="The CRML portfolio document.")
 
@@ -64,4 +53,25 @@ class CRPortfolioBundle(BaseModel):
     metadata: Dict[str, Any] = Field(
         default_factory=dict,
         description="Optional metadata for traceability (e.g., source refs). Not interpreted by engines.",
+    )
+
+
+class CRPortfolioBundle(BaseModel):
+    """Engine-agnostic bundle produced by the language layer.
+
+    A portfolio bundle is a single, self-contained artifact that contains:
+    - the portfolio document
+    - referenced scenario documents inlined
+    - optionally, referenced control packs inlined
+
+    The bundle is intended as the contract between `crml_lang` and engines.
+    """
+
+    crml_portfolio_bundle: Literal["1.0"] = Field(
+        "1.0",
+        description="Portfolio bundle document version identifier.",
+    )
+
+    portfolio_bundle: PortfolioBundlePayload = Field(
+        ..., description="The portfolio bundle payload (inlined artifact content)."
     )

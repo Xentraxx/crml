@@ -640,7 +640,8 @@ def plan_bundle(bundle: CRPortfolioBundle) -> PlanReport:
     errors: list[PlanMessage] = []
     warnings: list[PlanMessage] = []
 
-    doc = bundle.portfolio
+    payload = bundle.portfolio_bundle
+    doc = payload.portfolio
     portfolio: Portfolio = doc.portfolio
 
     assets_by_name: dict[str, Any] = {a.name: a for a in portfolio.assets}
@@ -650,14 +651,14 @@ def plan_bundle(bundle: CRPortfolioBundle) -> PlanReport:
     catalog_ids: set[str] = set()
     assessment_by_id: dict[str, ControlAssessment] = {}
 
-    for cat_doc in bundle.control_catalogs or []:
+    for cat_doc in payload.control_catalogs or []:
         try:
             for entry in cat_doc.catalog.controls:
                 catalog_ids.add(entry.id)
         except Exception as e:
             warnings.append(PlanMessage(level="warning", path="bundle.control_catalogs", message=str(e)))
 
-    for idx, assess_doc in enumerate(bundle.control_assessments or []):
+    for idx, assess_doc in enumerate(payload.control_assessments or []):
         try:
             for a in assess_doc.assessment.assessments:
                 if a.id in assessment_by_id:
