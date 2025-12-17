@@ -56,7 +56,6 @@ class Metadata(BaseModel):
     control_reduction_pct: Optional[float] = Field(None, description="Percent reduction due to controls (engine-specific).")
     control_details: Optional[Any] = Field(None, description="Optional structured control details (engine-specific).")
     control_warnings: Optional[Any] = Field(None, description="Optional structured control warnings (engine-specific).")
-    control_warning: Optional[str] = Field(None, description="Optional single warning string (legacy/compat).")
     correlation_info: Optional[List[dict]] = Field(None, description="Optional correlation metadata (engine-specific).")
 
 class SimulationResult(BaseModel):

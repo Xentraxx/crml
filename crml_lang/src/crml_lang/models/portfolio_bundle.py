@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import AliasChoices, BaseModel, Field
 
 from .crml_model import CRScenarioSchema
 from .portfolio_model import CRPortfolioSchema
 from .control_catalog_model import CRControlCatalogSchema
-from .control_assessment_model import CRControlAssessmentSchema
+from .assessment_model import CRAssessmentSchema
 from .control_relationships_model import CRControlRelationshipsSchema
 
 
@@ -44,9 +44,11 @@ class PortfolioBundlePayload(BaseModel):
         description="Optional inlined control catalog packs referenced by the portfolio.",
     )
 
-    control_assessments: List[CRControlAssessmentSchema] = Field(
+    assessments: List[CRAssessmentSchema] = Field(
         default_factory=list,
-        description="Optional inlined control assessment packs referenced by the portfolio.",
+        validation_alias=AliasChoices("assessments", "control_assessments"),
+        serialization_alias="assessments",
+        description="Optional inlined assessment packs referenced by the portfolio.",
     )
 
     control_relationships: List[CRControlRelationshipsSchema] = Field(

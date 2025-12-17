@@ -1,4 +1,4 @@
-crml_control_assessment: "1.0"
+crml_assessment: "1.0"
 meta:
   name: "Example control assessment"
 assessment:

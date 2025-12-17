@@ -14,9 +14,10 @@ For the detailed architecture, see:
 ## Document types
 
 - Scenario documents: `crml_scenario: "1.0"` (top-level `scenario:`)
-- Portfolio documents: `crml_portfolio: "1.0"` (top-level `portfolio:`; if `portfolio.control_assessments` is used, `portfolio.control_catalogs` must also be provided)
-- Control catalog packs: `crml_control_catalog: "1.0"` (top-level `catalog:`)
-- Control assessment packs: `crml_control_assessment: "1.0"` (top-level `assessment:`)
+- Portfolio documents: `crml_portfolio: "1.0"` (top-level `portfolio:`; if `portfolio.assessments` is used, `portfolio.control_catalogs` must also be provided)
+- Control cataloges documents: `crml_control_catalog: "1.0"` (top-level `catalog:`)
+- Assessment documents: `crml_assessment: "1.0"` (top-level `assessment:`)
+- Control relationships documents: `crml_control_relationships: "1.0"` (top-level `relationships:`; control-to-control mappings with overlap metadata)
 - FX config documents: `crml_fx_config: "1.0"` (top-level `base_currency`, `output_currency`, `rates`, optional `as_of`; engine-owned config document)
 - Portfolio bundle artifacts: `crml_portfolio_bundle: "1.0"` (top-level `portfolio_bundle:`)
 - Simulation result artifacts: `crml_simulation_result: "1.0"` (top-level `result:`)
@@ -25,14 +26,30 @@ For the detailed architecture, see:
 
 ```mermaid
 flowchart TD
-    DOC[CRML YAML/JSON] --> LANG[crml_lang\nvalidate]
+    DOC[CRML YAML/JSON]
+
+    subgraph L["crml_lang (language/spec responsibility)\nEnds after validation + bundling"]
+        LANG[crml_lang\nvalidate]
+        BUNDLE[crml_lang\nbundle]
+    end
+
+    subgraph E["crml_engine (engine responsibility)\nPlanning + execution"]
+        PIPE[crml_engine.pipeline\nplan]
+        ENG[crml_engine\nexecute]
+    end
+
+    subgraph W["web/ (UI responsibility)"]
+        WEB[CRML Studio UI]
+    end
+
+    DOC --> LANG
     LANG -->|ValidationReport| TOOL[CLI/CI/Web tooling]
 
-    DOC --> BUNDLE[crml_lang\nbundle]
-    BUNDLE -->|CRPortfolioBundle| PIPE[crml_engine.pipeline\nplan]
-    PIPE -->|PortfolioExecutionPlan| ENG[crml_engine\nexecute]
+    DOC --> BUNDLE
+    BUNDLE -->|CRPortfolioBundle| PIPE
+    PIPE -->|PortfolioExecutionPlan| ENG
     ENG --> RES[SimulationResultEnvelope]
-    RES --> WEB[CRML Studio UI]
+    RES --> WEB
 ```
 
 ## Ecosystem data flow
@@ -44,7 +61,8 @@ In practice:
 - **Threat intelligence** produces or informs *scenario documents* (frequency, severity, narratives, assumptions).
 - **Portfolios** describe the organization's relatively stable assets, business units, and exposure structure. They can be updated via internal tooling (e.g., CMDB/asset inventory imports), but the portfolio document remains the central reference.
 - **Control catalogs** come from recognized authorities and frameworks (e.g., NIS, CIS) or can be commonly defined by the community. These catalogs define the canonical control set and their semantics.
-- **Control assessments** come from assessment/scan tools and audits. They capture which controls exist, how effective they are, and can optionally be used to populate or update the portfolio's control mapping.
+- **Assessments** come from assessment/scan tools and audits. They capture which controls exist, how effective they are, and can optionally be used to populate or update the portfolio's control mapping.
+- **Mappings** (control-to-control relationships) can come from public sources (e.g., Secure Controls Framework) and from community or organization-specific mapping work.
 
 The language layer then provides a deterministic bundling step that inlines the referenced material into a self-contained `CRPortfolioBundle`, which can be handed to any risk engine without requiring filesystem access.
 
@@ -57,19 +75,33 @@ flowchart LR
     ORG["Organization asset inventory<br/>(relatively static)"] -->|generate| P["Portfolio document<br/>CRPortfolio"]
     TOOL["Tooling (e.g. SIEM)<br/>imports and updates assets"] -.->|optional| P
 
-    AUTH["Recognized authorities<br/>NIS, CIS"] -->|publish| CC["Control cataloge<br/>CRControlCatalog"]
-    SCAN["Assessment and scan tools"] -->|generate| CA["Control assessment cataloge<br/>CRControlAssessment"]
+    AUTH["Recognized authorities<br/>NIS, CIS"] -->|publish| CC["Control catalog<br/>CRControlCatalog"]
+    SCAN["Assessment and scan tools"] -->|generate| CA["Assessment catalog<br/>CRAssessment"]
+
+    COMM["Community / org mappings"] -->|publish| CR["Control relationships pack<br/>CRControlRelationships"]
 
     CC -.->|basis| CA
+    CC -.->|ids| CR
 
-    S --> B["Bundle step<br/>bundle_portfolio"]
+    subgraph L2["crml_lang (language/spec responsibility)\nEnds after bundling"]
+        B["Bundle step<br/>bundle_portfolio"]
+        PB["CRPortfolioBundle<br/>inlined artifact"]
+    end
+
+    S --> B
     P --> B
     CC --> B
     CA --> B
+    CR --> B
+    B --> PB
 
-    B --> PB["CRPortfolioBundle<br/>inlined artifact"]
+    subgraph E2["Engines + tools (outside language responsibility)"]
+        ENG["Risk engines<br/>engine A, engine B"]
+        OUT["SimulationResultEnvelope<br/>standard contract"]
+        VIZ["Visualization tools<br/>dashboards and reports"]
+    end
 
-    PB --> ENG["Risk engines<br/>engine A, engine B"]
-    ENG --> OUT["SimulationResultEnvelope<br/>standard contract"]
-    OUT --> VIZ["Visualization tools<br/>dashboards and reports"]
+    PB --> ENG
+    ENG --> OUT
+    OUT --> VIZ
 ```

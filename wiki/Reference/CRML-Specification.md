@@ -95,11 +95,15 @@ Notes:
 - `portfolio.scenarios[].binding.applies_to_assets` MAY be omitted/null, in which case it is interpreted as “all portfolio assets”.
 - If `applies_to_assets` is an empty list, it binds to no assets (total exposure $E=0$); engines SHOULD treat this as a configuration error for per-asset frequency basis.
 
-### Control packs (`crml_control_catalog`, `crml_control_assessment`)
+### Control packs (`crml_control_catalog`, `crml_assessment`, `crml_control_relationships`)
 
-Control catalogs and assessments are separate documents that can be referenced from portfolios.
+Control catalogs, assessments, and control relationships are separate documents that can be referenced from portfolios.
 
-- If a portfolio references `control_assessments`, it MUST also reference the corresponding `control_catalogs` (so the assessment IDs can be interpreted).
+- If a portfolio references `assessments`, it MUST also reference the corresponding `control_catalogs` (so the assessment IDs can be interpreted).
+
+Control relationships packs (`crml_control_relationships: "1.0"`) provide portable **control-to-control mappings** with quantitative overlap metadata.
+
+- A portfolio MAY reference `control_relationships` to enable tools/engines to resolve scenario control ids to implemented portfolio controls (especially when different frameworks or id namespaces are involved).
 
 ### Portfolio bundles and simulation results
 

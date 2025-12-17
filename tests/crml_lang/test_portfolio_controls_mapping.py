@@ -88,7 +88,7 @@ catalog:
     assessment_path = tmp_path / "assessment.yaml"
     assessment_path.write_text(
         """
-crml_control_assessment: "1.0"
+crml_assessment: "1.0"
 meta:
   name: "Org assessment"
 assessment:
@@ -114,7 +114,7 @@ portfolio:
       validate_scenarios: true
   control_catalogs:
     - {catalog_path.name}
-  control_assessments:
+  assessments:
     - {assessment_path.name}
   scenarios:
     - id: s1

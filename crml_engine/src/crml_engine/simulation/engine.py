@@ -5,7 +5,7 @@ import time
 import numpy as np
 from typing import Union, Optional, Dict, List
 
-from crml_lang.models.crml_model import load_crml_from_yaml_str, CRMLSchema
+from crml_lang.models.crml_model import load_crml_from_yaml_str, CRScenarioSchema
 from ..models.result_model import SimulationResult, Metrics, Distribution, Metadata
 from ..models.fx_model import FXConfig, convert_currency, get_currency_symbol, normalize_fx_config
 from ..models.constants import DEFAULT_FX_RATES
@@ -59,7 +59,7 @@ def run_monte_carlo(
             else:
                 crml_obj = load_crml_from_yaml_str(yaml_content)
         elif isinstance(yaml_content, dict):
-            crml_obj = CRMLSchema.model_validate(yaml_content)
+            crml_obj = CRScenarioSchema.model_validate(yaml_content)
         else:
             result.errors.append("Invalid input type")
             return result

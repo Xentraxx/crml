@@ -18,7 +18,7 @@ portfolio:
 
   control_catalogs:
     - ../control_cataloges/control-catalog.yaml
-  control_assessments:
+  assessments:
     - ../control_assessments/control-assessment.yaml
 
   dependency:

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Literal, Optional
 
-from pydantic import BaseModel, Field, ConfigDict, field_validator
+from pydantic import AliasChoices, BaseModel, Field, ConfigDict, field_validator
 
 from .crml_model import Meta
 from .control_ref import ControlId
@@ -208,8 +208,11 @@ class Portfolio(BaseModel):
     control_catalogs: Optional[List[str]] = Field(
         None, description="Optional list of file paths to referenced control cataloges."
     )
-    control_assessments: Optional[List[str]] = Field(
-        None, description="Optional list of file paths to referenced control assessment cataloges."
+    assessments: Optional[List[str]] = Field(
+        None,
+        validation_alias=AliasChoices("assessments", "control_assessments"),
+        serialization_alias="assessments",
+        description="Optional list of file paths to referenced assessment cataloges.",
     )
 
     control_relationships: Optional[List[str]] = Field(

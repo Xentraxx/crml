@@ -10,7 +10,7 @@ _MODULES_TO_CHECK = [
     # crml_lang models
     "crml_lang.models.crml_model",
     "crml_lang.models.portfolio_model",
-    "crml_lang.models.control_assessment_model",
+    "crml_lang.models.assessment_model",
     "crml_lang.models.control_catalog_model",
     "crml_lang.models.control_relationships_model",
     "crml_lang.models.control_ref",

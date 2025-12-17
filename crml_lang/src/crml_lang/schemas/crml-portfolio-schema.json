@@ -496,7 +496,7 @@
           "description": "Optional list of file paths to referenced control cataloges.",
           "title": "Control Catalogs"
         },
-        "control_assessments": {
+        "assessments": {
           "anyOf": [
             {
               "items": {
@@ -509,8 +509,8 @@
             }
           ],
           "default": null,
-          "description": "Optional list of file paths to referenced control assessment cataloges.",
-          "title": "Control Assessments"
+          "description": "Optional list of file paths to referenced assessment cataloges.",
+          "title": "Assessments"
         },
         "control_relationships": {
           "anyOf": [

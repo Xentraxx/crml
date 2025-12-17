@@ -6,7 +6,7 @@ from .common import ValidationMessage, ValidationReport, _load_input
 from .scenario import validate as validate_scenario
 from .portfolio import validate_portfolio
 from .control_catalog import validate_control_catalog
-from .control_assessment import validate_control_assessment
+from .assessment import validate_assessment
 from .control_relationships import validate_control_relationships
 
 
@@ -22,8 +22,8 @@ def _detect_kind(data: dict[str, Any]) -> str | None:
         return "portfolio"
     if "crml_control_catalog" in data:
         return "control_catalog"
-    if "crml_control_assessment" in data:
-        return "control_assessment"
+    if "crml_assessment" in data or "crml_control_assessment" in data:
+        return "assessment"
     if "crml_control_relationships" in data:
         return "control_relationships"
 
@@ -58,7 +58,7 @@ def validate_document(
                     path="(root)",
                     message=(
                         "Unknown CRML document type. Expected one of: crml_scenario, crml_portfolio, "
-                        "crml_control_catalog, crml_control_assessment, crml_control_relationships."
+                        "crml_control_catalog, crml_assessment, crml_control_relationships."
                     ),
                 )
             ],
@@ -72,8 +72,8 @@ def validate_document(
         return validate_portfolio(source, source_kind=source_kind)
     if kind == "control_catalog":
         return validate_control_catalog(source, source_kind=source_kind, strict_model=strict_model)
-    if kind == "control_assessment":
-        return validate_control_assessment(source, source_kind=source_kind, strict_model=strict_model)
+    if kind == "assessment":
+        return validate_assessment(source, source_kind=source_kind, strict_model=strict_model)
     if kind == "control_relationships":
         return validate_control_relationships(source, source_kind=source_kind, strict_model=strict_model)
 

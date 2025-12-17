@@ -158,7 +158,7 @@ def test_validate_portfolio_requires_catalog_when_assessments_used(tmp_path) -> 
     assessment_path = tmp_path / "control-assessment.yaml"
     assessment_path.write_text(
         """
-crml_control_assessment: "1.0"
+crml_assessment: "1.0"
 meta:
   name: "Assessment"
 assessment:
@@ -198,7 +198,7 @@ crml_portfolio: "1.0"
 meta:
   name: "Org"
 portfolio:
-  control_assessments:
+  assessments:
     - {assessment_path.name}
   semantics:
     method: sum

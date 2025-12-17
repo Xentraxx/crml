@@ -4,7 +4,7 @@ import os
 from dataclasses import dataclass
 from typing import Any, Literal, Mapping, Optional
 
-from crml_lang.models.control_assessment_model import CRControlAssessmentSchema
+from crml_lang.models.assessment_model import CRAssessmentSchema
 from crml_lang.models.control_catalog_model import CRControlCatalogSchema
 from crml_lang.models.control_relationships_model import CRControlRelationshipsSchema
 from crml_lang.models.crml_model import CRScenarioSchema
@@ -171,39 +171,39 @@ def _inline_control_catalogs(
     return out
 
 
-def _inline_control_assessments(
+def _inline_assessments(
     *,
     portfolio_doc: CRPortfolioSchema,
     base_dir: str | None,
     source_kind: Literal["path", "yaml", "data", "model"],
     warnings: list[BundleMessage],
-    initial: list[CRControlAssessmentSchema],
-) -> list[CRControlAssessmentSchema]:
+    initial: list[CRAssessmentSchema],
+) -> list[CRAssessmentSchema]:
     out = list(initial)
-    paths = portfolio_doc.portfolio.control_assessments or []
+    paths = portfolio_doc.portfolio.assessments or []
 
     resolved_paths = _inline_pack_paths(
         paths=list(paths),
         base_dir=base_dir,
         source_kind=source_kind,
         warnings=warnings,
-        model_mode_warning_path_prefix="portfolio.control_assessments",
+        model_mode_warning_path_prefix="portfolio.assessments",
         model_mode_warning_message=(
-            "Portfolio references a control assessment path, but bundling is in model-mode; "
-            "provide `control_assessments` to inline cataloge content."
+            "Portfolio references an assessment path, but bundling is in model-mode; "
+            "provide `assessments` to inline cataloge content."
         ),
     )
 
     for idx, rp in enumerate(resolved_paths):
         original = paths[idx]
         try:
-            out.append(CRControlAssessmentSchema.model_validate(_load_yaml_file(rp)))
+            out.append(CRAssessmentSchema.model_validate(_load_yaml_file(rp)))
         except Exception as e:
             warnings.append(
                 BundleMessage(
                     level="warning",
-                    path=f"portfolio.control_assessments[{idx}]",
-                    message=f"Failed to inline control assessment '{original}': {e}",
+                    path=f"portfolio.assessments[{idx}]",
+                    message=f"Failed to inline assessment '{original}': {e}",
                 )
             )
 
@@ -316,7 +316,7 @@ def bundle_portfolio(
     source_kind: Literal["path", "yaml", "data", "model"] = "path",
     scenarios: Mapping[str, CRScenarioSchema] | None = None,
     control_catalogs: list[CRControlCatalogSchema] | None = None,
-    control_assessments: list[CRControlAssessmentSchema] | None = None,
+    assessments: list[CRAssessmentSchema] | None = None,
     control_relationships: list[CRControlRelationshipsSchema] | None = None,
 ) -> BundleReport:
     """Build an engine-agnostic CRPortfolioBundle from a portfolio input.
@@ -332,7 +332,7 @@ def bundle_portfolio(
         - The first argument (`source`) is the *portfolio input*.
         - When `source_kind="path"|"yaml"|"data"`, referenced scenarios/packs are loaded from disk.
         - When `source_kind="model"`, you must provide referenced scenario documents via `scenarios`
-            (keyed by scenario id or path), and optionally provide `control_catalogs` / `control_assessments`.
+            (keyed by scenario id or path), and optionally provide `control_catalogs` / `assessments`.
     """
 
     warnings: list[BundleMessage] = []
@@ -349,12 +349,12 @@ def bundle_portfolio(
         initial=list(control_catalogs or []),
     )
 
-    control_assessments_out = _inline_control_assessments(
+    assessments_out = _inline_assessments(
         portfolio_doc=portfolio_doc,
         base_dir=base_dir,
         source_kind=source_kind,
         warnings=warnings,
-        initial=list(control_assessments or []),
+        initial=list(assessments or []),
     )
 
     control_relationships_out = _inline_control_relationships(
@@ -379,7 +379,7 @@ def bundle_portfolio(
         portfolio=portfolio_doc,
         scenarios=bundled_scenarios,
         control_catalogs=control_catalogs_out,
-        control_assessments=control_assessments_out,
+        assessments=assessments_out,
         control_relationships=control_relationships_out,
         warnings=warnings,
         metadata={

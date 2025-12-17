@@ -22,14 +22,15 @@ Specifically:
 - `crml-scenario-schema.json` (`crml_scenario: "1.0"`)
 - `crml-portfolio-schema.json` (`crml_portfolio: "1.0"`)
 - `crml-control-catalog-schema.json` (`crml_control_catalog: "1.0"`)
-- `crml-control-assessment-schema.json` (`crml_control_assessment: "1.0"`)
+- `crml-assessment-schema.json` (`crml_assessment: "1.0"`)
+- `crml-control-relationships-schema.json` (`crml_control_relationships: "1.0"`)
 - `crml-portfolio-bundle-schema.json` (`crml_portfolio_bundle: "1.0"`)
 - `crml-simulation-result-schema.json` (`crml_simulation_result: "1.0"`)
 
 In addition to JSON Schema validation, `crml_lang` performs semantic validation (examples):
 
 - Cross-references exist and types match (e.g. portfolios reference valid scenarios).
-- Consistency rules (e.g. portfolios that reference `control_assessments` must also reference `control_catalogs`).
+- Consistency rules (e.g. portfolios that reference `assessments` must also reference `control_catalogs`).
 
 ---
 

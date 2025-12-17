@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from crml_engine.pipeline import plan_portfolio
 
 
@@ -126,7 +128,7 @@ scenario:
     assessment_path = tmp_path / "assessment.yaml"
     assessment_path.write_text(
         """
-crml_control_assessment: "1.0"
+crml_assessment: "1.0"
 meta:
   name: "Org assessment"
 assessment:
@@ -148,7 +150,7 @@ meta:
 portfolio:
   semantics:
     method: sum
-  control_assessments:
+  assessments:
     - {assessment_path.name}
   controls:
     - id: "iso27001:2022:A.5.1"
@@ -167,16 +169,16 @@ portfolio:
 
     ctrl = report.plan.scenarios[0].controls[0]
     # Portfolio overrides assessment for inventory values.
-    assert ctrl.inventory_implementation_effectiveness == 0.6
-    assert ctrl.inventory_coverage_value == 1.0
+    assert ctrl.inventory_implementation_effectiveness == pytest.approx(0.6)
+    assert ctrl.inventory_coverage_value == pytest.approx(1.0)
 
     # Scenario provides multiplicative applicability factors.
-    assert ctrl.scenario_implementation_effectiveness_factor == 0.5
-    assert ctrl.scenario_coverage_factor == 0.5
-    assert ctrl.scenario_potency_factor == 0.2
+    assert ctrl.scenario_implementation_effectiveness_factor == pytest.approx(0.5)
+    assert ctrl.scenario_coverage_factor == pytest.approx(0.5)
+    assert ctrl.scenario_potency_factor == pytest.approx(0.2)
 
-    assert ctrl.combined_implementation_effectiveness == 0.06
-    assert ctrl.combined_coverage_value == 0.5
+    assert ctrl.combined_implementation_effectiveness == pytest.approx(0.06)
+    assert ctrl.combined_coverage_value == pytest.approx(0.5)
 
 
 def test_plan_portfolio_errors_when_control_not_in_inventory(tmp_path) -> None:
@@ -296,5 +298,5 @@ portfolio:
     # Reliability should be carried through.
     ctrls = report.plan.scenarios[0].controls
     by_id = {c.id: c for c in ctrls}
-    assert by_id["cap:edr"].combined_reliability == 0.8
-    assert by_id["cap:mfa"].combined_reliability == 0.9
+    assert by_id["cap:edr"].combined_reliability == pytest.approx(0.8)
+    assert by_id["cap:mfa"].combined_reliability == pytest.approx(0.9)

@@ -86,7 +86,7 @@ class TestEffectiveReduction:
             'reliability': 1.0
         }
         reduction = calculate_effective_reduction(control)
-        assert reduction == 1.0
+        assert reduction == pytest.approx(1.0)
     
     def test_zero_effectiveness(self):
         """Test control with zero effectiveness."""
@@ -96,7 +96,7 @@ class TestEffectiveReduction:
             'reliability': 1.0
         }
         reduction = calculate_effective_reduction(control)
-        assert reduction == 0.0
+        assert reduction == pytest.approx(0.0)
     
     def test_partial_coverage(self):
         """Test control with partial coverage."""
@@ -161,8 +161,8 @@ class TestSingleControl:
         
         result = apply_control_effectiveness(base_lambda, controls_config)
         
-        assert result['effective_lambda'] == base_lambda
-        assert result['reduction_pct'] == 0.0
+        assert result['effective_lambda'] == pytest.approx(base_lambda)
+        assert result['reduction_pct'] == pytest.approx(0.0)
 
 
 class TestMultipleControls:
@@ -294,8 +294,8 @@ class TestEdgeCases:
         
         result = apply_control_effectiveness(0.0, controls_config)
         
-        assert result['effective_lambda'] == 0.0
-        assert result['reduction_pct'] == 0.0
+        assert result['effective_lambda'] == pytest.approx(0.0)
+        assert result['reduction_pct'] == pytest.approx(0.0)
     
     def test_unrealistic_reduction_warning(self):
         """Test that unrealistic reductions generate warnings."""

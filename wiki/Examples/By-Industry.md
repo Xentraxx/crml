@@ -128,7 +128,7 @@ scenario:
 In a portfolio (not in the scenario), you typically adjust:
 
 - Exposure: asset cardinalities and scenario bindings.
-- Posture: reference control catalogs + control assessments.
+- Posture: reference control catalogs + assessments.
 - Aggregation: how scenarios combine (`sum`, `max`, `mixture`, `choose_one`).
 
 ## What is possible (today)

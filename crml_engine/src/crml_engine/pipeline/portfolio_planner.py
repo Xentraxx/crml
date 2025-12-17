@@ -9,8 +9,13 @@ from pydantic import BaseModel, Field
 from crml_lang.models.portfolio_bundle import CRPortfolioBundle
 from crml_lang.models.portfolio_model import CRPortfolioSchema, Portfolio, ScenarioRef
 from crml_lang.models.crml_model import CRScenarioSchema, ScenarioControl as ScenarioControlModel
-from crml_lang.models.control_assessment_model import CRControlAssessmentSchema, ControlAssessment
+from crml_lang.models.assessment_model import CRAssessmentSchema, Assessment
 from crml_lang.models.control_catalog_model import CRControlCatalogSchema
+
+
+CONTROL_STATE_PREFIX = "control:"
+CONTROL_STATE_SUFFIX = ":state"
+COPULA_TARGETS_PATH = "portfolio.dependency.copula.targets"
 
 
 class PlanMessage(BaseModel):
@@ -115,16 +120,16 @@ def _is_control_state_ref(ref: str) -> bool:
     # Minimal v1: control:<id>:state
     if not isinstance(ref, str):
         return False
-    if not ref.startswith("control:"):
+    if not ref.startswith(CONTROL_STATE_PREFIX):
         return False
-    if not ref.endswith(":state"):
+    if not ref.endswith(CONTROL_STATE_SUFFIX):
         return False
-    middle = ref[len("control:") : -len(":state")]
+    middle = ref[len(CONTROL_STATE_PREFIX) : -len(CONTROL_STATE_SUFFIX)]
     return bool(middle)
 
 
 def _extract_control_id_from_state_ref(ref: str) -> str:
-    return ref[len("control:") : -len(":state")]
+    return ref[len(CONTROL_STATE_PREFIX) : -len(CONTROL_STATE_SUFFIX)]
 
 
 def _toeplitz_corr(dim: int, rho: float) -> list[list[float]]:
@@ -132,27 +137,48 @@ def _toeplitz_corr(dim: int, rho: float) -> list[list[float]]:
     return [[(r ** abs(i - j)) for j in range(dim)] for i in range(dim)]
 
 
-def _validate_corr_matrix(matrix: list[list[float]], dim: int) -> Optional[str]:
+def _validate_corr_matrix_shape(matrix: list[list[float]], dim: int) -> Optional[str]:
     if len(matrix) != dim:
         return f"matrix must have {dim} rows"
     for i, row in enumerate(matrix):
         if not isinstance(row, list) or len(row) != dim:
             return f"matrix row {i} must have length {dim}"
+    return None
+
+
+def _validate_corr_matrix_entries(matrix: list[list[float]]) -> Optional[str]:
+    for i, row in enumerate(matrix):
         for j, v in enumerate(row):
             try:
                 fv = float(v)
             except Exception:
                 return f"matrix[{i}][{j}] must be a number"
-            if i == j and abs(fv - 1.0) > 1e-9:
-                return "matrix diagonal entries must be 1.0"
-            if fv < -1.0 or fv > 1.0:
+            if i == j:
+                if abs(fv - 1.0) > 1e-9:
+                    return "matrix diagonal entries must be 1.0"
+            elif fv < -1.0 or fv > 1.0:
                 return "matrix entries must be in [-1, 1]"
-    # symmetry
+    return None
+
+
+def _validate_corr_matrix_symmetry(matrix: list[list[float]], dim: int) -> Optional[str]:
     for i in range(dim):
         for j in range(i + 1, dim):
             if abs(float(matrix[i][j]) - float(matrix[j][i])) > 1e-9:
                 return "matrix must be symmetric"
     return None
+
+
+def _validate_corr_matrix(matrix: list[list[float]], dim: int) -> Optional[str]:
+    shape_error = _validate_corr_matrix_shape(matrix, dim)
+    if shape_error:
+        return shape_error
+
+    entries_error = _validate_corr_matrix_entries(matrix)
+    if entries_error:
+        return entries_error
+
+    return _validate_corr_matrix_symmetry(matrix, dim)
 
 
 class PlanReport(BaseModel):
@@ -191,32 +217,49 @@ def _scenario_controls_to_objects(
 
     out: list[tuple[str, Optional[float], Optional[tuple[float, str]], Optional[float]]] = []
     for c in controls_any:
-        if isinstance(c, str):
-            out.append((c, None, None, None))
-            continue
-
-        if isinstance(c, ScenarioControlModel):
-            cov = None
-            if c.coverage is not None:
-                cov = (float(c.coverage.value), str(c.coverage.basis))
-            out.append((c.id, c.implementation_effectiveness, cov, getattr(c, "potency", None)))
-            continue
-
-        if isinstance(c, dict):
-            cid = c.get("id")
-            if isinstance(cid, str):
-                eff = c.get("implementation_effectiveness")
-                eff_f = float(eff) if eff is not None else None
-                pot = c.get("potency")
-                pot_f = float(pot) if pot is not None else None
-                cov_obj = c.get("coverage")
-                cov = None
-                if isinstance(cov_obj, dict) and cov_obj.get("value") is not None and cov_obj.get("basis") is not None:
-                    cov = (float(cov_obj["value"]), str(cov_obj["basis"]))
-                out.append((cid, eff_f, cov, pot_f))
-            continue
+        item = _scenario_control_to_object(c)
+        if item is not None:
+            out.append(item)
 
     return out
+
+
+def _scenario_control_to_object(
+    c: Any,
+) -> Optional[tuple[str, Optional[float], Optional[tuple[float, str]], Optional[float]]]:
+    if isinstance(c, str):
+        return (c, None, None, None)
+
+    if isinstance(c, ScenarioControlModel):
+        cov = None
+        if c.coverage is not None:
+            cov = (float(c.coverage.value), str(c.coverage.basis))
+        return (c.id, c.implementation_effectiveness, cov, getattr(c, "potency", None))
+
+    if isinstance(c, dict):
+        return _scenario_control_from_dict(c)
+
+    return None
+
+
+def _scenario_control_from_dict(
+    value: dict[str, Any],
+) -> Optional[tuple[str, Optional[float], Optional[tuple[float, str]], Optional[float]]]:
+    cid = value.get("id")
+    if not isinstance(cid, str):
+        return None
+
+    eff = value.get("implementation_effectiveness")
+    eff_f = float(eff) if eff is not None else None
+    pot = value.get("potency")
+    pot_f = float(pot) if pot is not None else None
+
+    cov_obj = value.get("coverage")
+    cov: Optional[tuple[float, str]] = None
+    if isinstance(cov_obj, dict) and cov_obj.get("value") is not None and cov_obj.get("basis") is not None:
+        cov = (float(cov_obj["value"]), str(cov_obj["basis"]))
+
+    return (cid, eff_f, cov, pot_f)
 
 
 def _clamp01(x: float) -> float:
@@ -227,7 +270,7 @@ def _distinct_non_none(values: list[object]) -> set[object]:
     return {v for v in values if v is not None}
 
 
-def plan_portfolio(
+def plan_portfolio(  # NOSONAR
     source: str | dict[str, Any],
     *,
     source_kind: Literal["path", "yaml", "data"] = "path",
@@ -278,11 +321,10 @@ def plan_portfolio(
     portfolio: Portfolio = doc.portfolio
 
     assets_by_name: dict[str, Any] = {a.name: a for a in portfolio.assets}
-    all_asset_names = list(assets_by_name.keys())
 
     # --- Load cataloges (optional) ---
     catalog_ids: set[str] = set()
-    assessment_by_id: dict[str, ControlAssessment] = {}
+    assessment_by_id: dict[str, Assessment] = {}
 
     catalog_paths = [
         _resolve_path(base_dir, p)
@@ -291,7 +333,7 @@ def plan_portfolio(
     ]
     assessment_paths = [
         _resolve_path(base_dir, p)
-        for p in (portfolio.control_assessments or [])
+        for p in (portfolio.assessments or [])
         if isinstance(p, str) and p
     ]
 
@@ -308,22 +350,22 @@ def plan_portfolio(
 
     for idx, p in enumerate(assessment_paths):
         if not os.path.exists(p):
-            errors.append(PlanMessage(level="error", path=f"portfolio.control_assessments[{idx}]", message=f"File not found: {p}"))
+            errors.append(PlanMessage(level="error", path=f"portfolio.assessments[{idx}]", message=f"File not found: {p}"))
             continue
         try:
-            assess_doc = CRControlAssessmentSchema.model_validate(_load_yaml_file(p))
+            assess_doc = CRAssessmentSchema.model_validate(_load_yaml_file(p))
             for a in assess_doc.assessment.assessments:
                 if a.id in assessment_by_id:
                     warnings.append(
                         PlanMessage(
                             level="warning",
-                            path=f"portfolio.control_assessments[{idx}]",
+                            path=f"portfolio.assessments[{idx}]",
                             message=f"Duplicate assessment for control id '{a.id}' across cataloges; last one wins.",
                         )
                     )
                 assessment_by_id[a.id] = a
         except Exception as e:
-            errors.append(PlanMessage(level="error", path=f"portfolio.control_assessments[{idx}]", message=f"Invalid control assessment cataloge: {e}"))
+            errors.append(PlanMessage(level="error", path=f"portfolio.assessments[{idx}]", message=f"Invalid assessment cataloge: {e}"))
 
     # --- Build portfolio inventory (highest precedence) ---
     portfolio_controls_by_id: dict[str, Any] = {}
@@ -351,7 +393,7 @@ def plan_portfolio(
             errors.append(
                 PlanMessage(
                     level="error",
-                    path="portfolio.dependency.copula.targets",
+                    path=COPULA_TARGETS_PATH,
                     message=f"Unsupported target reference(s): {bad_targets}. Supported: control:<id>:state",
                 )
             )
@@ -363,7 +405,7 @@ def plan_portfolio(
                     errors.append(
                         PlanMessage(
                             level="error",
-                            path="portfolio.dependency.copula.targets",
+                            path=COPULA_TARGETS_PATH,
                             message=f"Copula target control id '{t}' not found in portfolio.controls or control assessments.",
                         )
                     )
@@ -439,7 +481,7 @@ def plan_portfolio(
         # Binding resolution
         applies_to_assets = sref.binding.applies_to_assets
         if applies_to_assets is None:
-            applies_to_assets_list = list(all_asset_names)
+            applies_to_assets_list = list(assets_by_name)
         else:
             applies_to_assets_list = list(applies_to_assets)
 
@@ -647,7 +689,7 @@ def plan_portfolio(
     return PlanReport(ok=True, errors=[], warnings=warnings, plan=plan)
 
 
-def plan_bundle(bundle: CRPortfolioBundle) -> PlanReport:
+def plan_bundle(bundle: CRPortfolioBundle) -> PlanReport:  # NOSONAR
     """Resolve an inlined CRPortfolioBundle into an execution-friendly plan.
 
     Unlike `plan_portfolio`, this function does not access the filesystem.
@@ -663,11 +705,10 @@ def plan_bundle(bundle: CRPortfolioBundle) -> PlanReport:
     portfolio: Portfolio = doc.portfolio
 
     assets_by_name: dict[str, Any] = {a.name: a for a in portfolio.assets}
-    all_asset_names = list(assets_by_name.keys())
 
     # --- Load cataloges from the bundle (optional) ---
     catalog_ids: set[str] = set()
-    assessment_by_id: dict[str, ControlAssessment] = {}
+    assessment_by_id: dict[str, Assessment] = {}
 
     for cat_doc in payload.control_catalogs or []:
         try:
@@ -676,20 +717,20 @@ def plan_bundle(bundle: CRPortfolioBundle) -> PlanReport:
         except Exception as e:
             warnings.append(PlanMessage(level="warning", path="bundle.control_catalogs", message=str(e)))
 
-    for idx, assess_doc in enumerate(payload.control_assessments or []):
+    for idx, assess_doc in enumerate(payload.assessments or []):
         try:
             for a in assess_doc.assessment.assessments:
                 if a.id in assessment_by_id:
                     warnings.append(
                         PlanMessage(
                             level="warning",
-                            path=f"bundle.control_assessments[{idx}]",
+                            path=f"bundle.assessments[{idx}]",
                             message=f"Duplicate assessment for control id '{a.id}' across cataloges; last one wins.",
                         )
                     )
                 assessment_by_id[a.id] = a
         except Exception as e:
-            warnings.append(PlanMessage(level="warning", path=f"bundle.control_assessments[{idx}]", message=str(e)))
+            warnings.append(PlanMessage(level="warning", path=f"bundle.assessments[{idx}]", message=str(e)))
 
     # --- Build portfolio inventory (highest precedence) ---
     portfolio_controls_by_id: dict[str, Any] = {}
@@ -715,7 +756,7 @@ def plan_bundle(bundle: CRPortfolioBundle) -> PlanReport:
             errors.append(
                 PlanMessage(
                     level="error",
-                    path="portfolio.dependency.copula.targets",
+                    path=COPULA_TARGETS_PATH,
                     message=f"Unsupported target reference(s): {bad_targets}. Supported: control:<id>:state",
                 )
             )
@@ -726,7 +767,7 @@ def plan_bundle(bundle: CRPortfolioBundle) -> PlanReport:
                     errors.append(
                         PlanMessage(
                             level="error",
-                            path="portfolio.dependency.copula.targets",
+                            path=COPULA_TARGETS_PATH,
                             message=f"Copula target control id '{t}' not found in portfolio.controls or control assessments.",
                         )
                     )
@@ -789,7 +830,7 @@ def plan_bundle(bundle: CRPortfolioBundle) -> PlanReport:
         # Binding resolution
         applies_to_assets = sref.binding.applies_to_assets
         if applies_to_assets is None:
-            applies_to_assets_list = list(all_asset_names)
+            applies_to_assets_list = list(assets_by_name)
         else:
             applies_to_assets_list = list(applies_to_assets)
 

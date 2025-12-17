@@ -33,7 +33,7 @@ from __future__ import annotations
 from typing import Any, Mapping
 
 from .models.crml_model import CRScenarioSchema as _CRScenarioSchema
-from .models.control_assessment_model import CRControlAssessmentSchema as _CRControlAssessmentSchema
+from .models.assessment_model import CRAssessmentSchema as _CRAssessmentSchema
 from .models.control_catalog_model import CRControlCatalogSchema as _CRControlCatalogSchema
 from .models.control_relationships_model import CRControlRelationshipsSchema as _CRControlRelationshipsSchema
 from .models.portfolio_model import CRPortfolioSchema as _CRPortfolioSchema
@@ -269,11 +269,11 @@ class CRControlCatalog(_CRControlCatalogSchema):
         return yaml.safe_dump(data, sort_keys=sort_keys, allow_unicode=True)
 
 
-class CRControlAssessment(_CRControlAssessmentSchema):
-    """Root CRML Control Assessment document model."""
+class CRAssessment(_CRAssessmentSchema):
+    """Root CRML Assessment document model."""
 
     @classmethod
-    def load_from_yaml(cls, path: str) -> "CRControlAssessment":
+    def load_from_yaml(cls, path: str) -> "CRAssessment":
         try:
             import yaml
         except Exception as e:
@@ -284,7 +284,7 @@ class CRControlAssessment(_CRControlAssessmentSchema):
         return cls.model_validate(data)
 
     @classmethod
-    def load_from_yaml_str(cls, yaml_text: str) -> "CRControlAssessment":
+    def load_from_yaml_str(cls, yaml_text: str) -> "CRAssessment":
         try:
             import yaml
         except Exception as e:
@@ -311,6 +311,10 @@ class CRControlAssessment(_CRControlAssessmentSchema):
 
         data = self.model_dump(by_alias=True, exclude_none=exclude_none)
         return yaml.safe_dump(data, sort_keys=sort_keys, allow_unicode=True)
+
+
+# Backwards-compatible alias
+CRControlAssessment = CRAssessment
 
 
 class CRControlRelationships(_CRControlRelationshipsSchema):
@@ -361,6 +365,7 @@ __all__ = [
     "CRPortfolio",
     "CRPortfolioBundle",
     "CRControlCatalog",
+    "CRAssessment",
     "CRControlAssessment",
     "CRControlRelationships",
     "load_from_yaml",

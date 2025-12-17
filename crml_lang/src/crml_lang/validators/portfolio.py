@@ -16,7 +16,7 @@ from .common import (
     _control_ids_from_controls,
 )
 from .control_catalog import validate_control_catalog
-from .control_assessment import validate_control_assessment
+from .assessment import validate_assessment
 from .control_relationships import validate_control_relationships
 
 
@@ -124,7 +124,7 @@ def _require_catalogs_for_assessments(
             source="semantic",
             path="portfolio -> control_catalogs",
             message=(
-                "When portfolio.control_assessments is used, portfolio.control_catalogs must also be provided so assessment ids "
+                "When portfolio.assessments is used, portfolio.control_catalogs must also be provided so assessment ids "
                 "can be validated against a canonical control catalog."
             ),
         )
@@ -353,7 +353,9 @@ def _validate_assessment_references(
     base_dir: str | None,
     catalog_paths: list[str],
 ) -> tuple[list[str], list[ValidationMessage]]:
-    sources = portfolio.get("control_assessments")
+    sources = portfolio.get("assessments")
+    if sources is None:
+        sources = portfolio.get("control_assessments")
     if sources is None:
         return [], []
     if not isinstance(sources, list):
@@ -363,8 +365,8 @@ def _validate_assessment_references(
                 ValidationMessage(
                     level="error",
                     source="semantic",
-                    path="portfolio -> control_assessments",
-                    message="portfolio.control_assessments must be a list of file paths.",
+                    path="portfolio -> assessments",
+                    message="portfolio.assessments must be a list of file paths.",
                 )
             ],
         )
@@ -398,8 +400,8 @@ def _validate_one_assessment_path(
                 ValidationMessage(
                     level="error",
                     source="semantic",
-                    path=f"portfolio -> control_assessments -> {idx}",
-                    message="control assessment path must be a non-empty string.",
+                    path=f"portfolio -> assessments -> {idx}",
+                    message="assessment path must be a non-empty string.",
                 )
             ],
         )
@@ -412,13 +414,13 @@ def _validate_one_assessment_path(
                 ValidationMessage(
                     level="error",
                     source="semantic",
-                    path=f"portfolio -> control_assessments -> {idx}",
-                    message=f"Control assessment file not found at path: {resolved}",
+                    path=f"portfolio -> assessments -> {idx}",
+                    message=f"Assessment file not found at path: {resolved}",
                 )
             ],
         )
 
-    assess_report = validate_control_assessment(
+    assess_report = validate_assessment(
         resolved,
         source_kind="path",
         control_catalogs=catalog_paths if catalog_paths else None,
@@ -432,7 +434,7 @@ def _validate_one_assessment_path(
                 ValidationMessage(
                     level=e.level,
                     source=e.source,
-                    path=f"portfolio -> control_assessments -> {idx} -> {e.path}",
+                    path=f"portfolio -> assessments -> {idx} -> {e.path}",
                     message=e.message,
                     validator=e.validator,
                 )
@@ -910,7 +912,7 @@ def _scenario_control_mapping_checks(
                 path=_PATH_PORTFOLIO_CONTROLS,
                 message=(
                     "Scenario(s) reference controls but no control inventory is available. "
-                    "Provide portfolio.controls or reference control_assessments."
+                    "Provide portfolio.controls or reference assessments."
                 ),
             )
         )

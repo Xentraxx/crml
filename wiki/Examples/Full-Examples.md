@@ -23,7 +23,7 @@ Assume **CRML Studio** can be used to manage the documents, run validation, and 
 ### Control catalogs and assessments
 
 - [examples/control_cataloges/control-catalog.yaml](../../examples/control_cataloges/control-catalog.yaml)
-- [examples/control_assessments/control-assessment.yaml](../../examples/control_assessments/control-assessment.yaml)
+- [examples/control_assessments/control-assessment.yaml](../../examples/control_assessments/control-assessment.yaml) (Assessment pack)
 
 ### FX config (execution-time)
 
@@ -48,7 +48,7 @@ Assume **CRML Studio** can be used to manage the documents, run validation, and 
 ### Control/posture driven analysis
 
 1. Maintain canonical control IDs in a control catalog.
-2. Track organization evidence in a control assessment cataloge.
+2. Track organization evidence in an assessment cataloge.
 3. Reference both from the portfolio.
 4. Ensure each scenario declares which controls are relevant (scenario controls).
 

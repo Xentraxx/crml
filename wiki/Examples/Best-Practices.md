@@ -62,7 +62,7 @@ Practical control modelling usually requires three layers:
 
 - Scenario layer: which controls are relevant to the threat (scenario control references).
 - Catalog layer: canonical control IDs and definitions (control catalogs).
-- Assessment layer: organization-specific implementation evidence (control assessments).
+- Assessment layer: organization-specific implementation evidence (assessments).
 
 Best practice:
 
