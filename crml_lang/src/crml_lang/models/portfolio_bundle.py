@@ -48,7 +48,7 @@ class PortfolioBundlePayload(BaseModel):
 
     assessments: List[CRAssessmentSchema] = Field(
         default_factory=list,
-        validation_alias=AliasChoices("assessments", "control_assessments"),
+        validation_alias=AliasChoices("assessments"),
         serialization_alias="assessments",
         description="Optional inlined assessment packs referenced by the portfolio.",
     )

@@ -379,8 +379,6 @@ def _validate_assessment_references(
     """Validate referenced assessment file paths and (optionally) their contents."""
     sources = portfolio.get("assessments")
     if sources is None:
-        sources = portfolio.get("control_assessments")
-    if sources is None:
         return [], []
     if not isinstance(sources, list):
         return (
