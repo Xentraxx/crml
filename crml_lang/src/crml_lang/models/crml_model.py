@@ -64,6 +64,9 @@ class Data(BaseModel):
 # --- Model: Frequency ---
 FrequencyBasis = Literal["per_organization_per_year", "per_asset_unit_per_year"]
 
+# Constant for repeated frequency parameter description
+FREQUENCY_PARAM_DESC = "Frequency model parameter (model-specific)."
+
 class FrequencyParameters(BaseModel):
     lambda_: Optional[float] = Field(
         None,
@@ -74,9 +77,9 @@ class FrequencyParameters(BaseModel):
             "is applied. Serialized as 'lambda' in YAML/JSON."
         ),
     )
-    alpha_base: Optional[float] = Field(None, description="Frequency model parameter (model-specific).")
-    beta_base: Optional[float] = Field(None, description="Frequency model parameter (model-specific).")
-    r: Optional[float] = Field(None, description="Frequency model parameter (model-specific).")
+    alpha_base: Optional[float] = Field(None, description=FREQUENCY_PARAM_DESC)
+    beta_base: Optional[float] = Field(None, description=FREQUENCY_PARAM_DESC)
+    r: Optional[float] = Field(None, description=FREQUENCY_PARAM_DESC)
     p: Optional[float] = Field(None, description="Probability parameter for frequency model (0..1).")
 
     @field_validator('lambda_', 'alpha_base', 'beta_base', 'r', mode='before')
@@ -102,6 +105,9 @@ class Frequency(BaseModel):
     parameters: FrequencyParameters = Field(..., description="Model parameters for the selected frequency model.")
 
 # --- Model: Severity ---
+# Constant for repeated description
+DISTRIBUTION_PARAM_DESC = "Distribution parameter (model-specific)."
+
 class SeverityParameters(BaseModel):
     median: Optional[float] = Field(
         None,
@@ -124,9 +130,9 @@ class SeverityParameters(BaseModel):
             "Distribution parameter (e.g. lognormal sigma). Controls variability of threat impact (loss per event)."
         ),
     )
-    shape: Optional[float] = Field(None, description="Distribution parameter (model-specific).")
-    scale: Optional[float] = Field(None, description="Distribution parameter (model-specific).")
-    alpha: Optional[float] = Field(None, description="Distribution parameter (model-specific).")
+    shape: Optional[float] = Field(None, description=DISTRIBUTION_PARAM_DESC)
+    scale: Optional[float] = Field(None, description=DISTRIBUTION_PARAM_DESC)
+    alpha: Optional[float] = Field(None, description=DISTRIBUTION_PARAM_DESC)
     x_min: Optional[float] = Field(None, description="Minimum loss / truncation parameter (model-specific).")
     single_losses: Optional[List[float]] = Field(
         None,
