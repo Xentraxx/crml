@@ -39,7 +39,7 @@ assessment:
 ```yaml
 crml_assessment: "1.0"
 meta:
-  name: "Example control assessment"
+  name: "Example assessment"
 assessment:
   framework: "Org"
   assessed_at: "2025-12-17T10:15:30Z"

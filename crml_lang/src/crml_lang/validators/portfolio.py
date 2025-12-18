@@ -973,7 +973,7 @@ def _cross_document_checks(
                 level="warning",
                 source="semantic",
                 path=_PATH_PORTFOLIO_CONTROLS,
-                message="portfolio.controls is missing/empty; using control ids from referenced control assessment cataloge(s) for scenario mapping.",
+                message="portfolio.controls is missing/empty; using control ids from referenced assessment cataloge(s) for scenario mapping.",
             )
         )
 

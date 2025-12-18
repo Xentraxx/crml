@@ -406,7 +406,7 @@ def plan_portfolio(  # NOSONAR
                         PlanMessage(
                             level="error",
                             path=COPULA_TARGETS_PATH,
-                            message=f"Copula target control id '{t}' not found in portfolio.controls or control assessments.",
+                            message=f"Copula target control id '{t}' not found in portfolio.controls or assessments.",
                         )
                     )
 

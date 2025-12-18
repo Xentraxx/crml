@@ -11,7 +11,7 @@ CRML control identifiers must be *standard independent*.
 
 Design goals:
 - Scenarios can reference controls by a stable, unique id.
-- Portfolios can import control assessment outputs from any framework/tool.
+- Portfolios can import assessment outputs from any framework/tool.
 
 Canonical format:
 - `namespace:key`
