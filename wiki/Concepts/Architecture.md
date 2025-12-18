@@ -6,6 +6,10 @@ CRML is organized into three layers:
 - **Runtime/engine (`crml_engine`)**: CLI + simulation runtime + portfolio execution + result serialization
 - **Web UI (`web/`)**: CRML Studio (Next.js UI + API routes that call the CLI/runtime)
 
+In addition to these layers, most real deployments also use **calibration tooling**:
+
+- **Calibration tools (seperate tool responsibility but might be part of an engine)**: ingest organization-specific evidence (e.g., incident logs) and write back calibrated CRML scenarios/portfolios.
+
 For the detailed architecture, see:
 
 - [Architecture-Language](Architecture-Language)
@@ -26,16 +30,21 @@ For the detailed architecture, see:
 
 ```mermaid
 flowchart TD
-    DOC[CRML YAML/JSON]
+    DOC["CRML YAML/JSON"]
+    ORGDATA["Org evidence<br/>(incident logs, telemetry)"]
 
-    subgraph L["crml_lang (language/spec responsibility)\nEnds after validation + bundling"]
-        LANG[crml_lang\nvalidate]
-        BUNDLE[crml_lang\nbundle]
+    subgraph L["crml_lang (language/spec responsibility)<br/>Ends after validation + bundling"]
+        LANG["crml_lang<br/>validate"]
+        BUNDLE["crml_lang<br/>bundle"]
     end
 
-    subgraph E["crml_engine (engine responsibility)\nPlanning + execution"]
-        PIPE[crml_engine.pipeline\nplan]
-        ENG[crml_engine\nexecute]
+    subgraph T["Tooling (engine/tool responsibility)<br/>Optional calibration step"]
+        CAL["calibrate<br/>(fit/update scenario params)"]
+    end
+
+    subgraph E["crml_engine (engine responsibility)<br/>Planning + execution"]
+        PIPE["crml_engine.pipeline<br/>plan"]
+        ENG["crml_engine<br/>execute"]
     end
 
     subgraph W["web/ (UI responsibility)"]
@@ -44,6 +53,10 @@ flowchart TD
 
     DOC --> LANG
     LANG -->|ValidationReport| TOOL[CLI/CI/Web tooling]
+
+    ORGDATA -.-> CAL
+    DOC -.-> CAL
+    CAL -.->|updated CRML YAML/JSON| DOC
 
     DOC --> BUNDLE
     BUNDLE -->|CRPortfolioBundle| PIPE
@@ -59,6 +72,7 @@ CRML is designed so that organizations can assemble *auditable, portable* input 
 In practice:
 
 - **Threat intelligence** produces or informs *scenario documents* (frequency, severity, narratives, assumptions).
+- **Organization evidence** (incident logs, internal loss data, telemetry) can be used by *calibration tools* to fit scenario parameters and reduce reliance on purely external priors.
 - **Portfolios** describe the organization's relatively stable assets, business units, and exposure structure. They can be updated via internal tooling (e.g., CMDB/asset inventory imports), but the portfolio document remains the central reference.
 - **Control catalogs** come from recognized authorities and frameworks (e.g., NIS, CIS) or can be commonly defined by the community. These catalogs define the canonical control set and their semantics.
 - **Assessments** come from assessment/scan tools and audits. They capture which controls exist, how effective they are, and can optionally be used to populate or update the portfolio's control mapping.
@@ -72,6 +86,14 @@ Engines are expected to return results using the **language-owned result envelop
 flowchart LR
     TI["Threat intelligence<br/>feeds"] -->|publish| S["Scenario documents<br/>CRScenario"]
 
+    EVID["Organization evidence<br/>(incident logs, telemetry)"] -->|calibrate| CAL
+
+    subgraph T2["Calibration tooling<br/>(engine/tool responsibility)"]
+        CAL["calibrate<br/>(fit/update scenarios)"]
+    end
+
+    CAL -->|write back| S
+
     ORG["Organization asset inventory<br/>(relatively static)"] -->|generate| P["Portfolio document<br/>CRPortfolio"]
     TOOL["Tooling (e.g. SIEM)<br/>imports and updates assets"] -.->|optional| P
 
@@ -83,7 +105,7 @@ flowchart LR
     CC -.->|basis| CA
     CC -.->|ids| CR
 
-    subgraph L2["crml_lang (language/spec responsibility)\nEnds after bundling"]
+    subgraph L2["crml_lang (language/spec responsibility)<br/>Ends after bundling"]
         B["Bundle step<br/>bundle_portfolio"]
         PB["CRPortfolioBundle<br/>inlined artifact"]
     end
