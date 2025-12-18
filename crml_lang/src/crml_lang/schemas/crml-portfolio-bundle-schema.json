@@ -1924,7 +1924,7 @@
           "title": "Id",
           "type": "string"
         },
-        "implementation_effectiveness": {
+        "effectiveness_against_threat": {
           "anyOf": [
             {
               "maximum": 1.0,
@@ -1936,8 +1936,8 @@
             }
           ],
           "default": null,
-          "description": "Scenario-scoped control effectiveness factor against this specific threat/scenario (0..1). Recommended semantics: this is a threat-specific multiplier that engines combine with organization-specific inventory/assessment posture when planning (e.g., inventory implementation effectiveness / coverage).",
-          "title": "Implementation Effectiveness"
+          "description": "Threat-specific effectiveness factor for this control against this scenario (0..1). Recommended semantics: engines combine this with organization-specific inventory/assessment posture (e.g. inventory implementation effectiveness and coverage) when planning.",
+          "title": "Effectiveness Against Threat"
         },
         "notes": {
           "anyOf": [

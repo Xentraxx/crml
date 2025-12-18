@@ -121,7 +121,7 @@ meta:
 scenario:
   controls:
     - id: "org:iam.mfa"
-      implementation_effectiveness: 0.85
+      effectiveness_against_threat: 0.85
   frequency:
     basis: per_organization_per_year
     model: poisson
@@ -232,13 +232,13 @@ Each entry can be either:
 
 ```yaml
 - id: "org:iam.mfa"
-  implementation_effectiveness: 0.8  # optional
+  effectiveness_against_threat: 0.8  # optional
   notes: "..."                       # optional
 ```
 
 Semantics (recommended):
 
-- `implementation_effectiveness` is an optional threat-specific effectiveness factor for this control against this scenario.
+- `effectiveness_against_threat` is an optional threat-specific effectiveness factor for this control against this scenario.
   Organization-specific deployment/posture (coverage, inventory effectiveness) belongs in portfolio inventory and/or assessments.
 
 Engines combine this threat-specific factor with portfolio/assessment posture during planning.

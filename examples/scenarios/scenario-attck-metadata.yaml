@@ -36,5 +36,5 @@ scenario:
       # Threat-specific control effectiveness factor (0..1).
       # Use this to express that a control is more/less effective across different scenarios.
       # Organization-specific posture (coverage, implementation strength) belongs in inventory/assessment.
-      implementation_effectiveness: 0.75
+      effectiveness_against_threat: 0.75
       notes: "Scenario-scoped control entry demonstrating threat-specific effectiveness."

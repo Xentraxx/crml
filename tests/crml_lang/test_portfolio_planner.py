@@ -111,7 +111,7 @@ meta:
 scenario:
   controls:
     - id: "iso27001:2022:A.5.1"
-      implementation_effectiveness: 0.5
+      effectiveness_against_threat: 0.5
   frequency:
     basis: per_organization_per_year
     model: poisson
@@ -171,7 +171,7 @@ portfolio:
     assert ctrl.inventory_coverage_value == pytest.approx(1.0)
 
     # Scenario provides a threat-specific effectiveness factor.
-    assert ctrl.scenario_implementation_effectiveness_factor == pytest.approx(0.5)
+    assert ctrl.scenario_effectiveness_against_threat_factor == pytest.approx(0.5)
 
     assert ctrl.combined_implementation_effectiveness == pytest.approx(0.3)
     assert ctrl.combined_coverage_value == pytest.approx(1.0)

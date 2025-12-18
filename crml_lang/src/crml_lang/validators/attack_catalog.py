@@ -15,6 +15,94 @@ from .common import (
 )
 
 
+def _load_schema_or_error() -> tuple[dict[str, Any] | None, list[ValidationMessage]]:
+    try:
+        return _load_attack_catalog_schema(), []
+    except FileNotFoundError:
+        return (
+            None,
+            [
+                ValidationMessage(
+                    level="error",
+                    source="io",
+                    path="(root)",
+                    message=f"Schema file not found at {ATTACK_CATALOG_SCHEMA_PATH}",
+                )
+            ],
+        )
+
+
+def _schema_validation_errors(schema: dict[str, Any], data: dict[str, Any]) -> list[ValidationMessage]:
+    validator = Draft202012Validator(schema)
+    errors: list[ValidationMessage] = []
+    for err in validator.iter_errors(data):
+        errors.append(
+            ValidationMessage(
+                level="error",
+                source="schema",
+                path=_jsonschema_path(err),
+                message=_format_jsonschema_error(err),
+                validator=getattr(err, "validator", None),
+            )
+        )
+    return errors
+
+
+def _semantic_attack_id_errors(data: dict[str, Any]) -> list[ValidationMessage]:
+    catalog = data.get("catalog")
+    attacks = catalog.get("attacks") if isinstance(catalog, dict) else None
+    if not isinstance(attacks, list):
+        return []
+
+    errors: list[ValidationMessage] = []
+    ids: list[str] = []
+    for idx, attack in enumerate(attacks):
+        if not isinstance(attack, dict):
+            continue
+        aid = attack.get("id")
+        if isinstance(aid, str):
+            ids.append(aid)
+            continue
+        errors.append(
+            ValidationMessage(
+                level="error",
+                source="semantic",
+                path=f"catalog -> attacks -> {idx} -> id",
+                message="Attack catalog entry 'id' must be a string.",
+            )
+        )
+
+    if len(ids) != len(set(ids)):
+        errors.append(
+            ValidationMessage(
+                level="error",
+                source="semantic",
+                path="catalog -> attacks",
+                message="Attack catalog contains duplicate attack ids.",
+            )
+        )
+
+    return errors
+
+
+def _pydantic_strict_errors(data: dict[str, Any]) -> list[ValidationMessage]:
+    try:
+        from ..models.attack_catalog_model import CRAttackCatalogSchema
+
+        CRAttackCatalogSchema.model_validate(data)
+        return []
+    except Exception as e:
+        return [
+            ValidationMessage(
+                level="error",
+                source="pydantic",
+                path="(root)",
+                message=f"Pydantic validation failed: {e}",
+                validator="pydantic",
+            )
+        ]
+
+
 def validate_attack_catalog(
     source: str | dict[str, Any],
     *,
@@ -28,82 +116,19 @@ def validate_attack_catalog(
         return ValidationReport(ok=False, errors=io_errors, warnings=[])
     assert data is not None
 
-    try:
-        schema = _load_attack_catalog_schema()
-    except FileNotFoundError:
-        return ValidationReport(
-            ok=False,
-            errors=[
-                ValidationMessage(
-                    level="error",
-                    source="io",
-                    path="(root)",
-                    message=f"Schema file not found at {ATTACK_CATALOG_SCHEMA_PATH}",
-                )
-            ],
-            warnings=[],
-        )
+    schema, schema_errors = _load_schema_or_error()
+    if schema_errors:
+        return ValidationReport(ok=False, errors=schema_errors, warnings=[])
+    assert schema is not None
 
-    validator = Draft202012Validator(schema)
-    errors: list[ValidationMessage] = []
-    for err in validator.iter_errors(data):
-        errors.append(
-            ValidationMessage(
-                level="error",
-                source="schema",
-                path=_jsonschema_path(err),
-                message=_format_jsonschema_error(err),
-                validator=getattr(err, "validator", None),
-            )
-        )
+    errors = _schema_validation_errors(schema, data)
 
     warnings: list[ValidationMessage] = []
 
     if not errors:
-        catalog = data.get("catalog")
-        attacks = catalog.get("attacks") if isinstance(catalog, dict) else None
-        if isinstance(attacks, list):
-            ids: list[str] = []
-            for idx, a in enumerate(attacks):
-                if not isinstance(a, dict):
-                    continue
-                aid = a.get("id")
-                if isinstance(aid, str):
-                    ids.append(aid)
-                else:
-                    errors.append(
-                        ValidationMessage(
-                            level="error",
-                            source="semantic",
-                            path=f"catalog -> attacks -> {idx} -> id",
-                            message="Attack catalog entry 'id' must be a string.",
-                        )
-                    )
-
-            if len(ids) != len(set(ids)):
-                errors.append(
-                    ValidationMessage(
-                        level="error",
-                        source="semantic",
-                        path="catalog -> attacks",
-                        message="Attack catalog contains duplicate attack ids.",
-                    )
-                )
+        errors.extend(_semantic_attack_id_errors(data))
 
     if strict_model and not errors:
-        try:
-            from ..models.attack_catalog_model import CRAttackCatalogSchema
-
-            CRAttackCatalogSchema.model_validate(data)
-        except Exception as e:
-            errors.append(
-                ValidationMessage(
-                    level="error",
-                    source="pydantic",
-                    path="(root)",
-                    message=f"Pydantic validation failed: {e}",
-                    validator="pydantic",
-                )
-            )
+        errors.extend(_pydantic_strict_errors(data))
 
     return ValidationReport(ok=(len(errors) == 0), errors=errors, warnings=warnings)

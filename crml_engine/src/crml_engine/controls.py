@@ -27,6 +27,51 @@ import numpy as np
 from typing import Dict, List, Any, Optional, Tuple
 
 
+def _collect_valid_controls(
+    controls_config: Dict[str, Any],
+    result: Dict[str, Any],
+) -> List[Dict[str, Any]]:
+    all_controls: List[Dict[str, Any]] = []
+    for layer in controls_config.get('layers', []):
+        for control in layer.get('controls', []):
+            is_valid, error_msg = validate_control(control)
+            if not is_valid:
+                result['warnings'].append(error_msg)
+                continue
+            all_controls.append(control)
+    return all_controls
+
+
+def _apply_controls_in_series(
+    base_lambda: float,
+    all_controls: List[Dict[str, Any]],
+) -> Tuple[float, List[Dict[str, Any]]]:
+    effective_lambda = base_lambda
+    control_details: List[Dict[str, Any]] = []
+
+    for control in all_controls:
+        reduction = calculate_effective_reduction(control)
+
+        # Apply reduction (multiplicative for defense in depth)
+        lambda_before = effective_lambda
+        effective_lambda *= (1 - reduction)
+        lambda_after = effective_lambda
+
+        control_details.append({
+            'id': control['id'],
+            'type': control['type'],
+            'effectiveness': control.get('effectiveness'),
+            'coverage': control.get('coverage', 1.0),
+            'reliability': control.get('reliability', 1.0),
+            'reduction': reduction,
+            'lambda_before': lambda_before,
+            'lambda_after': lambda_after,
+            'cost': control.get('cost')
+        })
+
+    return effective_lambda, control_details
+
+
 def validate_control(control: Dict[str, Any]) -> Tuple[bool, Optional[str]]:
     """
     Validate a single control configuration.
@@ -117,43 +162,13 @@ def apply_control_effectiveness(
         return result
     
     # Collect all controls from all layers
-    all_controls = []
-    for layer in controls_config.get('layers', []):
-        for control in layer.get('controls', []):
-            # Validate control
-            is_valid, error_msg = validate_control(control)
-            if not is_valid:
-                result['warnings'].append(error_msg)
-                continue
-            
-            all_controls.append(control)
+    all_controls = _collect_valid_controls(controls_config, result)
     
     if not all_controls:
         return result
     
     # Calculate effective lambda with controls in series
-    effective_lambda = base_lambda
-    control_details = []
-    
-    for control in all_controls:
-        reduction = calculate_effective_reduction(control)
-        
-        # Apply reduction (multiplicative for defense in depth)
-        lambda_before = effective_lambda
-        effective_lambda *= (1 - reduction)
-        lambda_after = effective_lambda
-        
-        control_details.append({
-            'id': control['id'],
-            'type': control['type'],
-            'effectiveness': control.get('effectiveness'),
-            'coverage': control.get('coverage', 1.0),
-            'reliability': control.get('reliability', 1.0),
-            'reduction': reduction,
-            'lambda_before': lambda_before,
-            'lambda_after': lambda_after,
-            'cost': control.get('cost')
-        })
+    effective_lambda, control_details = _apply_controls_in_series(base_lambda, all_controls)
     
     # Apply dependencies/correlations if specified
     if 'dependencies' in controls_config:
@@ -211,9 +226,6 @@ def adjust_for_dependencies(
     """
     if not dependencies:
         return effective_lambda
-    
-    # Build control ID to index mapping
-    control_ids = {c['id']: i for i, c in enumerate(controls)}
     
     # For each dependency group, reduce effectiveness based on correlation
     for dep in dependencies:
