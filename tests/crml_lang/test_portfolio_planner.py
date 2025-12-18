@@ -133,8 +133,7 @@ assessment:
   framework: "Org"
   assessments:
     - id: "iso27001:2022:A.5.1"
-      implementation_effectiveness: 0.2
-      coverage: {value: 0.8, basis: applications}
+      scf_cmm_level: 2
 """.lstrip(),
         encoding="utf-8",
     )

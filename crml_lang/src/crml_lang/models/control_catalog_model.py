@@ -5,7 +5,7 @@ from typing import List, Literal, Optional
 from pydantic import BaseModel, ConfigDict, Field
 
 from .control_ref import ControlId, ControlStructuredRef
-from .crml_model import Meta
+from .scenario_model import Meta
 
 
 class ControlCatalogEntry(BaseModel):

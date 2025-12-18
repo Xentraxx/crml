@@ -811,7 +811,7 @@ def _load_scenario_doc(resolved_path: str) -> tuple[Any | None, str | None]:
         with open(resolved_path, "r", encoding="utf-8") as f:
             scenario_data = yaml.safe_load(f)
 
-        from ..models.crml_model import CRScenarioSchema
+        from ..models.scenario_model import CRScenarioSchema
 
         scenario_doc = CRScenarioSchema.model_validate(scenario_data)
         return scenario_doc, None

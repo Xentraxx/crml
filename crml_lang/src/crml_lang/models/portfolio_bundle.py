@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import AliasChoices, BaseModel, Field
 
-from .crml_model import CRScenarioSchema
+from .scenario_model import CRScenarioSchema
 from .portfolio_model import CRPortfolioSchema
 from .control_catalog_model import CRControlCatalogSchema
 from .assessment_model import CRAssessmentSchema

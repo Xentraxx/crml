@@ -18,7 +18,6 @@ ROOT_PATH = "(root)"
 SCENARIO_SCHEMA_PATH = str(_SCHEMA_DIR / "crml-scenario-schema.json")
 PORTFOLIO_SCHEMA_PATH = str(_SCHEMA_DIR / "crml-portfolio-schema.json")
 ASSESSMENT_SCHEMA_PATH = str(_SCHEMA_DIR / "crml-assessment-schema.json")
-CONTROL_ASSESSMENT_SCHEMA_PATH = str(_SCHEMA_DIR / "crml-control-assessment-schema.json")
 CONTROL_CATALOG_SCHEMA_PATH = str(_SCHEMA_DIR / "crml-control-catalog-schema.json")
 ATTACK_CATALOG_SCHEMA_PATH = str(_SCHEMA_DIR / "crml-attack-catalog-schema.json")
 ATTACK_CONTROL_RELATIONSHIPS_SCHEMA_PATH = str(
@@ -84,19 +83,8 @@ def _load_portfolio_schema() -> dict[str, Any]:
 
 def _load_assessment_schema() -> dict[str, Any]:
     """Load the CRML Assessment JSON schema as a dict.
-
-    Prefers the new schema filename but supports a legacy name for
-    backwards-compatibility.
     """
-    # Prefer renamed schema file, but fall back to the legacy file name.
-    if os.path.exists(ASSESSMENT_SCHEMA_PATH):
-        return _load_schema(ASSESSMENT_SCHEMA_PATH)
-    return _load_schema(CONTROL_ASSESSMENT_SCHEMA_PATH)
-
-
-def _load_control_assessment_schema() -> dict[str, Any]:
-    """Load the assessment schema (legacy alias)."""
-    return _load_assessment_schema()
+    return _load_schema(ASSESSMENT_SCHEMA_PATH)
 
 
 def _load_control_catalog_schema() -> dict[str, Any]:

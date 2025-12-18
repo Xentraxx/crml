@@ -1,4 +1,4 @@
-"""crml_model.py
+"""scenario_model.py
 
 Scenario-first CRML language models.
 
@@ -41,6 +41,7 @@ AttckId = Annotated[
 class ISO3166Alpha2(str):
     pass
 
+
 # --- Meta ---
 class Meta(BaseModel):
     name: str = Field(..., description="Human-friendly name for this document.")
@@ -67,6 +68,7 @@ class Meta(BaseModel):
         ),
     )
 
+
 # --- Data ---
 class DataSource(BaseModel):
     type: str = Field(..., description="Identifier for the data source type (engine/UI defined).")
@@ -74,6 +76,7 @@ class DataSource(BaseModel):
         None,
         description="Optional schema mapping for source fields (feature name -> type/meaning).",
     )
+
 
 class Data(BaseModel):
     sources: Optional[Dict[str, DataSource]] = Field(
@@ -83,11 +86,13 @@ class Data(BaseModel):
         None, description="Optional mapping from engine-required feature names to source columns/fields."
     )
 
+
 # --- Model: Frequency ---
 FrequencyBasis = Literal["per_organization_per_year", "per_asset_unit_per_year"]
 
 # Constant for repeated frequency parameter description
 FREQUENCY_PARAM_DESC = "Frequency model parameter (model-specific)."
+
 
 class FrequencyParameters(BaseModel):
     lambda_: Optional[float] = Field(
@@ -104,19 +109,20 @@ class FrequencyParameters(BaseModel):
     r: Optional[float] = Field(None, description=FREQUENCY_PARAM_DESC)
     p: Optional[float] = Field(None, description="Probability parameter for frequency model (0..1).")
 
-    @field_validator('lambda_', 'alpha_base', 'beta_base', 'r', mode='before')
+    @field_validator("lambda_", "alpha_base", "beta_base", "r", mode="before")
     @classmethod
     def _parse_numbers_no_percent(cls, v):
         if v is None:
             return None
         return parse_floatish(v, allow_percent=False)
 
-    @field_validator('p', mode='before')
+    @field_validator("p", mode="before")
     @classmethod
     def _parse_probability(cls, v):
         if v is None:
             return None
         return parse_floatish(v, allow_percent=True)
+
 
 class Frequency(BaseModel):
     basis: FrequencyBasis = Field(
@@ -126,9 +132,11 @@ class Frequency(BaseModel):
     model: str = Field(..., description="Frequency distribution/model identifier (engine-defined).")
     parameters: FrequencyParameters = Field(..., description="Model parameters for the selected frequency model.")
 
+
 # --- Model: Severity ---
 # Constant for repeated description
 DISTRIBUTION_PARAM_DESC = "Distribution parameter (model-specific)."
+
 
 class SeverityParameters(BaseModel):
     median: Optional[float] = Field(
@@ -161,19 +169,20 @@ class SeverityParameters(BaseModel):
         description="Optional list of explicit sample losses (used by some empirical severity models).",
     )
 
-    @field_validator('median', 'sigma', 'shape', 'scale', 'alpha', 'x_min', mode='before')
+    @field_validator("median", "sigma", "shape", "scale", "alpha", "x_min", mode="before")
     @classmethod
     def _parse_numbers_no_percent(cls, v):
         if v is None:
             return None
         return parse_floatish(v, allow_percent=False)
 
-    @field_validator('single_losses', mode='before')
+    @field_validator("single_losses", mode="before")
     @classmethod
     def _parse_single_losses(cls, v):
         if isinstance(v, list):
             return parse_float_list(v, allow_percent=False)
         return v
+
 
 class Severity(BaseModel):
     model: str = Field(..., description="Severity distribution/model identifier (engine-defined).")
@@ -246,6 +255,7 @@ def load_crml_from_yaml(path: str) -> CRScenarioSchema:
 
     Requires PyYAML (`pip install pyyaml`).
     """
+
     from ..yamlio import load_yaml_mapping_from_path
 
     data = load_yaml_mapping_from_path(path)
@@ -255,6 +265,7 @@ def load_crml_from_yaml(path: str) -> CRScenarioSchema:
 
 def load_crml_from_yaml_str(yaml_text: str) -> CRScenarioSchema:
     """Load a CRML Scenario document from a YAML string and validate."""
+
     from ..yamlio import load_yaml_mapping_from_str
 
     data = load_yaml_mapping_from_str(yaml_text)

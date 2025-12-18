@@ -39,7 +39,7 @@ from .yamlio import (
     load_yaml_mapping_from_str,
 )
 
-from .models.crml_model import CRScenarioSchema as _CRScenarioSchema
+from .models.scenario_model import CRScenarioSchema as _CRScenarioSchema
 from .models.assessment_model import CRAssessmentSchema as _CRAssessmentSchema
 from .models.control_catalog_model import CRControlCatalogSchema as _CRControlCatalogSchema
 from .models.attack_catalog_model import CRAttackCatalogSchema as _CRAttackCatalogSchema
@@ -225,10 +225,6 @@ class CRAssessment(_CRAssessmentSchema):
         return dump_yaml_to_str(data, sort_keys=sort_keys)
 
 
-# Backwards-compatible alias
-CRControlAssessment = CRAssessment
-
-
 class CRControlRelationships(_CRControlRelationshipsSchema):
     """Root CRML Control Relationships document model."""
 
@@ -279,7 +275,6 @@ __all__ = [
     "CRControlCatalog",
     "CRAttackCatalog",
     "CRAssessment",
-    "CRControlAssessment",
     "CRControlRelationships",
     "CRAttackControlRelationships",
     "load_from_yaml",

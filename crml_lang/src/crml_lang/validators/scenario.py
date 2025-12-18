@@ -159,7 +159,7 @@ def _pydantic_strict_model_errors(data: dict[str, Any]) -> list[ValidationMessag
     """Run strict Pydantic model validation and return errors (best-effort)."""
     errors: list[ValidationMessage] = []
     try:
-        from ..models.crml_model import CRScenarioSchema
+        from ..models.scenario_model import CRScenarioSchema
 
         CRScenarioSchema.model_validate(data)
     except Exception as e:

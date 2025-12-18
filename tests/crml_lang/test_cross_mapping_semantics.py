@@ -21,7 +21,7 @@ assessment:
   framework: "CIS v8"
   assessments:
     - id: "cisv8:2.3"
-      implementation_effectiveness: 0.9
+      scf_cmm_level: 4
 """
 
     report = validate_assessment(
@@ -52,7 +52,7 @@ assessment:
   framework: "CIS v8"
   assessments:
     - id: "cisv8:2.3"
-      implementation_effectiveness: 0.9
+      scf_cmm_level: 4
 """
 
     report = validate_assessment(
@@ -74,7 +74,9 @@ assessment:
   framework: "CIS v8"
   assessments:
     - id: "cisv8:2.3"
+      scf_cmm_level: 3
     - id: "cisv8:2.3"
+      scf_cmm_level: 3
 """
 
     report = validate_assessment(assessment_yaml, source_kind="yaml")

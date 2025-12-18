@@ -17,7 +17,7 @@ from .portfolio import validate_portfolio
 from .control_catalog import validate_control_catalog
 from .attack_catalog import validate_attack_catalog
 from .attack_control_relationships import validate_attack_control_relationships
-from .assessment import validate_assessment, validate_control_assessment
+from .assessment import validate_assessment
 from .control_relationships import validate_control_relationships
 
 __all__ = [
@@ -27,7 +27,6 @@ __all__ = [
     "validate_document",
     "validate_portfolio",
     "validate_assessment",
-    "validate_control_assessment",
     "validate_control_catalog",
     "validate_attack_catalog",
     "validate_attack_control_relationships",

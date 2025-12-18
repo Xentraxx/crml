@@ -4,7 +4,7 @@ from typing import List, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from .crml_model import AttckId, Meta
+from .scenario_model import AttckId, Meta
 
 
 class AttackCatalogEntry(BaseModel):

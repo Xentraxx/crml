@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 
 from crml_lang.models.portfolio_bundle import CRPortfolioBundle
 from crml_lang.models.portfolio_model import CRPortfolioSchema, Portfolio, ScenarioRef
-from crml_lang.models.crml_model import CRScenarioSchema, ScenarioControl as ScenarioControlModel
+from crml_lang.models.scenario_model import CRScenarioSchema, ScenarioControl as ScenarioControlModel
 from crml_lang.models.assessment_model import CRAssessmentSchema, Assessment
 from crml_lang.models.control_catalog_model import CRControlCatalogSchema
 
@@ -16,6 +16,34 @@ from crml_lang.models.control_catalog_model import CRControlCatalogSchema
 CONTROL_STATE_PREFIX = "control:"
 CONTROL_STATE_SUFFIX = ":state"
 COPULA_TARGETS_PATH = "portfolio.dependency.copula.targets"
+
+
+def _scf_cmm_level_to_effectiveness(level: int) -> float:
+    """Map SCF CMM maturity level (0..5) to an effectiveness factor (0..1).
+
+    IMPORTANT: maturity is an ordinal scale; it should not be treated as a
+    linear risk-reduction percentage. This reference engine applies a
+    deliberately non-linear, monotone mapping.
+    """
+
+    # Reference mapping (non-linear):
+    # 0 Not Performed -> 0.00
+    # 1 Performed Informally -> 0.10
+    # 2 Planned & Tracked -> 0.25
+    # 3 Well-Defined -> 0.50
+    # 4 Quantitatively Controlled -> 0.75
+    # 5 Continuously Improving -> 0.90
+    table = {
+        0: 0.00,
+        1: 0.10,
+        2: 0.25,
+        3: 0.50,
+        4: 0.75,
+        5: 0.90,
+    }
+    if level not in table:
+        raise ValueError(f"scf_cmm_level must be in 0..5 (got {level})")
+    return float(table[level])
 
 
 class PlanMessage(BaseModel):
@@ -652,9 +680,12 @@ def plan_portfolio(  # NOSONAR
             else:
                 assess = assessment_by_id.get(cid)
                 if assess is not None:
-                    if assess.implementation_effectiveness is not None:
+                    if getattr(assess, "scf_cmm_level", None) is not None:
+                        inventory_eff = _scf_cmm_level_to_effectiveness(int(assess.scf_cmm_level))
+                    elif getattr(assess, "implementation_effectiveness", None) is not None:
                         inventory_eff = float(assess.implementation_effectiveness)
-                    if assess.coverage is not None:
+
+                    if getattr(assess, "coverage", None) is not None:
                         inventory_cov_val = float(assess.coverage.value)
                         inventory_cov_basis = str(assess.coverage.basis)
                     if getattr(assess, "reliability", None) is not None:
@@ -949,9 +980,12 @@ def plan_bundle(bundle: CRPortfolioBundle) -> PlanReport:  # NOSONAR
             else:
                 assess = assessment_by_id.get(cid)
                 if assess is not None:
-                    if assess.implementation_effectiveness is not None:
+                    if getattr(assess, "scf_cmm_level", None) is not None:
+                        inventory_eff = _scf_cmm_level_to_effectiveness(int(assess.scf_cmm_level))
+                    elif getattr(assess, "implementation_effectiveness", None) is not None:
                         inventory_eff = float(assess.implementation_effectiveness)
-                    if assess.coverage is not None:
+
+                    if getattr(assess, "coverage", None) is not None:
                         inventory_cov_val = float(assess.coverage.value)
                         inventory_cov_basis = str(assess.coverage.basis)
                     if getattr(assess, "reliability", None) is not None:

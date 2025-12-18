@@ -26,7 +26,7 @@ def _detect_kind(data: dict[str, Any]) -> str | None:
         return "control_catalog"
     if "crml_attack_catalog" in data:
         return "attack_catalog"
-    if "crml_assessment" in data or "crml_control_assessment" in data:
+    if "crml_assessment" in data:
         return "assessment"
     if "crml_control_relationships" in data:
         return "control_relationships"

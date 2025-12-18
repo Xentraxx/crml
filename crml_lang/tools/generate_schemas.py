@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from crml_lang.models.crml_model import CRScenarioSchema
+from crml_lang.models.scenario_model import CRScenarioSchema
 from crml_lang.models.assessment_model import CRAssessmentSchema
 from crml_lang.models.control_catalog_model import CRControlCatalogSchema
 from crml_lang.models.attack_catalog_model import CRAttackCatalogSchema

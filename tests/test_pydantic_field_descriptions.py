@@ -8,7 +8,7 @@ from pydantic import BaseModel
 
 _MODULES_TO_CHECK = [
     # crml_lang models
-    "crml_lang.models.crml_model",
+    "crml_lang.models.scenario_model",
     "crml_lang.models.portfolio_model",
     "crml_lang.models.assessment_model",
     "crml_lang.models.control_catalog_model",

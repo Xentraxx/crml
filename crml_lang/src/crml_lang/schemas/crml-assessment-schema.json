@@ -1,6 +1,7 @@
 {
   "$defs": {
     "Assessment": {
+      "additionalProperties": false,
       "properties": {
         "id": {
           "description": "Canonical unique control id in the form 'namespace:key' (no whitespace).",
@@ -82,6 +83,21 @@
           "description": "Which loss component this assessment affects. Default is 'frequency' (frequency-first). Note: the current reference engine primarily applies controls to frequency (lambda).",
           "title": "Affects"
         },
+        "scf_cmm_level": {
+          "anyOf": [
+            {
+              "maximum": 5,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "SCF Capability Maturity Model (CMM) level for this control (0..5). Levels: 0=Not Performed, 1=Performed Informally, 2=Planned & Tracked, 3=Well-Defined, 4=Quantitatively Controlled, 5=Continuously Improving.",
+          "title": "Scf Cmm Level"
+        },
         "question": {
           "anyOf": [
             {
@@ -129,6 +145,7 @@
       "type": "object"
     },
     "AssessmentCataloge": {
+      "additionalProperties": false,
       "properties": {
         "id": {
           "anyOf": [
@@ -414,6 +431,7 @@
       "type": "object"
     }
   },
+  "additionalProperties": false,
   "properties": {
     "crml_assessment": {
       "const": "1.0",

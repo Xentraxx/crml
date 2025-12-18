@@ -20,7 +20,7 @@ portfolio:
     - ../control_cataloges/control-catalog.yaml
     - ../../datasets/cisv8-control-catalog.yaml
   assessments:
-    - ../control_assessments/control-assessment.yaml
+    - ../assessments/assessment.yaml
 
   # Additional packs (examples)
   # mapping edges derived from CIS Controls

@@ -82,6 +82,19 @@ flowchart TD
     AGG --> OUT["SimulationResult"]
 ```
 
+## SCF CMM maturity handling
+
+When a control is assessed using SCF Capability Maturity Model (CMM) levels (`scf_cmm_level: 0..5`), the reference engine:
+
+- Treats maturity as an **ordinal** scale (not a percentage).
+- Does **not** assume risk (or control effectiveness) improves linearly with the maturity level.
+- Applies a **non-linear mapping** from CMM level to an effectiveness factor in [0, 1], then uses that effectiveness in the runtime multipliers.
+
+Important:
+
+- Any engine that supports `scf_cmm_level` MUST implement a sensible non-linear mapping; it is part of the engine’s specification/behavior.
+- The specific mapping is engine-defined; the reference engine’s mapping is implemented in `crml_engine.pipeline.portfolio_planner._scf_cmm_level_to_effectiveness`.
+
 ## Result formats
 
 The engine supports two result layers:

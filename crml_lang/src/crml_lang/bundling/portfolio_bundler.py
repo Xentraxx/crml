@@ -9,7 +9,7 @@ from crml_lang.models.attack_catalog_model import CRAttackCatalogSchema
 from crml_lang.models.attack_control_relationships_model import CRAttackControlRelationshipsSchema
 from crml_lang.models.control_catalog_model import CRControlCatalogSchema
 from crml_lang.models.control_relationships_model import CRControlRelationshipsSchema
-from crml_lang.models.crml_model import CRScenarioSchema
+from crml_lang.models.scenario_model import CRScenarioSchema
 from crml_lang.models.portfolio_bundle import (
     BundleMessage,
     BundledScenario,

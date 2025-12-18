@@ -166,9 +166,7 @@ assessment:
   assessed_at: "2025-12-17T10:15:30Z"
   assessments:
     - id: "org:iam.mfa"
-      implementation_effectiveness: 0.7
-      reliability: 0.99
-      affects: frequency
+      scf_cmm_level: 3
 """.lstrip(),
         encoding="utf-8",
     )

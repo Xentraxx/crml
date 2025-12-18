@@ -216,5 +216,3 @@ def validate_assessment(
     return ValidationReport(ok=(len(errors) == 0), errors=errors, warnings=[])
 
 
-# Backwards-compatible alias
-validate_control_assessment = validate_assessment

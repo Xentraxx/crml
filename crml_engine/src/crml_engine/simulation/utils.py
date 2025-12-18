@@ -20,9 +20,7 @@ def parse_numberish_value(v: NumberOrString) -> float:
         Parsed numeric value.
 
     Notes:
-        This function has legacy behavior: if parsing a string fails, it
-        returns the original input unchanged. Callers that require strict
-        numeric parsing should validate the type/result.
+        Parsing is strict: invalid numeric strings raise ValueError.
 
     Examples:
         "1 000" -> 1000.0
@@ -37,10 +35,11 @@ def parse_numberish_value(v: NumberOrString) -> float:
         if s.endswith('%'):
             try:
                 return float(s[:-1]) / 100.0
-            except Exception:
-                return v  # Return original if parsing fails
+            except Exception as e:
+                raise ValueError(f"Invalid percentage value: {v!r}") from e
         try:
             return float(s)
-        except Exception:
-            return v  # Return original if parsing fails
-    return float(v)
+        except Exception as e:
+            raise ValueError(f"Invalid numeric value: {v!r}") from e
+
+    raise TypeError(f"Unsupported numeric type: {type(v).__name__}")

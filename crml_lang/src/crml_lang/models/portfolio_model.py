@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import AliasChoices, BaseModel, Field, ConfigDict, field_validator
 
-from .crml_model import Meta
+from .scenario_model import Meta
 from .control_ref import ControlId
 from .coverage_model import Coverage
 from .numberish import parse_intish
