@@ -2,8 +2,19 @@ import yaml
 import sys
 
 def explain_crml(file_path):
-    """
-    Parses a CRML file and prints a human-readable summary.
+    """Parse a CRML scenario file and print a human-readable summary.
+
+    This is a lightweight helper used by the CLI `explain` command.
+
+    Args:
+        file_path: Path to a CRML scenario YAML file.
+
+    Returns:
+        True if the file could be read and appears to be a CRML scenario,
+        otherwise False.
+
+    Side effects:
+        Writes a formatted summary to stdout.
     """
     try:
         with open(file_path, 'r') as f:

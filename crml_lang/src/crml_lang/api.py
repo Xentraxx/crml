@@ -32,19 +32,26 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
-from .models.crml_model import CRScenarioSchema as _CRScenarioSchema
+from .yamlio import (
+    dump_yaml_to_path,
+    dump_yaml_to_str,
+    load_yaml_mapping_from_path,
+    load_yaml_mapping_from_str,
+)
+
+from .models.scenario_model import CRScenarioSchema as _CRScenarioSchema
 from .models.assessment_model import CRAssessmentSchema as _CRAssessmentSchema
 from .models.control_catalog_model import CRControlCatalogSchema as _CRControlCatalogSchema
+from .models.attack_catalog_model import CRAttackCatalogSchema as _CRAttackCatalogSchema
+from .models.attack_control_relationships_model import (
+    CRAttackControlRelationshipsSchema as _CRAttackControlRelationshipsSchema,
+)
 from .models.control_relationships_model import CRControlRelationshipsSchema as _CRControlRelationshipsSchema
 from .models.portfolio_model import CRPortfolioSchema as _CRPortfolioSchema
 from .models.portfolio_bundle import CRPortfolioBundle as _CRPortfolioBundle
 from .validators import ValidationMessage, ValidationReport, validate, validate_portfolio
-
-
-_ERR_PYYAML_LOAD_FILE = "PyYAML is required to load YAML files: pip install pyyaml"
-_ERR_PYYAML_LOAD_STR = "PyYAML is required to load YAML strings: pip install pyyaml"
-_ERR_PYYAML_WRITE_FILE = "PyYAML is required to write YAML files: pip install pyyaml"
-_ERR_PYYAML_WRITE_STR = "PyYAML is required to write YAML: pip install pyyaml"
+from .validators import validate_attack_catalog
+from .validators import validate_attack_control_relationships
 
 
 class CRScenario(_CRScenarioSchema):
@@ -56,45 +63,23 @@ class CRScenario(_CRScenarioSchema):
 
     @classmethod
     def load_from_yaml(cls, path: str) -> "CRScenario":
-        try:
-            import yaml
-        except Exception as e:
-            raise ImportError(_ERR_PYYAML_LOAD_FILE) from e
-
-        with open(path, "r", encoding="utf-8") as f:
-            data = yaml.safe_load(f)
+        data = load_yaml_mapping_from_path(path)
         return cls.model_validate(data)
 
     @classmethod
     def load_from_yaml_str(cls, yaml_text: str) -> "CRScenario":
-        try:
-            import yaml
-        except Exception as e:
-            raise ImportError(_ERR_PYYAML_LOAD_STR) from e
-
-        data = yaml.safe_load(yaml_text)
+        data = load_yaml_mapping_from_str(yaml_text)
         return cls.model_validate(data)
 
     def dump_to_yaml(self, path: str, *, sort_keys: bool = False, exclude_none: bool = True) -> None:
         """Serialize this model to a YAML file at `path`."""
-        try:
-            import yaml
-        except Exception as e:
-            raise ImportError(_ERR_PYYAML_WRITE_FILE) from e
-
         data = self.model_dump(by_alias=True, exclude_none=exclude_none)
-        with open(path, "w", encoding="utf-8") as f:
-            yaml.safe_dump(data, f, sort_keys=sort_keys, allow_unicode=True)
+        dump_yaml_to_path(data, path, sort_keys=sort_keys)
 
     def dump_to_yaml_str(self, *, sort_keys: bool = False, exclude_none: bool = True) -> str:
         """Serialize this model to a YAML string."""
-        try:
-            import yaml
-        except Exception as e:
-            raise ImportError(_ERR_PYYAML_WRITE_STR) from e
-
         data = self.model_dump(by_alias=True, exclude_none=exclude_none)
-        return yaml.safe_dump(data, sort_keys=sort_keys, allow_unicode=True)
+        return dump_yaml_to_str(data, sort_keys=sort_keys)
 
 class CRPortfolioBundle(_CRPortfolioBundle):
     """Engine-agnostic portfolio bundle.
@@ -107,78 +92,49 @@ class CRPortfolioBundle(_CRPortfolioBundle):
 
     @classmethod
     def load_from_yaml(cls, path: str) -> "CRPortfolioBundle":
-        try:
-            import yaml
-        except Exception as e:
-            raise ImportError(_ERR_PYYAML_LOAD_FILE) from e
-
-        with open(path, "r", encoding="utf-8") as f:
-            data = yaml.safe_load(f)
+        data = load_yaml_mapping_from_path(path)
         return cls.model_validate(data)
 
     @classmethod
     def load_from_yaml_str(cls, yaml_text: str) -> "CRPortfolioBundle":
-        try:
-            import yaml
-        except Exception as e:
-            raise ImportError(_ERR_PYYAML_LOAD_STR) from e
-
-        data = yaml.safe_load(yaml_text)
+        data = load_yaml_mapping_from_str(yaml_text)
         return cls.model_validate(data)
 
     def dump_to_yaml(self, path: str, *, sort_keys: bool = False, exclude_none: bool = True) -> None:
         """Serialize this model to a YAML file at `path`."""
-        try:
-            import yaml
-        except Exception as e:
-            raise ImportError(_ERR_PYYAML_WRITE_FILE) from e
-
         data = self.model_dump(by_alias=True, exclude_none=exclude_none)
-        with open(path, "w", encoding="utf-8") as f:
-            yaml.safe_dump(data, f, sort_keys=sort_keys, allow_unicode=True)
+        dump_yaml_to_path(data, path, sort_keys=sort_keys)
 
     def dump_to_yaml_str(self, *, sort_keys: bool = False, exclude_none: bool = True) -> str:
         """Serialize this model to a YAML string."""
-        try:
-            import yaml
-        except Exception as e:
-            raise ImportError(_ERR_PYYAML_WRITE_STR) from e
-
         data = self.model_dump(by_alias=True, exclude_none=exclude_none)
-        return yaml.safe_dump(data, sort_keys=sort_keys, allow_unicode=True)
+        return dump_yaml_to_str(data, sort_keys=sort_keys)
 
 def load_from_yaml(path: str) -> CRScenario:
+    """Load a CRML scenario from a YAML file path."""
     return CRScenario.load_from_yaml(path)
 
 
 def load_from_yaml_str(yaml_text: str) -> CRScenario:
+    """Load a CRML scenario from a YAML string."""
     return CRScenario.load_from_yaml_str(yaml_text)
 
 
 def dump_to_yaml(model: CRScenario | Mapping[str, Any], path: str, *, sort_keys: bool = False, exclude_none: bool = True) -> None:
+    """Serialize a scenario model (or mapping) to a YAML file."""
     if isinstance(model, CRScenario):
         model.dump_to_yaml(path, sort_keys=sort_keys, exclude_none=exclude_none)
         return
 
-    try:
-        import yaml
-    except Exception as e:
-        raise ImportError(_ERR_PYYAML_WRITE_FILE) from e
-
-    with open(path, "w", encoding="utf-8") as f:
-        yaml.safe_dump(dict(model), f, sort_keys=sort_keys, allow_unicode=True)
+    dump_yaml_to_path(dict(model), path, sort_keys=sort_keys)
 
 
 def dump_to_yaml_str(model: CRScenario | Mapping[str, Any], *, sort_keys: bool = False, exclude_none: bool = True) -> str:
+    """Serialize a scenario model (or mapping) to a YAML string."""
     if isinstance(model, CRScenario):
         return model.dump_to_yaml_str(sort_keys=sort_keys, exclude_none=exclude_none)
 
-    try:
-        import yaml
-    except Exception as e:
-        raise ImportError(_ERR_PYYAML_WRITE_STR) from e
-
-    return yaml.safe_dump(dict(model), sort_keys=sort_keys, allow_unicode=True)
+    return dump_yaml_to_str(dict(model), sort_keys=sort_keys)
 
 
 class CRPortfolio(_CRPortfolioSchema):
@@ -186,43 +142,21 @@ class CRPortfolio(_CRPortfolioSchema):
 
     @classmethod
     def load_from_yaml(cls, path: str) -> "CRPortfolio":
-        try:
-            import yaml
-        except Exception as e:
-            raise ImportError(_ERR_PYYAML_LOAD_FILE) from e
-
-        with open(path, "r", encoding="utf-8") as f:
-            data = yaml.safe_load(f)
+        data = load_yaml_mapping_from_path(path)
         return cls.model_validate(data)
 
     @classmethod
     def load_from_yaml_str(cls, yaml_text: str) -> "CRPortfolio":
-        try:
-            import yaml
-        except Exception as e:
-            raise ImportError(_ERR_PYYAML_LOAD_STR) from e
-
-        data = yaml.safe_load(yaml_text)
+        data = load_yaml_mapping_from_str(yaml_text)
         return cls.model_validate(data)
 
     def dump_to_yaml(self, path: str, *, sort_keys: bool = False, exclude_none: bool = True) -> None:
-        try:
-            import yaml
-        except Exception as e:
-            raise ImportError(_ERR_PYYAML_WRITE_FILE) from e
-
         data = self.model_dump(by_alias=True, exclude_none=exclude_none)
-        with open(path, "w", encoding="utf-8") as f:
-            yaml.safe_dump(data, f, sort_keys=sort_keys, allow_unicode=True)
+        dump_yaml_to_path(data, path, sort_keys=sort_keys)
 
     def dump_to_yaml_str(self, *, sort_keys: bool = False, exclude_none: bool = True) -> str:
-        try:
-            import yaml
-        except Exception as e:
-            raise ImportError(_ERR_PYYAML_WRITE_STR) from e
-
         data = self.model_dump(by_alias=True, exclude_none=exclude_none)
-        return yaml.safe_dump(data, sort_keys=sort_keys, allow_unicode=True)
+        return dump_yaml_to_str(data, sort_keys=sort_keys)
 
 
 class CRControlCatalog(_CRControlCatalogSchema):
@@ -230,43 +164,43 @@ class CRControlCatalog(_CRControlCatalogSchema):
 
     @classmethod
     def load_from_yaml(cls, path: str) -> "CRControlCatalog":
-        try:
-            import yaml
-        except Exception as e:
-            raise ImportError(_ERR_PYYAML_LOAD_FILE) from e
-
-        with open(path, "r", encoding="utf-8") as f:
-            data = yaml.safe_load(f)
+        data = load_yaml_mapping_from_path(path)
         return cls.model_validate(data)
 
     @classmethod
     def load_from_yaml_str(cls, yaml_text: str) -> "CRControlCatalog":
-        try:
-            import yaml
-        except Exception as e:
-            raise ImportError(_ERR_PYYAML_LOAD_STR) from e
-
-        data = yaml.safe_load(yaml_text)
+        data = load_yaml_mapping_from_str(yaml_text)
         return cls.model_validate(data)
 
     def dump_to_yaml(self, path: str, *, sort_keys: bool = False, exclude_none: bool = True) -> None:
-        try:
-            import yaml
-        except Exception as e:
-            raise ImportError(_ERR_PYYAML_WRITE_FILE) from e
-
         data = self.model_dump(by_alias=True, exclude_none=exclude_none)
-        with open(path, "w", encoding="utf-8") as f:
-            yaml.safe_dump(data, f, sort_keys=sort_keys, allow_unicode=True)
+        dump_yaml_to_path(data, path, sort_keys=sort_keys)
 
     def dump_to_yaml_str(self, *, sort_keys: bool = False, exclude_none: bool = True) -> str:
-        try:
-            import yaml
-        except Exception as e:
-            raise ImportError(_ERR_PYYAML_WRITE_STR) from e
-
         data = self.model_dump(by_alias=True, exclude_none=exclude_none)
-        return yaml.safe_dump(data, sort_keys=sort_keys, allow_unicode=True)
+        return dump_yaml_to_str(data, sort_keys=sort_keys)
+
+
+class CRAttackCatalog(_CRAttackCatalogSchema):
+    """Root CRML Attack Catalog document model."""
+
+    @classmethod
+    def load_from_yaml(cls, path: str) -> "CRAttackCatalog":
+        data = load_yaml_mapping_from_path(path)
+        return cls.model_validate(data)
+
+    @classmethod
+    def load_from_yaml_str(cls, yaml_text: str) -> "CRAttackCatalog":
+        data = load_yaml_mapping_from_str(yaml_text)
+        return cls.model_validate(data)
+
+    def dump_to_yaml(self, path: str, *, sort_keys: bool = False, exclude_none: bool = True) -> None:
+        data = self.model_dump(by_alias=True, exclude_none=exclude_none)
+        dump_yaml_to_path(data, path, sort_keys=sort_keys)
+
+    def dump_to_yaml_str(self, *, sort_keys: bool = False, exclude_none: bool = True) -> str:
+        data = self.model_dump(by_alias=True, exclude_none=exclude_none)
+        return dump_yaml_to_str(data, sort_keys=sort_keys)
 
 
 class CRAssessment(_CRAssessmentSchema):
@@ -274,47 +208,21 @@ class CRAssessment(_CRAssessmentSchema):
 
     @classmethod
     def load_from_yaml(cls, path: str) -> "CRAssessment":
-        try:
-            import yaml
-        except Exception as e:
-            raise ImportError(_ERR_PYYAML_LOAD_FILE) from e
-
-        with open(path, "r", encoding="utf-8") as f:
-            data = yaml.safe_load(f)
+        data = load_yaml_mapping_from_path(path)
         return cls.model_validate(data)
 
     @classmethod
     def load_from_yaml_str(cls, yaml_text: str) -> "CRAssessment":
-        try:
-            import yaml
-        except Exception as e:
-            raise ImportError(_ERR_PYYAML_LOAD_STR) from e
-
-        data = yaml.safe_load(yaml_text)
+        data = load_yaml_mapping_from_str(yaml_text)
         return cls.model_validate(data)
 
     def dump_to_yaml(self, path: str, *, sort_keys: bool = False, exclude_none: bool = True) -> None:
-        try:
-            import yaml
-        except Exception as e:
-            raise ImportError(_ERR_PYYAML_WRITE_FILE) from e
-
         data = self.model_dump(by_alias=True, exclude_none=exclude_none)
-        with open(path, "w", encoding="utf-8") as f:
-            yaml.safe_dump(data, f, sort_keys=sort_keys, allow_unicode=True)
+        dump_yaml_to_path(data, path, sort_keys=sort_keys)
 
     def dump_to_yaml_str(self, *, sort_keys: bool = False, exclude_none: bool = True) -> str:
-        try:
-            import yaml
-        except Exception as e:
-            raise ImportError(_ERR_PYYAML_WRITE_STR) from e
-
         data = self.model_dump(by_alias=True, exclude_none=exclude_none)
-        return yaml.safe_dump(data, sort_keys=sort_keys, allow_unicode=True)
-
-
-# Backwards-compatible alias
-CRControlAssessment = CRAssessment
+        return dump_yaml_to_str(data, sort_keys=sort_keys)
 
 
 class CRControlRelationships(_CRControlRelationshipsSchema):
@@ -322,58 +230,61 @@ class CRControlRelationships(_CRControlRelationshipsSchema):
 
     @classmethod
     def load_from_yaml(cls, path: str) -> "CRControlRelationships":
-        try:
-            import yaml
-        except Exception as e:
-            raise ImportError(_ERR_PYYAML_LOAD_FILE) from e
-
-        with open(path, "r", encoding="utf-8") as f:
-            data = yaml.safe_load(f)
+        data = load_yaml_mapping_from_path(path)
         return cls.model_validate(data)
 
     @classmethod
     def load_from_yaml_str(cls, yaml_text: str) -> "CRControlRelationships":
-        try:
-            import yaml
-        except Exception as e:
-            raise ImportError(_ERR_PYYAML_LOAD_STR) from e
-
-        data = yaml.safe_load(yaml_text)
+        data = load_yaml_mapping_from_str(yaml_text)
         return cls.model_validate(data)
 
     def dump_to_yaml(self, path: str, *, sort_keys: bool = False, exclude_none: bool = True) -> None:
-        try:
-            import yaml
-        except Exception as e:
-            raise ImportError(_ERR_PYYAML_WRITE_FILE) from e
-
         data = self.model_dump(by_alias=True, exclude_none=exclude_none)
-        with open(path, "w", encoding="utf-8") as f:
-            yaml.safe_dump(data, f, sort_keys=sort_keys, allow_unicode=True)
+        dump_yaml_to_path(data, path, sort_keys=sort_keys)
 
     def dump_to_yaml_str(self, *, sort_keys: bool = False, exclude_none: bool = True) -> str:
-        try:
-            import yaml
-        except Exception as e:
-            raise ImportError(_ERR_PYYAML_WRITE_STR) from e
-
         data = self.model_dump(by_alias=True, exclude_none=exclude_none)
-        return yaml.safe_dump(data, sort_keys=sort_keys, allow_unicode=True)
+        return dump_yaml_to_str(data, sort_keys=sort_keys)
+
+
+class CRAttackControlRelationships(_CRAttackControlRelationshipsSchema):
+    """Root CRML Attack-to-Control Relationships document model."""
+
+    @classmethod
+    def load_from_yaml(cls, path: str) -> "CRAttackControlRelationships":
+        data = load_yaml_mapping_from_path(path)
+        return cls.model_validate(data)
+
+    @classmethod
+    def load_from_yaml_str(cls, yaml_text: str) -> "CRAttackControlRelationships":
+        data = load_yaml_mapping_from_str(yaml_text)
+        return cls.model_validate(data)
+
+    def dump_to_yaml(self, path: str, *, sort_keys: bool = False, exclude_none: bool = True) -> None:
+        data = self.model_dump(by_alias=True, exclude_none=exclude_none)
+        dump_yaml_to_path(data, path, sort_keys=sort_keys)
+
+    def dump_to_yaml_str(self, *, sort_keys: bool = False, exclude_none: bool = True) -> str:
+        data = self.model_dump(by_alias=True, exclude_none=exclude_none)
+        return dump_yaml_to_str(data, sort_keys=sort_keys)
 
 __all__ = [
     "CRScenario",
     "CRPortfolio",
     "CRPortfolioBundle",
     "CRControlCatalog",
+    "CRAttackCatalog",
     "CRAssessment",
-    "CRControlAssessment",
     "CRControlRelationships",
+    "CRAttackControlRelationships",
     "load_from_yaml",
     "load_from_yaml_str",
     "dump_to_yaml",
     "dump_to_yaml_str",
     "validate",
     "validate_portfolio",
+    "validate_attack_catalog",
+    "validate_attack_control_relationships",
     "ValidationMessage",
     "ValidationReport",
 ]

@@ -33,8 +33,7 @@ assessment:
   framework: "CIS v8"
   assessments:
     - id: "cisv8:2.3"
-      implementation_effectiveness: 0.9
-      coverage: {value: 0.8, basis: endpoints}
+      scf_cmm_level: 4
 """
 
     doc = CRAssessment.load_from_yaml_str(yaml_text)

@@ -64,6 +64,28 @@
           "default": null,
           "description": "Optional list of tags for grouping/filtering.",
           "title": "Tags"
+        },
+        "defense_in_depth_layers": {
+          "anyOf": [
+            {
+              "items": {
+                "enum": [
+                  "prevent",
+                  "detect",
+                  "respond",
+                  "recover"
+                ],
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional defense-in-depth layer tags. Allowed values: prevent, detect, respond, recover.",
+          "title": "Defense In Depth Layers"
         }
       },
       "required": [
@@ -270,6 +292,26 @@
           "default": null,
           "description": "Optional list of user-defined tags.",
           "title": "Tags"
+        },
+        "attck": {
+          "anyOf": [
+            {
+              "items": {
+                "description": "ATT&CK identifier in canonical namespaced form 'namespace:key' (no whitespace). Recommended namespace is 'attck'. Examples: attck:TA0001, attck:T1059, attck:T1059.003",
+                "maxLength": 256,
+                "minLength": 1,
+                "pattern": "^[a-z][a-z0-9_-]{0,31}:[^\\s]{1,223}$",
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional list of ATT&CK tactic/technique/sub-technique identifiers relevant to this document, expressed as namespaced ids (e.g. 'attck:T1059.003').",
+          "title": "Attck"
         }
       },
       "required": [

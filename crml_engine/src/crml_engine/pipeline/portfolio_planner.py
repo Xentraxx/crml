@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import Any, Literal, Optional
 import os
 
@@ -8,7 +7,7 @@ from pydantic import BaseModel, Field
 
 from crml_lang.models.portfolio_bundle import CRPortfolioBundle
 from crml_lang.models.portfolio_model import CRPortfolioSchema, Portfolio, ScenarioRef
-from crml_lang.models.crml_model import CRScenarioSchema, ScenarioControl as ScenarioControlModel
+from crml_lang.models.scenario_model import CRScenarioSchema, ScenarioControl as ScenarioControlModel
 from crml_lang.models.assessment_model import CRAssessmentSchema, Assessment
 from crml_lang.models.control_catalog_model import CRControlCatalogSchema
 
@@ -16,6 +15,34 @@ from crml_lang.models.control_catalog_model import CRControlCatalogSchema
 CONTROL_STATE_PREFIX = "control:"
 CONTROL_STATE_SUFFIX = ":state"
 COPULA_TARGETS_PATH = "portfolio.dependency.copula.targets"
+
+
+def _scf_cmm_level_to_effectiveness(level: int) -> float:
+    """Map SCF CMM maturity level (0..5) to an effectiveness factor (0..1).
+
+    IMPORTANT: maturity is an ordinal scale; it should not be treated as a
+    linear risk-reduction percentage. This reference engine applies a
+    deliberately non-linear, monotone mapping.
+    """
+
+    # Reference mapping (non-linear):
+    # 0 Not Performed -> 0.00
+    # 1 Performed Informally -> 0.10
+    # 2 Planned & Tracked -> 0.25
+    # 3 Well-Defined -> 0.50
+    # 4 Quantitatively Controlled -> 0.75
+    # 5 Continuously Improving -> 0.90
+    table = {
+        0: 0.00,
+        1: 0.10,
+        2: 0.25,
+        3: 0.50,
+        4: 0.75,
+        5: 0.90,
+    }
+    if level not in table:
+        raise ValueError(f"scf_cmm_level must be in 0..5 (got {level})")
+    return float(table[level])
 
 
 class PlanMessage(BaseModel):
@@ -46,24 +73,11 @@ class ResolvedScenarioControl(BaseModel):
     )
 
     # Scenario-scoped factors (optional)
-    scenario_implementation_effectiveness_factor: Optional[float] = Field(
-        None, ge=0.0, le=1.0, description="Scenario-scoped multiplier for implementation effectiveness (0..1)."
-    )
-    scenario_coverage_factor: Optional[float] = Field(
-        None, ge=0.0, le=1.0, description="Scenario-scoped multiplier for coverage (0..1)."
-    )
-    scenario_coverage_basis: Optional[str] = Field(
-        None, description="Scenario-scoped coverage basis override (if applicable)."
-    )
-
-    scenario_potency_factor: Optional[float] = Field(
+    scenario_effectiveness_against_threat_factor: Optional[float] = Field(
         None,
         ge=0.0,
         le=1.0,
-        description=(
-            "Scenario-scoped potency factor for this control against this specific threat (0..1). "
-            "This multiplies inventory implementation effectiveness when deriving combined values."
-        ),
+        description="Threat-specific effectiveness factor for this control against the scenario (0..1).",
     )
 
     # Combined values (what the engine should apply)
@@ -84,6 +98,14 @@ class ResolvedScenario(BaseModel):
     path: str = Field(..., description="Scenario path from the portfolio.")
     resolved_path: Optional[str] = Field(None, description="Resolved absolute path for loading the scenario.")
     weight: Optional[float] = Field(None, description="Optional scenario weight (portfolio semantics dependent).")
+
+    scenario: Optional[CRScenarioSchema] = Field(
+        None,
+        description=(
+            "Optional inlined scenario document. When present, runtimes should prefer this "
+            "over loading from `resolved_path`/`path` to avoid filesystem dependency (bundle mode)."
+        ),
+    )
 
     # Portfolio binding resolution
     applies_to_assets: list[str] = Field(
@@ -117,6 +139,17 @@ class PortfolioExecutionPlan(BaseModel):
 
 
 def _is_control_state_ref(ref: str) -> bool:
+    """Return True if `ref` matches the v1 control-state reference format.
+
+    v1 format:
+        `control:<id>:state`
+
+    Args:
+        ref: Candidate reference string.
+
+    Returns:
+        True if the reference is a non-empty control state reference.
+    """
     # Minimal v1: control:<id>:state
     if not isinstance(ref, str):
         return False
@@ -129,15 +162,47 @@ def _is_control_state_ref(ref: str) -> bool:
 
 
 def _extract_control_id_from_state_ref(ref: str) -> str:
+    """Extract the control id from a `control:<id>:state` reference.
+
+    Args:
+        ref: A control state reference string.
+
+    Returns:
+        The `<id>` portion.
+
+    Notes:
+        This function assumes the string is already validated by
+        `_is_control_state_ref()`.
+    """
     return ref[len(CONTROL_STATE_PREFIX) : -len(CONTROL_STATE_SUFFIX)]
 
 
 def _toeplitz_corr(dim: int, rho: float) -> list[list[float]]:
+    """Construct a Toeplitz correlation matrix.
+
+    The matrix entries follow $\rho^{|i-j|}$.
+
+    Args:
+        dim: Matrix dimension.
+        rho: Base correlation coefficient.
+
+    Returns:
+        A `dim x dim` nested list of floats.
+    """
     r = float(rho)
     return [[(r ** abs(i - j)) for j in range(dim)] for i in range(dim)]
 
 
 def _validate_corr_matrix_shape(matrix: list[list[float]], dim: int) -> Optional[str]:
+    """Validate correlation matrix has expected square shape.
+
+    Args:
+        matrix: Nested list candidate.
+        dim: Expected dimension.
+
+    Returns:
+        An error string if invalid, else None.
+    """
     if len(matrix) != dim:
         return f"matrix must have {dim} rows"
     for i, row in enumerate(matrix):
@@ -147,6 +212,18 @@ def _validate_corr_matrix_shape(matrix: list[list[float]], dim: int) -> Optional
 
 
 def _validate_corr_matrix_entries(matrix: list[list[float]]) -> Optional[str]:
+    """Validate correlation matrix numeric entries and ranges.
+
+    Ensures:
+        - diagonal entries are 1.0
+        - off-diagonal entries are within [-1, 1]
+
+    Args:
+        matrix: Nested list of entries.
+
+    Returns:
+        An error string if invalid, else None.
+    """
     for i, row in enumerate(matrix):
         for j, v in enumerate(row):
             try:
@@ -162,6 +239,7 @@ def _validate_corr_matrix_entries(matrix: list[list[float]]) -> Optional[str]:
 
 
 def _validate_corr_matrix_symmetry(matrix: list[list[float]], dim: int) -> Optional[str]:
+    """Validate that the matrix is symmetric within a small tolerance."""
     for i in range(dim):
         for j in range(i + 1, dim):
             if abs(float(matrix[i][j]) - float(matrix[j][i])) > 1e-9:
@@ -170,6 +248,7 @@ def _validate_corr_matrix_symmetry(matrix: list[list[float]], dim: int) -> Optio
 
 
 def _validate_corr_matrix(matrix: list[list[float]], dim: int) -> Optional[str]:
+    """Validate correlation matrix shape, entries, and symmetry."""
     shape_error = _validate_corr_matrix_shape(matrix, dim)
     if shape_error:
         return shape_error
@@ -191,6 +270,18 @@ class PlanReport(BaseModel):
 
 
 def _load_yaml_file(path: str) -> dict[str, Any]:
+    """Load a YAML file and ensure the top-level is a mapping/object.
+
+    Args:
+        path: YAML file path.
+
+    Returns:
+        Parsed YAML mapping.
+
+    Raises:
+        ImportError: If PyYAML is not installed.
+        ValueError: If the YAML document's top-level is not a mapping.
+    """
     try:
         import yaml
     except Exception as e:
@@ -205,6 +296,7 @@ def _load_yaml_file(path: str) -> dict[str, Any]:
 
 
 def _resolve_path(base_dir: str | None, p: str) -> str:
+    """Resolve `p` relative to `base_dir` if needed."""
     if base_dir and not os.path.isabs(p):
         return os.path.join(base_dir, p)
     return p
@@ -212,10 +304,11 @@ def _resolve_path(base_dir: str | None, p: str) -> str:
 
 def _scenario_controls_to_objects(
     controls_any: list[Any],
-) -> list[tuple[str, Optional[float], Optional[tuple[float, str]], Optional[float]]]:
-    """Normalize scenario.controls into (id, eff_factor, coverage_factor(value,basis), potency_factor)."""
 
-    out: list[tuple[str, Optional[float], Optional[tuple[float, str]], Optional[float]]] = []
+) -> list[tuple[str, Optional[float]]]:
+    """Normalize scenario.controls into (id, effectiveness_factor)."""
+
+    out: list[tuple[str, Optional[float]]] = []
     for c in controls_any:
         item = _scenario_control_to_object(c)
         if item is not None:
@@ -226,15 +319,25 @@ def _scenario_controls_to_objects(
 
 def _scenario_control_to_object(
     c: Any,
-) -> Optional[tuple[str, Optional[float], Optional[tuple[float, str]], Optional[float]]]:
+) -> Optional[tuple[str, Optional[float]]]:
+    """Normalize a single scenario control reference into a tuple.
+
+    Supported input forms:
+        - string control id
+        - `ScenarioControlModel`
+        - dict with keys {id, effectiveness_against_threat}
+
+    Args:
+        c: Control reference of various supported shapes.
+
+    Returns:
+        (control_id, effectiveness_factor) or None if not recognized.
+    """
     if isinstance(c, str):
-        return (c, None, None, None)
+        return (c, None)
 
     if isinstance(c, ScenarioControlModel):
-        cov = None
-        if c.coverage is not None:
-            cov = (float(c.coverage.value), str(c.coverage.basis))
-        return (c.id, c.implementation_effectiveness, cov, getattr(c, "potency", None))
+        return (c.id, c.effectiveness_against_threat)
 
     if isinstance(c, dict):
         return _scenario_control_from_dict(c)
@@ -244,29 +347,24 @@ def _scenario_control_to_object(
 
 def _scenario_control_from_dict(
     value: dict[str, Any],
-) -> Optional[tuple[str, Optional[float], Optional[tuple[float, str]], Optional[float]]]:
+) -> Optional[tuple[str, Optional[float]]]:
+    """Parse a dict control reference into (id, effectiveness_factor)."""
     cid = value.get("id")
     if not isinstance(cid, str):
         return None
 
-    eff = value.get("implementation_effectiveness")
+    eff = value.get("effectiveness_against_threat")
     eff_f = float(eff) if eff is not None else None
-    pot = value.get("potency")
-    pot_f = float(pot) if pot is not None else None
-
-    cov_obj = value.get("coverage")
-    cov: Optional[tuple[float, str]] = None
-    if isinstance(cov_obj, dict) and cov_obj.get("value") is not None and cov_obj.get("basis") is not None:
-        cov = (float(cov_obj["value"]), str(cov_obj["basis"]))
-
-    return (cid, eff_f, cov, pot_f)
+    return (cid, eff_f)
 
 
 def _clamp01(x: float) -> float:
+    """Clamp a numeric value into the inclusive range [0, 1]."""
     return max(0.0, min(1.0, float(x)))
 
 
 def _distinct_non_none(values: list[object]) -> set[object]:
+    """Return a set of distinct values, excluding None."""
     return {v for v in values if v is not None}
 
 
@@ -406,7 +504,7 @@ def plan_portfolio(  # NOSONAR
                         PlanMessage(
                             level="error",
                             path=COPULA_TARGETS_PATH,
-                            message=f"Copula target control id '{t}' not found in portfolio.controls or control assessments.",
+                            message=f"Copula target control id '{t}' not found in portfolio.controls or assessments.",
                         )
                     )
 
@@ -568,7 +666,7 @@ def plan_portfolio(  # NOSONAR
         controls_norm = _scenario_controls_to_objects(list(controls_any))
         resolved_controls: list[ResolvedScenarioControl] = []
 
-        for (cid, scenario_eff_factor, scenario_cov_factor, scenario_potency_factor) in controls_norm:
+        for (cid, scenario_eff_factor) in controls_norm:
             inventory_eff: Optional[float] = None
             inventory_cov_val: Optional[float] = None
             inventory_cov_basis: Optional[str] = None
@@ -589,9 +687,12 @@ def plan_portfolio(  # NOSONAR
             else:
                 assess = assessment_by_id.get(cid)
                 if assess is not None:
-                    if assess.implementation_effectiveness is not None:
+                    if getattr(assess, "scf_cmm_level", None) is not None:
+                        inventory_eff = _scf_cmm_level_to_effectiveness(int(assess.scf_cmm_level))
+                    elif getattr(assess, "implementation_effectiveness", None) is not None:
                         inventory_eff = float(assess.implementation_effectiveness)
-                    if assess.coverage is not None:
+
+                    if getattr(assess, "coverage", None) is not None:
                         inventory_cov_val = float(assess.coverage.value)
                         inventory_cov_basis = str(assess.coverage.basis)
                     if getattr(assess, "reliability", None) is not None:
@@ -609,26 +710,18 @@ def plan_portfolio(  # NOSONAR
                 )
                 continue
 
-            # Scenario values are interpreted as *multiplicative applicability factors*.
+            # Scenario values are interpreted as a *threat-specific effectiveness factor*.
+            # Organization-specific deployment (coverage) remains an inventory/assessment concern.
             eff_factor = float(scenario_eff_factor) if scenario_eff_factor is not None else None
-            pot_factor = float(scenario_potency_factor) if scenario_potency_factor is not None else None
-            cov_factor_val: Optional[float] = None
-            cov_factor_basis: Optional[str] = None
-            if scenario_cov_factor is not None:
-                cov_factor_val = float(scenario_cov_factor[0])
-                cov_factor_basis = str(scenario_cov_factor[1])
 
             combined_eff = None
             if inventory_eff is not None:
                 combined_eff = _clamp01(
                     inventory_eff
                     * (eff_factor if eff_factor is not None else 1.0)
-                    * (pot_factor if pot_factor is not None else 1.0)
                 )
 
-            combined_cov = None
-            if inventory_cov_val is not None:
-                combined_cov = _clamp01(inventory_cov_val * (cov_factor_val if cov_factor_val is not None else 1.0))
+            combined_cov = _clamp01(inventory_cov_val) if inventory_cov_val is not None else None
 
             combined_rel = _clamp01(inventory_rel if inventory_rel is not None else 1.0)
 
@@ -640,27 +733,12 @@ def plan_portfolio(  # NOSONAR
                     inventory_coverage_basis=inventory_cov_basis,
                     inventory_reliability=inventory_rel,
                     affects=affects,
-                    scenario_implementation_effectiveness_factor=eff_factor,
-                    scenario_coverage_factor=cov_factor_val,
-                    scenario_coverage_basis=cov_factor_basis,
-                    scenario_potency_factor=pot_factor,
+                    scenario_effectiveness_against_threat_factor=eff_factor,
                     combined_implementation_effectiveness=combined_eff,
                     combined_coverage_value=combined_cov,
                     combined_reliability=combined_rel,
                 )
             )
-
-            if inventory_cov_basis and cov_factor_basis and inventory_cov_basis != cov_factor_basis:
-                warnings.append(
-                    PlanMessage(
-                        level="warning",
-                        path=f"portfolio.scenarios[{idx}].path",
-                        message=(
-                            f"Control '{cid}' combines coverage with different bases: inventory='{inventory_cov_basis}', scenario='{cov_factor_basis}'. "
-                            "Treating scenario coverage as a pure factor."
-                        ),
-                    )
-                )
 
         resolved_scenarios.append(
             ResolvedScenario(
@@ -690,11 +768,20 @@ def plan_portfolio(  # NOSONAR
 
 
 def plan_bundle(bundle: CRPortfolioBundle) -> PlanReport:  # NOSONAR
-    """Resolve an inlined CRPortfolioBundle into an execution-friendly plan.
+    """Plan a validated portfolio bundle into an execution plan.
+
+    A bundle is a convenience container that already holds the portfolio and
+    referenced documents in-memory.
 
     Unlike `plan_portfolio`, this function does not access the filesystem.
-    It expects scenarios (and optionally control cataloges) to already be inlined
-    inside the bundle.
+    It expects scenarios (and optionally control cataloges) to already be
+    inlined inside the bundle.
+
+    Args:
+        bundle: `CRPortfolioBundle` instance.
+
+    Returns:
+        A `PlanReport` with `ok=True` and a populated `plan` on success.
     """
 
     errors: list[PlanMessage] = []
@@ -809,8 +896,8 @@ def plan_bundle(bundle: CRPortfolioBundle) -> PlanReport:  # NOSONAR
                         }
                     }
 
-    # Scenario lookup by id
-    scenario_by_id: dict[str, CRScenarioSchema] = {s.id: s.scenario for s in (bundle.scenarios or [])}
+    # Scenario lookup by id (bundle payload holds the inlined scenarios)
+    scenario_by_id: dict[str, CRScenarioSchema] = {s.id: s.scenario for s in (payload.scenarios or [])}
 
     resolved_scenarios: list[ResolvedScenario] = []
     for idx, sref in enumerate(portfolio.scenarios):
@@ -877,7 +964,7 @@ def plan_bundle(bundle: CRPortfolioBundle) -> PlanReport:  # NOSONAR
         controls_norm = _scenario_controls_to_objects(list(controls_any))
         resolved_controls: list[ResolvedScenarioControl] = []
 
-        for (cid, scenario_eff_factor, scenario_cov_factor, scenario_potency_factor) in controls_norm:
+        for (cid, scenario_eff_factor) in controls_norm:
             inventory_eff: Optional[float] = None
             inventory_cov_val: Optional[float] = None
             inventory_cov_basis: Optional[str] = None
@@ -898,9 +985,12 @@ def plan_bundle(bundle: CRPortfolioBundle) -> PlanReport:  # NOSONAR
             else:
                 assess = assessment_by_id.get(cid)
                 if assess is not None:
-                    if assess.implementation_effectiveness is not None:
+                    if getattr(assess, "scf_cmm_level", None) is not None:
+                        inventory_eff = _scf_cmm_level_to_effectiveness(int(assess.scf_cmm_level))
+                    elif getattr(assess, "implementation_effectiveness", None) is not None:
                         inventory_eff = float(assess.implementation_effectiveness)
-                    if assess.coverage is not None:
+
+                    if getattr(assess, "coverage", None) is not None:
                         inventory_cov_val = float(assess.coverage.value)
                         inventory_cov_basis = str(assess.coverage.basis)
                     if getattr(assess, "reliability", None) is not None:
@@ -919,24 +1009,15 @@ def plan_bundle(bundle: CRPortfolioBundle) -> PlanReport:  # NOSONAR
                 continue
 
             eff_factor = float(scenario_eff_factor) if scenario_eff_factor is not None else None
-            pot_factor = float(scenario_potency_factor) if scenario_potency_factor is not None else None
-            cov_factor_val: Optional[float] = None
-            cov_factor_basis: Optional[str] = None
-            if scenario_cov_factor is not None:
-                cov_factor_val = float(scenario_cov_factor[0])
-                cov_factor_basis = str(scenario_cov_factor[1])
 
             combined_eff = None
             if inventory_eff is not None:
                 combined_eff = _clamp01(
                     inventory_eff
                     * (eff_factor if eff_factor is not None else 1.0)
-                    * (pot_factor if pot_factor is not None else 1.0)
                 )
 
-            combined_cov = None
-            if inventory_cov_val is not None:
-                combined_cov = _clamp01(inventory_cov_val * (cov_factor_val if cov_factor_val is not None else 1.0))
+            combined_cov = _clamp01(inventory_cov_val) if inventory_cov_val is not None else None
 
             combined_rel = _clamp01(inventory_rel if inventory_rel is not None else 1.0)
 
@@ -948,27 +1029,12 @@ def plan_bundle(bundle: CRPortfolioBundle) -> PlanReport:  # NOSONAR
                     inventory_coverage_basis=inventory_cov_basis,
                     inventory_reliability=inventory_rel,
                     affects=affects,
-                    scenario_implementation_effectiveness_factor=eff_factor,
-                    scenario_coverage_factor=cov_factor_val,
-                    scenario_coverage_basis=cov_factor_basis,
-                    scenario_potency_factor=pot_factor,
+                    scenario_effectiveness_against_threat_factor=eff_factor,
                     combined_implementation_effectiveness=combined_eff,
                     combined_coverage_value=combined_cov,
                     combined_reliability=combined_rel,
                 )
             )
-
-            if inventory_cov_basis and cov_factor_basis and inventory_cov_basis != cov_factor_basis:
-                warnings.append(
-                    PlanMessage(
-                        level="warning",
-                        path=f"portfolio.scenarios[{idx}].id",
-                        message=(
-                            f"Control '{cid}' combines coverage with different bases: inventory='{inventory_cov_basis}', scenario='{cov_factor_basis}'. "
-                            "Treating scenario coverage as a pure factor."
-                        ),
-                    )
-                )
 
         resolved_scenarios.append(
             ResolvedScenario(
@@ -976,6 +1042,7 @@ def plan_bundle(bundle: CRPortfolioBundle) -> PlanReport:  # NOSONAR
                 path=sref.path,
                 resolved_path=None,
                 weight=sref.weight,
+                scenario=scenario_doc,
                 applies_to_assets=applies_to_assets_list,
                 cardinality=cardinality,
                 scenario_name=scenario_doc.meta.name,

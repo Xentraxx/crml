@@ -3,9 +3,11 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from crml_lang.models.crml_model import CRScenarioSchema
+from crml_lang.models.scenario_model import CRScenarioSchema
 from crml_lang.models.assessment_model import CRAssessmentSchema
 from crml_lang.models.control_catalog_model import CRControlCatalogSchema
+from crml_lang.models.attack_catalog_model import CRAttackCatalogSchema
+from crml_lang.models.attack_control_relationships_model import CRAttackControlRelationshipsSchema
 from crml_lang.models.control_relationships_model import CRControlRelationshipsSchema
 from crml_lang.models.portfolio_model import CRPortfolioSchema
 from crml_lang.models.portfolio_bundle import CRPortfolioBundle
@@ -21,6 +23,8 @@ def main() -> None:
     portfolio_schema = CRPortfolioSchema.model_json_schema()
     assessment_schema = CRAssessmentSchema.model_json_schema()
     control_catalog_schema = CRControlCatalogSchema.model_json_schema()
+    attack_catalog_schema = CRAttackCatalogSchema.model_json_schema()
+    attack_control_relationships_schema = CRAttackControlRelationshipsSchema.model_json_schema()
     control_relationships_schema = CRControlRelationshipsSchema.model_json_schema()
     portfolio_bundle_schema = CRPortfolioBundle.model_json_schema()
     simulation_result_schema = SimulationResultEnvelope.model_json_schema()
@@ -38,14 +42,18 @@ def main() -> None:
         encoding="utf-8",
     )
 
-    # Legacy filename (backwards compatibility)
-    (schemas_dir / "crml-control-assessment-schema.json").write_text(
-        json.dumps(assessment_schema, indent=2, ensure_ascii=False) + "\n",
+    (schemas_dir / "crml-control-catalog-schema.json").write_text(
+        json.dumps(control_catalog_schema, indent=2, ensure_ascii=False) + "\n",
         encoding="utf-8",
     )
 
-    (schemas_dir / "crml-control-catalog-schema.json").write_text(
-        json.dumps(control_catalog_schema, indent=2, ensure_ascii=False) + "\n",
+    (schemas_dir / "crml-attack-catalog-schema.json").write_text(
+        json.dumps(attack_catalog_schema, indent=2, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
+
+    (schemas_dir / "crml-attack-control-relationships-schema.json").write_text(
+        json.dumps(attack_control_relationships_schema, indent=2, ensure_ascii=False) + "\n",
         encoding="utf-8",
     )
 

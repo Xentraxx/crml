@@ -111,9 +111,7 @@ meta:
 scenario:
   controls:
     - id: "iso27001:2022:A.5.1"
-      implementation_effectiveness: 0.5
-      potency: 0.2
-      coverage: {value: 0.5, basis: applications}
+      effectiveness_against_threat: 0.5
   frequency:
     basis: per_organization_per_year
     model: poisson
@@ -135,8 +133,7 @@ assessment:
   framework: "Org"
   assessments:
     - id: "iso27001:2022:A.5.1"
-      implementation_effectiveness: 0.2
-      coverage: {value: 0.8, basis: applications}
+      scf_cmm_level: 2
 """.lstrip(),
         encoding="utf-8",
     )
@@ -172,13 +169,11 @@ portfolio:
     assert ctrl.inventory_implementation_effectiveness == pytest.approx(0.6)
     assert ctrl.inventory_coverage_value == pytest.approx(1.0)
 
-    # Scenario provides multiplicative applicability factors.
-    assert ctrl.scenario_implementation_effectiveness_factor == pytest.approx(0.5)
-    assert ctrl.scenario_coverage_factor == pytest.approx(0.5)
-    assert ctrl.scenario_potency_factor == pytest.approx(0.2)
+    # Scenario provides a threat-specific effectiveness factor.
+    assert ctrl.scenario_effectiveness_against_threat_factor == pytest.approx(0.5)
 
-    assert ctrl.combined_implementation_effectiveness == pytest.approx(0.06)
-    assert ctrl.combined_coverage_value == pytest.approx(0.5)
+    assert ctrl.combined_implementation_effectiveness == pytest.approx(0.3)
+    assert ctrl.combined_coverage_value == pytest.approx(1.0)
 
 
 def test_plan_portfolio_errors_when_control_not_in_inventory(tmp_path) -> None:

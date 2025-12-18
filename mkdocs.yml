@@ -26,6 +26,11 @@ nav:
     - Installation: Engine/Installation.md
     - CLI: Engine/CLI.md
     - Python API: Engine/Python-API.md
+    - Capabilities:
+      - Supported Models: Engine/Capabilities/Supported-Models.md
+      - Portfolio Execution: Engine/Capabilities/Portfolio-Execution.md
+      - Controls: Engine/Capabilities/Controls.md
+      - Results: Engine/Capabilities/Results.md
     - Multi-Currency Support: Multi-Currency-Support.md
     - Control Effectiveness: Control-Effectiveness.md
 

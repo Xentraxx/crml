@@ -5,9 +5,11 @@ from dataclasses import dataclass
 from typing import Any, Literal, Mapping, Optional
 
 from crml_lang.models.assessment_model import CRAssessmentSchema
+from crml_lang.models.attack_catalog_model import CRAttackCatalogSchema
+from crml_lang.models.attack_control_relationships_model import CRAttackControlRelationshipsSchema
 from crml_lang.models.control_catalog_model import CRControlCatalogSchema
 from crml_lang.models.control_relationships_model import CRControlRelationshipsSchema
-from crml_lang.models.crml_model import CRScenarioSchema
+from crml_lang.models.scenario_model import CRScenarioSchema
 from crml_lang.models.portfolio_bundle import (
     BundleMessage,
     BundledScenario,
@@ -15,6 +17,7 @@ from crml_lang.models.portfolio_bundle import (
     PortfolioBundlePayload,
 )
 from crml_lang.models.portfolio_model import CRPortfolioSchema
+from crml_lang.yamlio import load_yaml_mapping_from_path, load_yaml_mapping_from_str
 
 
 @dataclass(frozen=True)
@@ -28,20 +31,12 @@ class BundleReport:
 
 
 def _load_yaml_file(path: str) -> dict[str, Any]:
-    try:
-        import yaml
-    except Exception as e:
-        raise ImportError("PyYAML is required: pip install pyyaml") from e
-
-    with open(path, "r", encoding="utf-8") as f:
-        data = yaml.safe_load(f)
-
-    if not isinstance(data, dict):
-        raise ValueError("YAML document must be a mapping/object at top-level")
-    return data
+    """Load a YAML file from disk and require a mapping at the root."""
+    return load_yaml_mapping_from_path(path)
 
 
 def _resolve_path(base_dir: str | None, p: str) -> str:
+    """Resolve a possibly-relative path against a base directory."""
     if base_dir and not os.path.isabs(p):
         return os.path.join(base_dir, p)
     return p
@@ -81,16 +76,13 @@ def _load_portfolio_doc(
     elif source_kind == "yaml":
         assert isinstance(source, str)
         try:
-            import yaml
-        except Exception as e:
-            errors.append(BundleMessage(level="error", path="(io)", message=f"PyYAML is required: {e}"))
-            return None, None, None, errors
-
-        loaded = yaml.safe_load(source)
-        if not isinstance(loaded, dict):
+            data = load_yaml_mapping_from_str(source)
+        except ValueError:
             errors.append(BundleMessage(level="error", path="(root)", message="YAML must be a mapping"))
             return None, None, None, errors
-        data = loaded
+        except Exception as e:
+            errors.append(BundleMessage(level="error", path="(io)", message=str(e)))
+            return None, None, None, errors
     else:
         assert isinstance(source, dict)
         data = source
@@ -113,6 +105,11 @@ def _inline_pack_paths(
     model_mode_warning_path_prefix: str,
     model_mode_warning_message: str,
 ) -> list[str]:
+    """Resolve pack reference paths.
+
+    In model-mode (`source_kind == "model"`), file paths cannot be inlined and
+    are returned as an empty list while emitting warnings.
+    """
     if source_kind == "model":
         for idx, _ in enumerate(paths):
             warnings.append(
@@ -140,6 +137,7 @@ def _inline_control_catalogs(
     warnings: list[BundleMessage],
     initial: list[CRControlCatalogSchema],
 ) -> list[CRControlCatalogSchema]:
+    """Inline referenced control catalog documents into the bundle payload."""
     out = list(initial)
     paths = portfolio_doc.portfolio.control_catalogs or []
 
@@ -179,6 +177,7 @@ def _inline_assessments(
     warnings: list[BundleMessage],
     initial: list[CRAssessmentSchema],
 ) -> list[CRAssessmentSchema]:
+    """Inline referenced assessment documents into the bundle payload."""
     out = list(initial)
     paths = portfolio_doc.portfolio.assessments or []
 
@@ -218,6 +217,7 @@ def _inline_control_relationships(
     warnings: list[BundleMessage],
     initial: list[CRControlRelationshipsSchema],
 ) -> list[CRControlRelationshipsSchema]:
+    """Inline referenced control-relationships packs into the bundle payload."""
     out = list(initial)
     paths = portfolio_doc.portfolio.control_relationships or []
 
@@ -249,6 +249,86 @@ def _inline_control_relationships(
     return out
 
 
+def _inline_attack_catalogs(
+    *,
+    portfolio_doc: CRPortfolioSchema,
+    base_dir: str | None,
+    source_kind: Literal["path", "yaml", "data", "model"],
+    warnings: list[BundleMessage],
+    initial: list[CRAttackCatalogSchema],
+) -> list[CRAttackCatalogSchema]:
+    """Inline referenced attack-catalog documents into the bundle payload."""
+    out = list(initial)
+    paths = portfolio_doc.portfolio.attack_catalogs or []
+
+    resolved_paths = _inline_pack_paths(
+        paths=list(paths),
+        base_dir=base_dir,
+        source_kind=source_kind,
+        warnings=warnings,
+        model_mode_warning_path_prefix="portfolio.attack_catalogs",
+        model_mode_warning_message=(
+            "Portfolio references an attack catalog path, but bundling is in model-mode; "
+            "provide `attack_catalogs` to inline catalog content."
+        ),
+    )
+
+    for idx, rp in enumerate(resolved_paths):
+        original = paths[idx]
+        try:
+            out.append(CRAttackCatalogSchema.model_validate(_load_yaml_file(rp)))
+        except Exception as e:
+            warnings.append(
+                BundleMessage(
+                    level="warning",
+                    path=f"portfolio.attack_catalogs[{idx}]",
+                    message=f"Failed to inline attack catalog '{original}': {e}",
+                )
+            )
+
+    return out
+
+
+def _inline_attack_control_relationships(
+    *,
+    portfolio_doc: CRPortfolioSchema,
+    base_dir: str | None,
+    source_kind: Literal["path", "yaml", "data", "model"],
+    warnings: list[BundleMessage],
+    initial: list[CRAttackControlRelationshipsSchema],
+) -> list[CRAttackControlRelationshipsSchema]:
+    """Inline referenced attack-to-control relationships mappings into the bundle payload."""
+    out = list(initial)
+    paths = portfolio_doc.portfolio.attack_control_relationships or []
+
+    resolved_paths = _inline_pack_paths(
+        paths=list(paths),
+        base_dir=base_dir,
+        source_kind=source_kind,
+        warnings=warnings,
+        model_mode_warning_path_prefix="portfolio.attack_control_relationships",
+        model_mode_warning_message=(
+            "Portfolio references an attack-to-control relationships path, but bundling is in model-mode; "
+            "provide `attack_control_relationships` to inline mapping content."
+        ),
+    )
+
+    for idx, rp in enumerate(resolved_paths):
+        original = paths[idx]
+        try:
+            out.append(CRAttackControlRelationshipsSchema.model_validate(_load_yaml_file(rp)))
+        except Exception as e:
+            warnings.append(
+                BundleMessage(
+                    level="warning",
+                    path=f"portfolio.attack_control_relationships[{idx}]",
+                    message=f"Failed to inline attack-control relationships mapping '{original}': {e}",
+                )
+            )
+
+    return out
+
+
 def _inline_scenarios(
     *,
     portfolio_doc: CRPortfolioSchema,
@@ -256,6 +336,12 @@ def _inline_scenarios(
     source_kind: Literal["path", "yaml", "data", "model"],
     scenarios: Mapping[str, CRScenarioSchema] | None,
 ) -> tuple[list[BundledScenario], list[BundleMessage]]:
+    """Inline scenario documents referenced by the portfolio.
+
+    Returns:
+        A pair of (bundled_scenarios, errors). If any error occurs while loading
+        a referenced scenario, the errors list is returned non-empty.
+    """
     errors: list[BundleMessage] = []
     bundled: list[BundledScenario] = []
 
@@ -316,8 +402,10 @@ def bundle_portfolio(
     source_kind: Literal["path", "yaml", "data", "model"] = "path",
     scenarios: Mapping[str, CRScenarioSchema] | None = None,
     control_catalogs: list[CRControlCatalogSchema] | None = None,
+    attack_catalogs: list[CRAttackCatalogSchema] | None = None,
     assessments: list[CRAssessmentSchema] | None = None,
     control_relationships: list[CRControlRelationshipsSchema] | None = None,
+    attack_control_relationships: list[CRAttackControlRelationshipsSchema] | None = None,
 ) -> BundleReport:
     """Build an engine-agnostic CRPortfolioBundle from a portfolio input.
 
@@ -365,6 +453,22 @@ def bundle_portfolio(
         initial=list(control_relationships or []),
     )
 
+    attack_catalogs_out = _inline_attack_catalogs(
+        portfolio_doc=portfolio_doc,
+        base_dir=base_dir,
+        source_kind=source_kind,
+        warnings=warnings,
+        initial=list(attack_catalogs or []),
+    )
+
+    attack_control_relationships_out = _inline_attack_control_relationships(
+        portfolio_doc=portfolio_doc,
+        base_dir=base_dir,
+        source_kind=source_kind,
+        warnings=warnings,
+        initial=list(attack_control_relationships or []),
+    )
+
     # Inline scenarios referenced by the portfolio.
     bundled_scenarios, scenario_errors = _inline_scenarios(
         portfolio_doc=portfolio_doc,
@@ -381,6 +485,8 @@ def bundle_portfolio(
         control_catalogs=control_catalogs_out,
         assessments=assessments_out,
         control_relationships=control_relationships_out,
+        attack_catalogs=attack_catalogs_out,
+        attack_control_relationships=attack_control_relationships_out,
         warnings=warnings,
         metadata={
             "source_kind": source_kind,

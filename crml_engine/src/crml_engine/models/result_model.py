@@ -66,6 +66,7 @@ class SimulationResult(BaseModel):
     errors: List[str] = Field(default_factory=list, description="List of error messages (if any).")
 
 def _banner(title: str) -> None:
+    """Print a section banner used by `print_result()`."""
     line = "=" * _BANNER_WIDTH
     print("\n" + line)
     print(title)
@@ -73,18 +74,28 @@ def _banner(title: str) -> None:
 
 
 def _currency_display(meta: Optional[Metadata]) -> tuple[str, str]:
+    """Resolve display currency symbol and code from metadata.
+
+    Args:
+        meta: Optional metadata.
+
+    Returns:
+        (symbol, code) falling back to ($, USD) if not specified.
+    """
     symbol = meta.currency if (meta and meta.currency) else "$"
     code = meta.currency_code if (meta and meta.currency_code) else "USD"
     return symbol, code
 
 
 def _print_failure(errors: List[str]) -> None:
+    """Print a formatted failure header and list of error messages."""
     print("❌ Simulation failed:")
     for error in errors:
         print(f"  • {error}")
 
 
 def _print_metadata(meta: Optional[Metadata], *, currency_symbol: str, currency_code: str) -> None:
+    """Print metadata fields for a successful simulation run."""
     model_name = meta.model_name if (meta and meta.model_name) else ""
     print(f"Model: {model_name}")
 
@@ -99,6 +110,7 @@ def _print_metadata(meta: Optional[Metadata], *, currency_symbol: str, currency_
 
 
 def _print_metrics(metrics: Optional[Metrics], *, currency_symbol: str) -> None:
+    """Print metrics for a successful simulation run."""
     if not metrics:
         return
 
@@ -124,7 +136,16 @@ def _print_metrics(metrics: Optional[Metrics], *, currency_symbol: str) -> None:
 
 
 def print_result(result: "SimulationResult") -> None:
-    """Pretty-print a SimulationResult object to the console."""
+    """Pretty-print a `SimulationResult` object to the console.
+
+    This is intended for CLI usage and human inspection.
+
+    Args:
+        result: Simulation result to render.
+
+    Side effects:
+        Writes to stdout.
+    """
 
     if not result.success:
         _print_failure(result.errors)

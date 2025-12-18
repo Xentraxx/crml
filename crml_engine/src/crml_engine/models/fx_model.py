@@ -35,8 +35,11 @@ class FXConfig(BaseModel):
     as_of: Optional[str] = Field(None, description="Optional timestamp/date for when rates were observed.")
 
 def get_default_fx_config() -> FXConfig:
-    """
-    Returns a default FXConfig instance with USD as base/output and default rates.
+    """Return the default FX configuration.
+
+    Returns:
+        An `FXConfig` using USD as base/output currency and the built-in default
+        rate table.
     """
     return FXConfig(
         base_currency="USD",
@@ -45,8 +48,18 @@ def get_default_fx_config() -> FXConfig:
     )
 
 def load_fx_config(fx_config_path: Optional[str] = None) -> 'FXConfig':
-    """
-    Load FX configuration from a YAML file or return defaults.
+    """Load an FX configuration document.
+
+    If `fx_config_path` is not provided, returns the default FX config.
+    If provided, the YAML document is validated against the bundled JSON
+    Schema (Draft 2020-12).
+
+    Args:
+        fx_config_path: Path to an FX config YAML file.
+
+    Returns:
+        A validated `FXConfig`. On any error, prints a warning and returns a
+        default config.
     """
     default_config = get_default_fx_config()
     if fx_config_path is None:
@@ -86,22 +99,35 @@ def load_fx_config(fx_config_path: Optional[str] = None) -> 'FXConfig':
         return default_config
 
 def get_currency_symbol(currency: str) -> str:
-    """
-    Get the display symbol for a currency code.
-    If already a symbol or unknown code, returns the input unchanged.
+    """Return a display symbol for a currency code.
+
+    Args:
+        currency: Currency code (e.g. "USD") or symbol (e.g. "$ ").
+
+    Returns:
+        Known codes are mapped to a symbol; unknown inputs are returned
+        unchanged.
     """
     return CURRENCY_CODE_TO_SYMBOL.get(currency.upper(), currency)
 
 def convert_currency(amount: float, from_currency: str, to_currency: str, fx_config: Optional['FXConfig'] = None) -> float:
-    """
-    Convert a monetary amount between currencies.
+    """Convert a monetary amount between currencies.
+
+    The conversion uses the configured rate table in which rates represent the
+    value of 1 unit of a currency in the base currency.
+
     Args:
-        amount: The monetary amount to convert
-        from_currency: Source currency code
-        to_currency: Target currency code
-        fx_config: FX configuration with rates
+        amount: Amount to convert.
+        from_currency: Source currency code or symbol.
+        to_currency: Target currency code or symbol.
+        fx_config: FX configuration. If None, defaults are used.
+
     Returns:
-        The converted amount in the target currency
+        Converted amount in the target currency.
+
+    Notes:
+        If a currency code is not found in the rate table, a rate of 1.0 is
+        assumed.
     """
     if fx_config is None:
         fx_config = FXConfig(base_currency="USD", output_currency="USD", rates=DEFAULT_FX_RATES)
@@ -122,14 +148,18 @@ def convert_currency(amount: float, from_currency: str, to_currency: str, fx_con
     return usd_amount / to_rate
 
 def normalize_currency(amount: float, from_currency: str, fx_context: Optional['FXConfig'] = None) -> float:
-    """
-    Normalize a monetary amount to the base currency.
+    """Normalize an amount into the FX base currency.
+
     Args:
-        amount: The monetary amount to normalize
-        from_currency: The currency code or symbol of the amount
-        fx_context: Optional FX context with base_currency and rates
+        amount: Amount to normalize.
+        from_currency: Source currency code or symbol.
+        fx_context: FX config providing base_currency and rates.
+
     Returns:
-        The normalized amount in the base currency
+        Amount expressed in `fx_context.base_currency`.
+
+    Notes:
+        If no rate is available, returns the original amount.
     """
     if fx_context is None:
         fx_context = FXConfig(base_currency="USD", output_currency="USD", rates=DEFAULT_FX_RATES)
@@ -149,9 +179,17 @@ def normalize_currency(amount: float, from_currency: str, fx_context: Optional['
     return amount
 
 def normalize_fx_config(fx_config: Optional[dict or FXConfig]) -> FXConfig:
-    """
-    Normalize any FX config input (None, dict, FXConfig) to a valid FXConfig object.
-    Ensures 'rates' is always present and a dict.
+    """Normalize any FX config input into a valid `FXConfig`.
+
+    Args:
+        fx_config: None (use defaults), a dict-like FXConfig payload, or an
+            `FXConfig` instance.
+
+    Returns:
+        A usable `FXConfig` with a populated `rates` mapping.
+
+    Raises:
+        ValueError: If `fx_config` is not None/dict/FXConfig.
     """
     if fx_config is None:
         return FXConfig(base_currency="USD", output_currency="USD", rates=DEFAULT_FX_RATES)

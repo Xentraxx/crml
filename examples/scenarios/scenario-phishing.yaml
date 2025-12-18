@@ -4,7 +4,7 @@ meta:
 scenario:
   controls:
     - id: "org:iam.mfa"
-      potency: 0.85
+      effectiveness_against_threat: 0.85
   frequency:
     basis: per_organization_per_year
     model: poisson

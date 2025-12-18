@@ -4,11 +4,13 @@ from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import AliasChoices, BaseModel, Field
 
-from .crml_model import CRScenarioSchema
+from .scenario_model import CRScenarioSchema
 from .portfolio_model import CRPortfolioSchema
 from .control_catalog_model import CRControlCatalogSchema
 from .assessment_model import CRAssessmentSchema
 from .control_relationships_model import CRControlRelationshipsSchema
+from .attack_catalog_model import CRAttackCatalogSchema
+from .attack_control_relationships_model import CRAttackControlRelationshipsSchema
 
 
 class BundleMessage(BaseModel):
@@ -46,7 +48,7 @@ class PortfolioBundlePayload(BaseModel):
 
     assessments: List[CRAssessmentSchema] = Field(
         default_factory=list,
-        validation_alias=AliasChoices("assessments", "control_assessments"),
+        validation_alias=AliasChoices("assessments"),
         serialization_alias="assessments",
         description="Optional inlined assessment packs referenced by the portfolio.",
     )
@@ -54,6 +56,16 @@ class PortfolioBundlePayload(BaseModel):
     control_relationships: List[CRControlRelationshipsSchema] = Field(
         default_factory=list,
         description="Optional inlined control relationships packs referenced by the portfolio.",
+    )
+
+    attack_catalogs: List[CRAttackCatalogSchema] = Field(
+        default_factory=list,
+        description="Optional inlined attack catalogs (e.g., MITRE ATT&CK) referenced by the portfolio.",
+    )
+
+    attack_control_relationships: List[CRAttackControlRelationshipsSchema] = Field(
+        default_factory=list,
+        description="Optional inlined attack-to-control relationships mappings referenced by the portfolio.",
     )
 
     warnings: List[BundleMessage] = Field(default_factory=list, description="Non-fatal bundle warnings.")

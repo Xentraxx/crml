@@ -1,6 +1,7 @@
 {
   "$defs": {
     "Assessment": {
+      "additionalProperties": false,
       "properties": {
         "id": {
           "description": "Canonical unique control id in the form 'namespace:key' (no whitespace).",
@@ -82,6 +83,21 @@
           "description": "Which loss component this assessment affects. Default is 'frequency' (frequency-first). Note: the current reference engine primarily applies controls to frequency (lambda).",
           "title": "Affects"
         },
+        "scf_cmm_level": {
+          "anyOf": [
+            {
+              "maximum": 5,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "SCF Capability Maturity Model (CMM) level for this control (0..5). Levels: 0=Not Performed, 1=Performed Informally, 2=Planned & Tracked, 3=Well-Defined, 4=Quantitatively Controlled, 5=Continuously Improving.",
+          "title": "Scf Cmm Level"
+        },
         "question": {
           "anyOf": [
             {
@@ -129,6 +145,7 @@
       "type": "object"
     },
     "AssessmentCataloge": {
+      "additionalProperties": false,
       "properties": {
         "id": {
           "anyOf": [
@@ -227,6 +244,281 @@
       "title": "Asset",
       "type": "object"
     },
+    "AttackCatalogEntry": {
+      "description": "Portable metadata about an ATT&CK (or similar) attack-pattern id.\n\nImportant: do not embed copyrighted framework text here.\nKeep this to identifiers and tool-friendly metadata.",
+      "properties": {
+        "id": {
+          "description": "Canonical unique attack pattern id present in this catalog.",
+          "maxLength": 256,
+          "minLength": 1,
+          "pattern": "^[a-z][a-z0-9_-]{0,31}:[^\\s]{1,223}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "title": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional short human-readable title for the attack pattern.",
+          "title": "Title"
+        },
+        "url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional URL for additional reference material.",
+          "title": "Url"
+        },
+        "tags": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional list of tags for grouping/filtering.",
+          "title": "Tags"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "title": "AttackCatalogEntry",
+      "type": "object"
+    },
+    "AttackCataloge": {
+      "properties": {
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional identifier for this cataloge (organization-owned).",
+          "title": "Id"
+        },
+        "framework": {
+          "description": "Free-form framework label for humans/tools. Example: 'MITRE ATT&CK Enterprise'.",
+          "title": "Framework",
+          "type": "string"
+        },
+        "attacks": {
+          "description": "List of attack pattern catalog entries.",
+          "items": {
+            "$ref": "#/$defs/AttackCatalogEntry"
+          },
+          "title": "Attacks",
+          "type": "array"
+        }
+      },
+      "required": [
+        "framework",
+        "attacks"
+      ],
+      "title": "AttackCataloge",
+      "type": "object"
+    },
+    "AttackControlRelationship": {
+      "description": "Grouped relationship mapping for a single attack pattern id.",
+      "properties": {
+        "attack": {
+          "description": "Source attack-pattern id (recommended namespace: 'attck').",
+          "maxLength": 256,
+          "minLength": 1,
+          "pattern": "^[a-z][a-z0-9_-]{0,31}:[^\\s]{1,223}$",
+          "title": "Attack",
+          "type": "string"
+        },
+        "targets": {
+          "description": "List of mapped controls for this attack pattern.",
+          "items": {
+            "$ref": "#/$defs/AttackControlTarget"
+          },
+          "minItems": 1,
+          "title": "Targets",
+          "type": "array"
+        }
+      },
+      "required": [
+        "attack",
+        "targets"
+      ],
+      "title": "AttackControlRelationship",
+      "type": "object"
+    },
+    "AttackControlRelationshipsPack": {
+      "description": "Relationship pack payload.\n\nThis is a standalone, shareable dataset that can be community- or org-authored.",
+      "properties": {
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional identifier for this relationships pack (organization/community-owned).",
+          "title": "Id"
+        },
+        "relationships": {
+          "description": "List of grouped attack-to-control relationship mappings.",
+          "items": {
+            "$ref": "#/$defs/AttackControlRelationship"
+          },
+          "title": "Relationships",
+          "type": "array"
+        },
+        "metadata": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional free-form metadata for tools (e.g., source dataset name/version). Not interpreted by validators/engines.",
+          "title": "Metadata"
+        }
+      },
+      "required": [
+        "relationships"
+      ],
+      "title": "AttackControlRelationshipsPack",
+      "type": "object"
+    },
+    "AttackControlTarget": {
+      "description": "One target control mapped from an attack pattern.",
+      "properties": {
+        "control": {
+          "description": "Target control id.",
+          "maxLength": 256,
+          "minLength": 1,
+          "pattern": "^[a-z][a-z0-9_-]{0,31}:[^\\s]{1,223}$",
+          "title": "Control",
+          "type": "string"
+        },
+        "relationship_type": {
+          "description": "Relationship type between the attack pattern and the control.",
+          "enum": [
+            "mitigated_by",
+            "detectable_by",
+            "respondable_by"
+          ],
+          "title": "Relationship Type",
+          "type": "string"
+        },
+        "strength": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional quantitative strength in [0, 1] indicating how strongly this control mitigates/detects/responds to the attack pattern (tool/community-defined semantics).",
+          "title": "Strength"
+        },
+        "confidence": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional confidence score in [0, 1] for this mapping (tool/community-defined).",
+          "title": "Confidence"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional description of how/why the control relates to the attack pattern. Avoid embedding copyrighted standard text unless you have rights.",
+          "title": "Description"
+        },
+        "references": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/Reference"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional list of references/citations supporting this mapping.",
+          "title": "References"
+        },
+        "tags": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional list of tags for grouping/filtering.",
+          "title": "Tags"
+        }
+      },
+      "required": [
+        "control",
+        "relationship_type"
+      ],
+      "title": "AttackControlTarget",
+      "type": "object"
+    },
     "BundleMessage": {
       "properties": {
         "level": {
@@ -303,6 +595,7 @@
       "type": "object"
     },
     "CRAssessmentSchema": {
+      "additionalProperties": false,
       "properties": {
         "crml_assessment": {
           "const": "1.0",
@@ -325,6 +618,56 @@
         "assessment"
       ],
       "title": "CRAssessmentSchema",
+      "type": "object"
+    },
+    "CRAttackCatalogSchema": {
+      "properties": {
+        "crml_attack_catalog": {
+          "const": "1.0",
+          "description": "Attack catalog document version identifier.",
+          "title": "Crml Attack Catalog",
+          "type": "string"
+        },
+        "meta": {
+          "$ref": "#/$defs/Meta",
+          "description": "Document metadata (name, description, tags, etc.)."
+        },
+        "catalog": {
+          "$ref": "#/$defs/AttackCataloge",
+          "description": "The attack cataloge payload."
+        }
+      },
+      "required": [
+        "crml_attack_catalog",
+        "meta",
+        "catalog"
+      ],
+      "title": "CRAttackCatalogSchema",
+      "type": "object"
+    },
+    "CRAttackControlRelationshipsSchema": {
+      "properties": {
+        "crml_attack_control_relationships": {
+          "const": "1.0",
+          "description": "Attack-to-control relationships document version identifier.",
+          "title": "Crml Attack Control Relationships",
+          "type": "string"
+        },
+        "meta": {
+          "$ref": "#/$defs/Meta",
+          "description": "Document metadata (name, description, tags, etc.)."
+        },
+        "relationships": {
+          "$ref": "#/$defs/AttackControlRelationshipsPack",
+          "description": "The attack-to-control relationships payload."
+        }
+      },
+      "required": [
+        "crml_attack_control_relationships",
+        "meta",
+        "relationships"
+      ],
+      "title": "CRAttackControlRelationshipsSchema",
       "type": "object"
     },
     "CRControlCatalogSchema": {
@@ -414,6 +757,18 @@
         "meta": {
           "$ref": "#/$defs/Meta",
           "description": "Document metadata (name, description, tags, etc.)."
+        },
+        "evidence": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Evidence"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional evidence/provenance section designed for scenarios authored from threat reports/news and for lightweight calibration metadata."
         },
         "data": {
           "anyOf": [
@@ -539,6 +894,28 @@
           "default": null,
           "description": "Optional list of tags for grouping/filtering.",
           "title": "Tags"
+        },
+        "defense_in_depth_layers": {
+          "anyOf": [
+            {
+              "items": {
+                "enum": [
+                  "prevent",
+                  "detect",
+                  "respond",
+                  "recover"
+                ],
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional defense-in-depth layer tags. Allowed values: prevent, detect, respond, recover.",
+          "title": "Defense In Depth Layers"
         }
       },
       "required": [
@@ -584,7 +961,7 @@
       "type": "object"
     },
     "ControlRelationship": {
-      "description": "A directed relationship edge between two canonical control ids.\n\nIntended use:\n- A scenario references a (source) control A.\n- A portfolio implements a (target) control B.\n- This edge expresses how B relates to A (e.g. overlaps/equivalent_to) with quantitative overlap metadata.",
+      "description": "Grouped relationship mapping for a single source control id.\n\nIntended use:\n- A scenario references a (source) control A.\n- A portfolio implements one or more (target) controls B1..Bn.\n- This mapping expresses how each target relates to the source, including quantitative overlap metadata.",
       "properties": {
         "source": {
           "description": "Source control id (often scenario/threat-centric).",
@@ -594,90 +971,19 @@
           "title": "Source",
           "type": "string"
         },
-        "target": {
-          "description": "Target control id (often portfolio/implementation-centric).",
-          "maxLength": 256,
-          "minLength": 1,
-          "pattern": "^[a-z][a-z0-9_-]{0,31}:[^\\s]{1,223}$",
-          "title": "Target",
-          "type": "string"
-        },
-        "relationship_type": {
-          "default": null,
-          "description": "Optional relationship type. Values: 'overlaps_with', 'mitigates', 'supports', 'equivalent_to', 'parent_of', 'child_of'.",
-          "enum": [
-            "overlaps_with",
-            "mitigates",
-            "supports",
-            "equivalent_to",
-            "parent_of",
-            "child_of"
-          ],
-          "title": "Relationship Type",
-          "type": "string"
-        },
-        "overlap": {
-          "$ref": "#/$defs/Overlap",
-          "description": "Required quantitative overlap metadata for downstream math."
-        },
-        "confidence": {
-          "default": null,
-          "description": "Optional confidence score in [0, 1] for this mapping/relationship (community/org-defined).",
-          "maximum": 1.0,
-          "minimum": 0.0,
-          "title": "Confidence",
-          "type": "number"
-        },
-        "groupings": {
-          "anyOf": [
-            {
-              "items": {
-                "$ref": "#/$defs/Grouping"
-              },
-              "type": "array"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Optional taxonomy/grouping tags for this relationship (framework-agnostic). Example: NIST CSF Function classification.",
-          "title": "Groupings"
-        },
-        "description": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Optional description of how/why the target relates to the source. Avoid embedding copyrighted standard text unless you have rights.",
-          "title": "Description"
-        },
-        "references": {
-          "anyOf": [
-            {
-              "items": {
-                "$ref": "#/$defs/Reference"
-              },
-              "type": "array"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Optional list of references/citations supporting this relationship.",
-          "title": "References"
+        "targets": {
+          "description": "List of target relationship mappings for this source control id.",
+          "items": {
+            "$ref": "#/$defs/RelationshipTarget"
+          },
+          "minItems": 1,
+          "title": "Targets",
+          "type": "array"
         }
       },
       "required": [
         "source",
-        "target",
-        "overlap"
+        "targets"
       ],
       "title": "ControlRelationship",
       "type": "object"
@@ -699,7 +1005,7 @@
           "title": "Id"
         },
         "relationships": {
-          "description": "List of directed control relationship edges.",
+          "description": "List of grouped source-to-target relationship mappings.",
           "items": {
             "$ref": "#/$defs/ControlRelationship"
           },
@@ -1049,6 +1355,293 @@
       "title": "DependencyCopula",
       "type": "object"
     },
+    "Evidence": {
+      "properties": {
+        "sources": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/EvidenceSource"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional list of citations that informed this scenario (threat reports, news, internal docs). This is designed to support low-friction authoring from external reporting.",
+          "title": "Sources"
+        },
+        "observed": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EvidenceObserved"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional lightweight observed metrics used to inform or calibrate the scenario. Tools may translate these into model parameters (e.g., lambda, median/sigma)."
+        },
+        "notes": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional evidence/provenance notes.",
+          "title": "Notes"
+        }
+      },
+      "title": "Evidence",
+      "type": "object"
+    },
+    "EvidenceObserved": {
+      "properties": {
+        "window": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EvidenceWindow"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional time window for the observations used to inform this scenario."
+        },
+        "incident_count": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional observed incident count for this scenario within the window. Useful for calibrating frequency.",
+          "title": "Incident Count"
+        },
+        "org_count": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional number of organizations covered by the observations (if known). Useful for translating report-level counts into per-organization rates.",
+          "title": "Org Count"
+        },
+        "currency": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional currency code/symbol for observed loss values.",
+          "title": "Currency"
+        },
+        "loss_median": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional observed median loss per incident.",
+          "title": "Loss Median"
+        },
+        "loss_mean": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional observed mean loss per incident.",
+          "title": "Loss Mean"
+        },
+        "loss_p90": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional observed 90th percentile loss per incident.",
+          "title": "Loss P90"
+        },
+        "loss_min": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional observed minimum loss per incident.",
+          "title": "Loss Min"
+        },
+        "loss_max": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional observed maximum loss per incident.",
+          "title": "Loss Max"
+        }
+      },
+      "title": "EvidenceObserved",
+      "type": "object"
+    },
+    "EvidenceSource": {
+      "properties": {
+        "title": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional title of the source (report/article).",
+          "title": "Title"
+        },
+        "publisher": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional publisher/vendor name.",
+          "title": "Publisher"
+        },
+        "url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional URL for the source.",
+          "title": "Url"
+        },
+        "published_at": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional publish timestamp/date for the source (ISO 8601 string). Examples: '2025-12-01' or '2025-12-01T10:15:30Z'.",
+          "title": "Published At"
+        },
+        "retrieved_at": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional retrieval timestamp/date (ISO 8601 string). Useful for threat intel that changes over time.",
+          "title": "Retrieved At"
+        },
+        "notes": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional notes about how this source was used.",
+          "title": "Notes"
+        }
+      },
+      "title": "EvidenceSource",
+      "type": "object"
+    },
+    "EvidenceWindow": {
+      "properties": {
+        "start": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional start of the observation window (ISO 8601 string). Example: '2023-01-01'.",
+          "title": "Start"
+        },
+        "end": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional end of the observation window (ISO 8601 string). Example: '2025-12-31'.",
+          "title": "End"
+        }
+      },
+      "title": "EvidenceWindow",
+      "type": "object"
+    },
     "Frequency": {
       "properties": {
         "basis": {
@@ -1062,7 +1655,8 @@
           "type": "string"
         },
         "model": {
-          "description": "Frequency distribution/model identifier (engine-defined).",
+          "default": "poisson",
+          "description": "Frequency distribution/model identifier (engine-defined). If omitted, defaults to 'poisson'.",
           "title": "Model",
           "type": "string"
         },
@@ -1072,7 +1666,6 @@
         }
       },
       "required": [
-        "model",
         "parameters"
       ],
       "title": "Frequency",
@@ -1311,6 +1904,26 @@
           "default": null,
           "description": "Optional list of user-defined tags.",
           "title": "Tags"
+        },
+        "attck": {
+          "anyOf": [
+            {
+              "items": {
+                "description": "ATT&CK identifier in canonical namespaced form 'namespace:key' (no whitespace). Recommended namespace is 'attck'. Examples: attck:TA0001, attck:T1059, attck:T1059.003",
+                "maxLength": 256,
+                "minLength": 1,
+                "pattern": "^[a-z][a-z0-9_-]{0,31}:[^\\s]{1,223}$",
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional list of ATT&CK tactic/technique/sub-technique identifiers relevant to this document, expressed as namespaced ids (e.g. 'attck:T1059.003').",
+          "title": "Attck"
         }
       },
       "required": [
@@ -1407,6 +2020,22 @@
           "description": "Optional list of file paths to referenced control cataloges.",
           "title": "Control Catalogs"
         },
+        "attack_catalogs": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional list of file paths to referenced attack catalogs (e.g., MITRE ATT&CK). These are metadata-only catalogs used by tools/engines to resolve attack-pattern ids.",
+          "title": "Attack Catalogs"
+        },
         "assessments": {
           "anyOf": [
             {
@@ -1438,6 +2067,22 @@
           "default": null,
           "description": "Optional list of file paths to referenced control relationships packs (control-to-control mappings). These can be used by tools/engines to resolve scenario control ids to implemented portfolio controls with quantitative overlap metadata.",
           "title": "Control Relationships"
+        },
+        "attack_control_relationships": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional list of file paths to referenced attack-to-control relationships mappings. These can be used by tools/engines to translate attack-pattern ids (e.g., ATT&CK) into relevant controls.",
+          "title": "Attack Control Relationships"
         },
         "scenarios": {
           "description": "List of scenario references included in the portfolio.",
@@ -1537,6 +2182,22 @@
             "$ref": "#/$defs/CRControlRelationshipsSchema"
           },
           "title": "Control Relationships",
+          "type": "array"
+        },
+        "attack_catalogs": {
+          "description": "Optional inlined attack catalogs (e.g., MITRE ATT&CK) referenced by the portfolio.",
+          "items": {
+            "$ref": "#/$defs/CRAttackCatalogSchema"
+          },
+          "title": "Attack Catalogs",
+          "type": "array"
+        },
+        "attack_control_relationships": {
+          "description": "Optional inlined attack-to-control relationships mappings referenced by the portfolio.",
+          "items": {
+            "$ref": "#/$defs/CRAttackControlRelationshipsSchema"
+          },
+          "title": "Attack Control Relationships",
           "type": "array"
         },
         "warnings": {
@@ -1770,6 +2431,111 @@
       "title": "Reference",
       "type": "object"
     },
+    "RelationshipTarget": {
+      "description": "Target-specific relationship metadata for a given relationship source.\n\nThis keeps per-target quantitative metadata (e.g., overlap weights) while allowing\nrelationship packs to be authored in a grouped 1:N form.",
+      "properties": {
+        "target": {
+          "description": "Target control id (often portfolio/implementation-centric).",
+          "maxLength": 256,
+          "minLength": 1,
+          "pattern": "^[a-z][a-z0-9_-]{0,31}:[^\\s]{1,223}$",
+          "title": "Target",
+          "type": "string"
+        },
+        "relationship_type": {
+          "anyOf": [
+            {
+              "enum": [
+                "overlaps_with",
+                "mitigates",
+                "supports",
+                "equivalent_to",
+                "parent_of",
+                "child_of",
+                "backstops"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional relationship type. Values: 'overlaps_with', 'mitigates', 'supports', 'equivalent_to', 'parent_of', 'child_of', 'backstops'.",
+          "title": "Relationship Type"
+        },
+        "overlap": {
+          "$ref": "#/$defs/Overlap",
+          "description": "Required quantitative overlap metadata for downstream math."
+        },
+        "confidence": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional confidence score in [0, 1] for this mapping/relationship (community/org-defined).",
+          "title": "Confidence"
+        },
+        "groupings": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/Grouping"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional taxonomy/grouping tags for this relationship (framework-agnostic). Example: NIST CSF Function classification.",
+          "title": "Groupings"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional description of how/why the target relates to the source. Avoid embedding copyrighted standard text unless you have rights.",
+          "title": "Description"
+        },
+        "references": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/Reference"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional list of references/citations supporting this relationship.",
+          "title": "References"
+        }
+      },
+      "required": [
+        "target",
+        "overlap"
+      ],
+      "title": "RelationshipTarget",
+      "type": "object"
+    },
     "Scenario": {
       "properties": {
         "frequency": {
@@ -1848,7 +2614,7 @@
           "title": "Id",
           "type": "string"
         },
-        "implementation_effectiveness": {
+        "effectiveness_against_threat": {
           "anyOf": [
             {
               "maximum": 1.0,
@@ -1860,35 +2626,8 @@
             }
           ],
           "default": null,
-          "description": "Scenario-scoped implementation effectiveness override (0..1).",
-          "title": "Implementation Effectiveness"
-        },
-        "potency": {
-          "anyOf": [
-            {
-              "maximum": 1.0,
-              "minimum": 0.0,
-              "type": "number"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Scenario-scoped potency factor for this control against this specific threat (0..1). This represents how strong the control is against the scenario if implemented and applied; it is multiplied with portfolio/assessment posture values during planning.",
-          "title": "Potency"
-        },
-        "coverage": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/Coverage"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Scenario-scoped coverage override (breadth of deployment/application)."
+          "description": "Threat-specific effectiveness factor for this control against this scenario (0..1). Recommended semantics: engines combine this with organization-specific inventory/assessment posture (e.g. inventory implementation effectiveness and coverage) when planning.",
+          "title": "Effectiveness Against Threat"
         },
         "notes": {
           "anyOf": [

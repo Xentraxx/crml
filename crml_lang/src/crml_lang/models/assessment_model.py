@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import List, Literal, Optional
+from typing import List, Optional, Literal
 
-from pydantic import AliasChoices, BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from .control_ref import ControlId, ControlStructuredRef
 from .coverage_model import Coverage
-from .crml_model import Meta
+from .scenario_model import Meta
 
 
 class Assessment(BaseModel):
@@ -56,6 +56,17 @@ class Assessment(BaseModel):
         ),
     )
 
+    scf_cmm_level: Optional[int] = Field(
+        None,
+        ge=0,
+        le=5,
+        description=(
+            "SCF Capability Maturity Model (CMM) level for this control (0..5). "
+            "Levels: 0=Not Performed, 1=Performed Informally, 2=Planned & Tracked, 3=Well-Defined, "
+            "4=Quantitatively Controlled, 5=Continuously Improving."
+        ),
+    )
+
     question: Optional[str] = Field(
         None,
         description=(
@@ -74,6 +85,34 @@ class Assessment(BaseModel):
 
     notes: Optional[str] = Field(None, description="Free-form notes about this assessment entry.")
 
+    @model_validator(mode="after")
+    def _validate_answer_mode(self) -> "Assessment":
+        has_cmm = self.scf_cmm_level is not None
+        has_quantitative = any(
+            v is not None
+            for v in (
+                self.implementation_effectiveness,
+                self.coverage,
+                self.reliability,
+            )
+        )
+
+        if has_cmm and has_quantitative:
+            raise ValueError(
+                "Assessment entry must use either scf_cmm_level (SCF CMM) OR quantitative posture fields "
+                "(implementation_effectiveness/coverage/reliability), but not both."
+            )
+
+        if not has_cmm and not has_quantitative:
+            raise ValueError(
+                "Assessment entry must provide either scf_cmm_level (SCF CMM) or at least one of "
+                "implementation_effectiveness, coverage, reliability."
+            )
+
+        return self
+
+    model_config: ConfigDict = ConfigDict(extra="forbid")
+
 
 class AssessmentCataloge(BaseModel):
     id: Optional[str] = Field(
@@ -91,21 +130,15 @@ class AssessmentCataloge(BaseModel):
     )
     assessments: List[Assessment] = Field(..., description="List of per-control assessment entries.")
 
+    model_config: ConfigDict = ConfigDict(extra="forbid")
+
 
 class CRAssessmentSchema(BaseModel):
     crml_assessment: Literal["1.0"] = Field(
         ...,
-        validation_alias=AliasChoices("crml_assessment", "crml_control_assessment"),
-        serialization_alias="crml_assessment",
         description="Assessment document version identifier.",
     )
     meta: Meta = Field(..., description="Document metadata (name, description, tags, etc.).")
     assessment: AssessmentCataloge = Field(..., description="The assessment cataloge payload.")
 
-    model_config: ConfigDict = ConfigDict(populate_by_name=True)
-
-
-# Backwards-compatible aliases (deprecated naming)
-ControlAssessment = Assessment
-ControlAssessmentCataloge = AssessmentCataloge
-CRControlAssessmentSchema = CRAssessmentSchema
+    model_config: ConfigDict = ConfigDict(populate_by_name=True, extra="forbid")

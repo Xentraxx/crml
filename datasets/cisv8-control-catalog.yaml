@@ -1,6 +1,6 @@
 crml_control_catalog: "1.0"
 meta:
-  name: "CISv8 control cataloge (example)"
+  name: "CISv8 control mapping cataloge (example)"
   description: "Example control cataloge for CIS Critical Security Controls v8. Titles are short identifiers only; no standard text."
 catalog:
   id: "cisv8"
@@ -71,11 +71,6 @@ catalog:
       title: "Establish and Maintain a Data Management Process"
       url: "https://www.cisecurity.org/controls"
       tags: ["safeguard", "data", "ig1", "ig2", "ig3"]
-    - id: "cisv8:3.1"
-      ref: {standard: "CIS", version: "v8", control: "3", safeguard: "1"}
-      title: "Encrypt Sensitive Data in Transit"
-      url: "https://www.cisecurity.org/controls"
-      tags: ["safeguard", "data", "ig2", "ig3"]
     - id: "cisv8:3.2"
       ref: {standard: "CIS", version: "v8", control: "3", safeguard: "2"}
       title: "Establish and Maintain a Data Inventory"
@@ -116,6 +111,11 @@ catalog:
       title: "Encrypt Data on Removable Media"
       url: "https://www.cisecurity.org/controls"
       tags: ["safeguard", "data", "ig2", "ig3"]
+    - id: "cisv8:3.10"
+      ref: {standard: "CIS", version: "v8", control: "3", safeguard: "1"}
+      title: "Encrypt Sensitive Data in Transit"
+      url: "https://www.cisecurity.org/controls"
+      tags: ["safeguard", "data", "ig2", "ig3"]
     - id: "cisv8:3.11"
       ref: {standard: "CIS", version: "v8", control: "3", safeguard: "11"}
       title: "Encrypt Sensitive Data at Rest"
@@ -141,11 +141,6 @@ catalog:
       title: "Establish and Maintain a Secure Configuration Process"
       url: "https://www.cisecurity.org/controls"
       tags: ["safeguard", "applications", "ig1", "ig2", "ig3"]
-    - id: "cisv8:4.1"
-      ref: {standard: "CIS", version: "v8", control: "4", safeguard: "1"}
-      title: "Enforce Automatic Device Lockout on Portable End-User Devices"
-      url: "https://www.cisecurity.org/controls"
-      tags: ["safeguard", "devices", "ig2", "ig3"]
     - id: "cisv8:4.2"
       ref: {standard: "CIS", version: "v8", control: "4", safeguard: "2"}
       title: "Establish and Maintain a Secure Configuration Process for Network Infrastructure"
@@ -184,6 +179,11 @@ catalog:
     - id: "cisv8:4.9"
       ref: {standard: "CIS", version: "v8", control: "4", safeguard: "9"}
       title: "Configure Trusted DNS Servers on Enterprise Assets"
+      url: "https://www.cisecurity.org/controls"
+      tags: ["safeguard", "devices", "ig2", "ig3"]
+    - id: "cisv8:4.10"
+      ref: {standard: "CIS", version: "v8", control: "4", safeguard: "1"}
+      title: "Enforce Automatic Device Lockout on Portable End-User Devices"
       url: "https://www.cisecurity.org/controls"
       tags: ["safeguard", "devices", "ig2", "ig3"]
     - id: "cisv8:4.11"
@@ -306,11 +306,6 @@ catalog:
       title: "Establish and Maintain an Audit Log Management Process"
       url: "https://www.cisecurity.org/controls"
       tags: ["safeguard", "network", "ig1", "ig2", "ig3"]
-    - id: "cisv8:8.1"
-      ref: {standard: "CIS", version: "v8", control: "8", safeguard: "1"}
-      title: "Retain Audit Logs"
-      url: "https://www.cisecurity.org/controls"
-      tags: ["safeguard", "network", "ig2", "ig3"]
     - id: "cisv8:8.2"
       ref: {standard: "CIS", version: "v8", control: "8", safeguard: "2"}
       title: "Collect Audit Logs"
@@ -349,6 +344,11 @@ catalog:
     - id: "cisv8:8.9"
       ref: {standard: "CIS", version: "v8", control: "8", safeguard: "9"}
       title: "Centralize Audit Logs"
+      url: "https://www.cisecurity.org/controls"
+      tags: ["safeguard", "network", "ig2", "ig3"]
+    - id: "cisv8:8.10"
+      ref: {standard: "CIS", version: "v8", control: "8", safeguard: "1"}
+      title: "Retain Audit Logs"
       url: "https://www.cisecurity.org/controls"
       tags: ["safeguard", "network", "ig2", "ig3"]
     - id: "cisv8:8.11"
@@ -501,11 +501,6 @@ catalog:
       title: "Centralize Security Event Alerting"
       url: "https://www.cisecurity.org/controls"
       tags: ["safeguard", "network", "ig2", "ig3"]
-    - id: "cisv8:13.1"
-      ref: {standard: "CIS", version: "v8", control: "13", safeguard: "1"}
-      title: "Perform Application Layer Filtering"
-      url: "https://www.cisecurity.org/controls"
-      tags: ["safeguard", "network", "ig3"]
     - id: "cisv8:13.2"
       ref: {standard: "CIS", version: "v8", control: "13", safeguard: "2"}
       title: "Deploy a Host-Based Intrusion Detection Solution"
@@ -546,6 +541,11 @@ catalog:
       title: "Deploy Port-Level Access Control"
       url: "https://www.cisecurity.org/controls"
       tags: ["safeguard", "devices", "ig3"]
+    - id: "cisv8:13.10"
+      ref: {standard: "CIS", version: "v8", control: "13", safeguard: "1"}
+      title: "Perform Application Layer Filtering"
+      url: "https://www.cisecurity.org/controls"
+      tags: ["safeguard", "network", "ig3"]
     - id: "cisv8:13.11"
       ref: {standard: "CIS", version: "v8", control: "13", safeguard: "11"}
       title: "Tune Security Event Alerting Thresholds"
@@ -636,11 +636,6 @@ catalog:
       title: "Establish and Maintain a Secure Application Development Process"
       url: "https://www.cisecurity.org/controls"
       tags: ["safeguard", "applications", "ig2", "ig3"]
-    - id: "cisv8:16.1"
-      ref: {standard: "CIS", version: "v8", control: "16", safeguard: "1"}
-      title: "Apply Secure Design Principles in Application Architectures"
-      url: "https://www.cisecurity.org/controls"
-      tags: ["safeguard", "applications", "ig2", "ig3"]
     - id: "cisv8:16.2"
       ref: {standard: "CIS", version: "v8", control: "16", safeguard: "2"}
       title: "Establish and Maintain a Process to Accept and Address Software Vulnerabilities"
@@ -679,6 +674,11 @@ catalog:
     - id: "cisv8:16.9"
       ref: {standard: "CIS", version: "v8", control: "16", safeguard: "9"}
       title: "Train Developers in Application Security Concepts and Secure Coding"
+      url: "https://www.cisecurity.org/controls"
+      tags: ["safeguard", "applications", "ig2", "ig3"]
+    - id: "cisv8:16.10"
+      ref: {standard: "CIS", version: "v8", control: "16", safeguard: "1"}
+      title: "Apply Secure Design Principles in Application Architectures"
       url: "https://www.cisecurity.org/controls"
       tags: ["safeguard", "applications", "ig2", "ig3"]
     - id: "cisv8:16.11"

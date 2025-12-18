@@ -15,6 +15,39 @@ import sys
 from crml_lang import validate_document
 from crml_engine.runtime import run_simulation_cli
 
+
+FILE_HELP = 'Path to CRML YAML file'
+
+
+def _exit_or_return(exit_code: int, *, exit_on_return: bool) -> int:
+    if exit_on_return:
+        raise SystemExit(exit_code)
+    return exit_code
+
+
+def _dispatch_command(args) -> bool:
+    if args.command == 'validate':
+        report = validate_document(args.file, source_kind="path")
+        print(report.render_text(source_label=args.file))
+        return bool(report.ok)
+
+    if args.command == 'explain':
+        from crml_engine.explainer import explain_crml
+
+        return bool(explain_crml(args.file))
+
+    if args.command == 'simulate':
+        return bool(
+            run_simulation_cli(
+                args.file,
+                n_runs=args.runs,
+                output_format=args.format,
+                fx_config_path=args.fx_config,
+            )
+        )
+
+    return False
+
 def main(argv=None, *, exit_on_return: bool = True):
     """Run the CRML CLI.
 
@@ -31,15 +64,15 @@ def main(argv=None, *, exit_on_return: bool = True):
     
     # Validate command
     validate_parser = subparsers.add_parser('validate', help='Validate a CRML file')
-    validate_parser.add_argument('file', help='Path to CRML YAML file')
+    validate_parser.add_argument('file', help=FILE_HELP)
     
     # Explain command (existing)
     explain_parser = subparsers.add_parser('explain', help='Explain a CRML model')
-    explain_parser.add_argument('file', help='Path to CRML YAML file')
+    explain_parser.add_argument('file', help=FILE_HELP)
     
     # Simulate command (new)
     simulate_parser = subparsers.add_parser('simulate', help='Run simulation on a CRML model')
-    simulate_parser.add_argument('file', help='Path to CRML YAML file')
+    simulate_parser.add_argument('file', help=FILE_HELP)
     simulate_parser.add_argument('-n', '--runs', type=int, default=10000,
                                 help='Number of simulation runs (default: 10000)')
     simulate_parser.add_argument('-s', '--seed', type=int, default=None,
@@ -53,38 +86,10 @@ def main(argv=None, *, exit_on_return: bool = True):
     
     if not args.command:
         parser.print_help()
-        exit_code = 1
-        if exit_on_return:
-            raise SystemExit(exit_code)
-        return exit_code
-    
-    if args.command == 'validate':
-        report = validate_document(args.file, source_kind="path")
-        print(report.render_text(source_label=args.file))
-        exit_code = 0 if report.ok else 1
-        if exit_on_return:
-            raise SystemExit(exit_code)
-        return exit_code
-    
-    elif args.command == 'explain':
-        from crml_engine.explainer import explain_crml
-        success = explain_crml(args.file)
-        exit_code = 0 if success else 1
-        if exit_on_return:
-            raise SystemExit(exit_code)
-        return exit_code
-    
-    elif args.command == 'simulate':
-        success = run_simulation_cli(args.file, n_runs=args.runs, output_format=args.format, fx_config_path=args.fx_config)
-        exit_code = 0 if success else 1
-        if exit_on_return:
-            raise SystemExit(exit_code)
-        return exit_code
+        return _exit_or_return(1, exit_on_return=exit_on_return)
 
-    exit_code = 0
-    if exit_on_return:
-        raise SystemExit(exit_code)
-    return exit_code
+    ok = _dispatch_command(args)
+    return _exit_or_return(0 if ok else 1, exit_on_return=exit_on_return)
 
 if __name__ == '__main__':
     main()

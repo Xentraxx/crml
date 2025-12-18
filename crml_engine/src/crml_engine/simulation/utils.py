@@ -6,10 +6,22 @@ from typing import Union
 NumberOrString = Union[int, float, str]
 
 def parse_numberish_value(v: NumberOrString) -> float:
-    """
-    Parse a numeric value that may contain space-separated thousands 
-    (ISO 80000-1 thin space or regular space) or percentages.
-    
+    """Parse a numeric value encoded as an int/float/string.
+
+    Supported string forms:
+        - thousands separators using regular spaces or thin spaces (U+202F)
+        - comma separators (removed)
+        - percentages (e.g. "50%" -> 0.5)
+
+    Args:
+        v: Input value.
+
+    Returns:
+        Parsed numeric value.
+
+    Notes:
+        Parsing is strict: invalid numeric strings raise ValueError.
+
     Examples:
         "1 000" -> 1000.0
         "50%" -> 0.5
@@ -23,10 +35,11 @@ def parse_numberish_value(v: NumberOrString) -> float:
         if s.endswith('%'):
             try:
                 return float(s[:-1]) / 100.0
-            except Exception:
-                return v  # Return original if parsing fails
+            except Exception as e:
+                raise ValueError(f"Invalid percentage value: {v!r}") from e
         try:
             return float(s)
-        except Exception:
-            return v  # Return original if parsing fails
-    return float(v)
+        except Exception as e:
+            raise ValueError(f"Invalid numeric value: {v!r}") from e
+
+    raise TypeError(f"Unsupported numeric type: {type(v).__name__}")
