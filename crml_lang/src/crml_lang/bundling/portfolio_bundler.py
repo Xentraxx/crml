@@ -15,6 +15,7 @@ from crml_lang.models.portfolio_bundle import (
     PortfolioBundlePayload,
 )
 from crml_lang.models.portfolio_model import CRPortfolioSchema
+from crml_lang.yamlio import load_yaml_mapping_from_path, load_yaml_mapping_from_str
 
 
 @dataclass(frozen=True)
@@ -28,17 +29,7 @@ class BundleReport:
 
 
 def _load_yaml_file(path: str) -> dict[str, Any]:
-    try:
-        import yaml
-    except Exception as e:
-        raise ImportError("PyYAML is required: pip install pyyaml") from e
-
-    with open(path, "r", encoding="utf-8") as f:
-        data = yaml.safe_load(f)
-
-    if not isinstance(data, dict):
-        raise ValueError("YAML document must be a mapping/object at top-level")
-    return data
+    return load_yaml_mapping_from_path(path)
 
 
 def _resolve_path(base_dir: str | None, p: str) -> str:
@@ -81,16 +72,13 @@ def _load_portfolio_doc(
     elif source_kind == "yaml":
         assert isinstance(source, str)
         try:
-            import yaml
-        except Exception as e:
-            errors.append(BundleMessage(level="error", path="(io)", message=f"PyYAML is required: {e}"))
-            return None, None, None, errors
-
-        loaded = yaml.safe_load(source)
-        if not isinstance(loaded, dict):
+            data = load_yaml_mapping_from_str(source)
+        except ValueError:
             errors.append(BundleMessage(level="error", path="(root)", message="YAML must be a mapping"))
             return None, None, None, errors
-        data = loaded
+        except Exception as e:
+            errors.append(BundleMessage(level="error", path="(io)", message=str(e)))
+            return None, None, None, errors
     else:
         assert isinstance(source, dict)
         data = source

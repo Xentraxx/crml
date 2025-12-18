@@ -6,6 +6,8 @@ import os
 from pathlib import Path
 from typing import Any, Literal, Optional
 
+from ..yamlio import load_yaml_mapping_from_str
+
 
 # Package root: .../crml_lang
 _PACKAGE_DIR = Path(__file__).resolve().parents[1]
@@ -118,17 +120,12 @@ def _read_text_file(path: str) -> tuple[Optional[str], list[ValidationMessage]]:
 
 def _parse_yaml_mapping(text: str) -> tuple[Optional[dict[str, Any]], list[ValidationMessage]]:
     try:
-        import yaml
-    except Exception:
-        return None, _error("PyYAML is required to parse YAML: pip install pyyaml")
-
-    try:
-        data = yaml.safe_load(text)
+        data = load_yaml_mapping_from_str(text)
+    except ValueError:
+        return None, _error("CRML document must parse to a YAML mapping (object/dict) at the root.")
     except Exception as e:
         return None, _error(f"Failed to parse YAML: {e}")
 
-    if not isinstance(data, dict):
-        return None, _error("CRML document must parse to a YAML mapping (object/dict) at the root.")
     return data, []
 
 

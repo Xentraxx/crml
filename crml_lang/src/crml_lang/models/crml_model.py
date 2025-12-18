@@ -246,23 +246,16 @@ def load_crml_from_yaml(path: str) -> CRScenarioSchema:
 
     Requires PyYAML (`pip install pyyaml`).
     """
-    try:
-        import yaml
-    except Exception as e:
-        raise ImportError('PyYAML is required to load YAML files: pip install pyyaml') from e
+    from ..yamlio import load_yaml_mapping_from_path
 
-    with open(path, 'r', encoding='utf-8') as f:
-        data = yaml.safe_load(f)
+    data = load_yaml_mapping_from_path(path)
 
     return CRScenarioSchema.model_validate(data)
 
 
 def load_crml_from_yaml_str(yaml_text: str) -> CRScenarioSchema:
     """Load a CRML Scenario document from a YAML string and validate."""
-    try:
-        import yaml
-    except Exception as e:
-        raise ImportError('PyYAML is required to load YAML files: pip install pyyaml') from e
+    from ..yamlio import load_yaml_mapping_from_str
 
-    data = yaml.safe_load(yaml_text)
+    data = load_yaml_mapping_from_str(yaml_text)
     return CRScenarioSchema.model_validate(data)
