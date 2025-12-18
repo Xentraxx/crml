@@ -104,6 +104,17 @@ class PortfolioExecutionPlan(BaseModel):
 
 
 def _is_control_state_ref(ref: str) -> bool:
+    """Return True if `ref` matches the v1 control-state reference format.
+
+    v1 format:
+        `control:<id>:state`
+
+    Args:
+        ref: Candidate reference string.
+
+    Returns:
+        True if the reference is a non-empty control state reference.
+    """
     # Minimal v1: control:<id>:state
     if not isinstance(ref, str):
         return False
@@ -116,15 +127,47 @@ def _is_control_state_ref(ref: str) -> bool:
 
 
 def _extract_control_id_from_state_ref(ref: str) -> str:
+    """Extract the control id from a `control:<id>:state` reference.
+
+    Args:
+        ref: A control state reference string.
+
+    Returns:
+        The `<id>` portion.
+
+    Notes:
+        This function assumes the string is already validated by
+        `_is_control_state_ref()`.
+    """
     return ref[len(CONTROL_STATE_PREFIX) : -len(CONTROL_STATE_SUFFIX)]
 
 
 def _toeplitz_corr(dim: int, rho: float) -> list[list[float]]:
+    """Construct a Toeplitz correlation matrix.
+
+    The matrix entries follow $\rho^{|i-j|}$.
+
+    Args:
+        dim: Matrix dimension.
+        rho: Base correlation coefficient.
+
+    Returns:
+        A `dim x dim` nested list of floats.
+    """
     r = float(rho)
     return [[(r ** abs(i - j)) for j in range(dim)] for i in range(dim)]
 
 
 def _validate_corr_matrix_shape(matrix: list[list[float]], dim: int) -> Optional[str]:
+    """Validate correlation matrix has expected square shape.
+
+    Args:
+        matrix: Nested list candidate.
+        dim: Expected dimension.
+
+    Returns:
+        An error string if invalid, else None.
+    """
     if len(matrix) != dim:
         return f"matrix must have {dim} rows"
     for i, row in enumerate(matrix):
@@ -134,6 +177,18 @@ def _validate_corr_matrix_shape(matrix: list[list[float]], dim: int) -> Optional
 
 
 def _validate_corr_matrix_entries(matrix: list[list[float]]) -> Optional[str]:
+    """Validate correlation matrix numeric entries and ranges.
+
+    Ensures:
+        - diagonal entries are 1.0
+        - off-diagonal entries are within [-1, 1]
+
+    Args:
+        matrix: Nested list of entries.
+
+    Returns:
+        An error string if invalid, else None.
+    """
     for i, row in enumerate(matrix):
         for j, v in enumerate(row):
             try:
@@ -149,6 +204,7 @@ def _validate_corr_matrix_entries(matrix: list[list[float]]) -> Optional[str]:
 
 
 def _validate_corr_matrix_symmetry(matrix: list[list[float]], dim: int) -> Optional[str]:
+    """Validate that the matrix is symmetric within a small tolerance."""
     for i in range(dim):
         for j in range(i + 1, dim):
             if abs(float(matrix[i][j]) - float(matrix[j][i])) > 1e-9:
@@ -157,6 +213,7 @@ def _validate_corr_matrix_symmetry(matrix: list[list[float]], dim: int) -> Optio
 
 
 def _validate_corr_matrix(matrix: list[list[float]], dim: int) -> Optional[str]:
+    """Validate correlation matrix shape, entries, and symmetry."""
     shape_error = _validate_corr_matrix_shape(matrix, dim)
     if shape_error:
         return shape_error
@@ -178,6 +235,18 @@ class PlanReport(BaseModel):
 
 
 def _load_yaml_file(path: str) -> dict[str, Any]:
+    """Load a YAML file and ensure the top-level is a mapping/object.
+
+    Args:
+        path: YAML file path.
+
+    Returns:
+        Parsed YAML mapping.
+
+    Raises:
+        ImportError: If PyYAML is not installed.
+        ValueError: If the YAML document's top-level is not a mapping.
+    """
     try:
         import yaml
     except Exception as e:
@@ -192,6 +261,7 @@ def _load_yaml_file(path: str) -> dict[str, Any]:
 
 
 def _resolve_path(base_dir: str | None, p: str) -> str:
+    """Resolve `p` relative to `base_dir` if needed."""
     if base_dir and not os.path.isabs(p):
         return os.path.join(base_dir, p)
     return p
@@ -215,6 +285,19 @@ def _scenario_controls_to_objects(
 def _scenario_control_to_object(
     c: Any,
 ) -> Optional[tuple[str, Optional[float]]]:
+    """Normalize a single scenario control reference into a tuple.
+
+    Supported input forms:
+        - string control id
+        - `ScenarioControlModel`
+        - dict with keys {id, effectiveness_against_threat}
+
+    Args:
+        c: Control reference of various supported shapes.
+
+    Returns:
+        (control_id, effectiveness_factor) or None if not recognized.
+    """
     if isinstance(c, str):
         return (c, None)
 
@@ -230,6 +313,7 @@ def _scenario_control_to_object(
 def _scenario_control_from_dict(
     value: dict[str, Any],
 ) -> Optional[tuple[str, Optional[float]]]:
+    """Parse a dict control reference into (id, effectiveness_factor)."""
     cid = value.get("id")
     if not isinstance(cid, str):
         return None
@@ -240,10 +324,12 @@ def _scenario_control_from_dict(
 
 
 def _clamp01(x: float) -> float:
+    """Clamp a numeric value into the inclusive range [0, 1]."""
     return max(0.0, min(1.0, float(x)))
 
 
 def _distinct_non_none(values: list[object]) -> set[object]:
+    """Return a set of distinct values, excluding None."""
     return {v for v in values if v is not None}
 
 
@@ -644,6 +730,17 @@ def plan_portfolio(  # NOSONAR
 
 
 def plan_bundle(bundle: CRPortfolioBundle) -> PlanReport:  # NOSONAR
+    """Plan a validated portfolio bundle into an execution plan.
+
+    A bundle is a convenience container that already holds the portfolio and
+    any referenced documents in-memory.
+
+    Args:
+        bundle: `CRPortfolioBundle` instance.
+
+    Returns:
+        A `PlanReport` with `ok=True` and a populated `plan` on success.
+    """
     """Resolve an inlined CRPortfolioBundle into an execution-friendly plan.
 
     Unlike `plan_portfolio`, this function does not access the filesystem.

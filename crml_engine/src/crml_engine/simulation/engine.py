@@ -1,5 +1,15 @@
-"""
-Core Monte Carlo simulation engine for CRML.
+"""Core Monte Carlo simulation engine for CRML.
+
+This module contains the reference Monte Carlo implementation used by
+`crml_engine.runtime`.
+
+Inputs:
+    - CRML scenario documents (YAML text, parsed dict, or file path)
+    - Optional per-run multipliers for frequency/severity (used by portfolios
+      and control modeling)
+
+Outputs:
+    - `SimulationResult` including summary metrics and distribution artifacts.
 """
 import time
 import numpy as np
@@ -16,6 +26,14 @@ from .severity import SeverityEngine
 
 
 def _normalize_cardinality(cardinality: int | None) -> int:
+    """Normalize exposure cardinality to a positive integer.
+
+    Args:
+        cardinality: Optional input value.
+
+    Returns:
+        An integer >= 1. Invalid inputs are treated as 1.
+    """
     try:
         value = int(cardinality) if cardinality is not None else 1
     except Exception:
@@ -30,6 +48,25 @@ def _coerce_multiplier(
     label: str,
     result: SimulationResult,
 ) -> Optional[object]:
+    """Validate and normalize a multiplier argument.
+
+    The engine accepts either:
+        - a scalar (int/float) applied to all runs, or
+        - a 1-D array-like of shape (n_runs,) for per-run multipliers.
+
+    On shape/type errors, this appends a message to `result.errors` and returns
+    None.
+
+    Args:
+        multiplier: Candidate multiplier value.
+        n_runs: Expected number of runs.
+        label: Label used in error messages.
+        result: SimulationResult used to accumulate errors.
+
+    Returns:
+        None if input was None, a float scalar, or a numpy float64 array of
+        shape (n_runs,).
+    """
     if multiplier is None:
         return None
 
@@ -44,6 +81,19 @@ def _coerce_multiplier(
 
 
 def _load_scenario_document(yaml_content: Union[str, dict], *, result: SimulationResult) -> Optional[CRScenarioSchema]:
+    """Parse and validate a CRML scenario from supported input types.
+
+    Args:
+        yaml_content: Either a YAML string, a file path to a YAML document, or
+            a parsed dict.
+        result: Result object used to collect parsing/validation errors.
+
+    Returns:
+        A validated `CRScenarioSchema` on success, otherwise None.
+
+    Notes:
+        Errors are recorded in `result.errors` rather than raised.
+    """
     try:
         if isinstance(yaml_content, str):
             import os
@@ -70,6 +120,16 @@ def _validate_supported_models(
     severity_model: str,
     result: SimulationResult,
 ) -> bool:
+    """Validate that the configured frequency/severity models are supported.
+
+    Args:
+        frequency_model: Frequency model name from the CRML scenario.
+        severity_model: Severity model name from the CRML scenario.
+        result: Result object used to accumulate errors.
+
+    Returns:
+        True if both models are supported, else False.
+    """
     supported_frequency_models = {"poisson", "gamma", "hierarchical_gamma_poisson"}
     supported_severity_models = {"lognormal", "gamma", "mixture"}
 
@@ -85,6 +145,16 @@ def _validate_supported_models(
 
 
 def _aggregate_severities_by_count(counts: np.ndarray, severities: np.ndarray) -> np.ndarray:
+    """Sum per-event severities into per-run annual losses.
+
+    Args:
+        counts: Integer event counts per run (shape: (n_runs,)).
+        severities: Per-event loss samples concatenated across runs
+            (shape: (sum(counts),)).
+
+    Returns:
+        Per-run total loss array of shape (n_runs,).
+    """
     current_idx = 0
     losses: list[float] = []
     for c in counts:
@@ -111,6 +181,27 @@ def _simulate_annual_losses(
     frequency_rate_multiplier: Optional[object],
     severity_loss_multiplier: Optional[object],
 ) -> np.ndarray:
+    """Simulate annual loss samples in the base currency.
+
+    This generates event counts using `FrequencyEngine`, generates per-event
+    severities using `SeverityEngine`, then aggregates to annual loss per run.
+
+    Args:
+        n_runs: Number of Monte Carlo iterations.
+        seed: Optional seed.
+        fx_config: FX configuration used for currency normalization.
+        cardinality: Exposure multiplier (e.g., number of assets in scope).
+        frequency_model: Frequency model name.
+        frequency_params: Parsed frequency parameters.
+        severity_model: Severity model name.
+        severity_params: Parsed severity parameters.
+        severity_components: Optional mixture components.
+        frequency_rate_multiplier: Optional scalar or per-run multiplier.
+        severity_loss_multiplier: Optional scalar or per-run multiplier.
+
+    Returns:
+        Array of per-run annual losses in the FX base currency.
+    """
     counts = FrequencyEngine.generate_frequency(
         freq_model=frequency_model,
         params=frequency_params,
@@ -131,6 +222,7 @@ def _simulate_annual_losses(
         components=severity_components,
         total_events=total_events,
         fx_config=fx_config,
+        seed=None if seed is None else int(seed) + 1,
     )
 
     if len(severities) != total_events:
@@ -143,6 +235,7 @@ def _simulate_annual_losses(
 
 
 def _apply_output_currency(losses_base: np.ndarray, *, fx_config: FXConfig) -> np.ndarray:
+    """Convert base-currency losses to the configured output currency."""
     losses_base = np.asarray(losses_base, dtype=np.float64)
     if fx_config.base_currency == fx_config.output_currency:
         return losses_base
@@ -152,6 +245,16 @@ def _apply_output_currency(losses_base: np.ndarray, *, fx_config: FXConfig) -> n
 
 
 def _compute_metrics_and_distribution(losses: np.ndarray, *, raw_data_limit: Optional[int]) -> tuple[Metrics, Distribution]:
+    """Compute summary statistics and histogram artifacts for loss samples.
+
+    Args:
+        losses: Per-run annual loss array.
+        raw_data_limit: Optional cap for returned raw samples. If None, returns
+            all samples.
+
+    Returns:
+        (metrics, distribution)
+    """
     losses = np.asarray(losses, dtype=np.float64)
 
     metrics = Metrics(
@@ -189,8 +292,35 @@ def run_monte_carlo(
     severity_loss_multiplier: Optional[object] = None,
     raw_data_limit: Optional[int] = 1000,
 ) -> SimulationResult:
-    """
-    Orchestrates the Monte Carlo simulation.
+    """Run the reference Monte Carlo simulation for a CRML scenario.
+
+    Supported inputs:
+        - YAML string of a CRML scenario document
+        - Parsed dict matching the CRML schema
+        - File path to a YAML scenario document
+
+    Frequency/severity modifiers:
+        `frequency_rate_multiplier` and `severity_loss_multiplier` can be used
+        to apply control effects or other adjustments. They may be either a
+        scalar (applied to all runs) or an array of shape (n_runs,).
+
+    Args:
+        yaml_content: Scenario input.
+        n_runs: Number of Monte Carlo iterations.
+        seed: Optional RNG seed.
+        fx_config: Optional FX config; if omitted, defaults are used.
+        cardinality: Exposure multiplier (>=1). For portfolios, this is often
+            the number of assets the scenario applies to.
+        frequency_rate_multiplier: Optional scalar/array multiplier for the
+            scenario frequency rate.
+        severity_loss_multiplier: Optional scalar/array multiplier applied to
+            per-run annual loss.
+        raw_data_limit: Maximum number of raw samples included in the returned
+            `Distribution.raw_data`. Use None to include all.
+
+    Returns:
+        A `SimulationResult`. On failure, `success=False` and errors are
+        populated.
     """
     start_time = time.time()
 

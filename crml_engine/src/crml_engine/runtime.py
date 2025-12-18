@@ -1,3 +1,16 @@
+"""Runtime entry points for the reference CRML simulation engine.
+
+This module provides user-facing convenience functions that:
+
+- Run a single CRML scenario (YAML string, dict, or file path)
+- Run a CRML portfolio (portfolio YAML with scenario references)
+- Produce the engine-agnostic `SimulationResultEnvelope`
+- Provide CLI-friendly wrappers (printing / JSON output)
+
+The numerical model implementation lives in `crml_engine.simulation.*`.
+Portfolio planning/binding resolution lives in `crml_engine.pipeline`.
+"""
+
 import json
 from typing import Union, Optional
 from crml_engine.pipeline import plan_portfolio
@@ -34,6 +47,14 @@ VALUE_AT_RISK_LABEL = "Value at Risk"
 
 
 def _portfolio_error_result(msg: str) -> SimulationResult:
+    """Create a standardized failure `SimulationResult` for portfolio execution.
+
+    Args:
+        msg: Human-readable error message.
+
+    Returns:
+        A `SimulationResult` with `success=False` and `errors=[msg]`.
+    """
     return SimulationResult(
         success=False,
         metrics=None,
@@ -44,6 +65,19 @@ def _portfolio_error_result(msg: str) -> SimulationResult:
 
 
 def _collect_control_info(scenarios: list[object]) -> dict[str, dict[str, object]]:
+    """Collect minimal control metadata needed for sampling control state.
+
+    The portfolio runtime can optionally sample a per-run binary state for each
+    control (working vs failed) based on its reliability.
+
+    Args:
+        scenarios: Planned scenarios from `plan_portfolio()`. Each scenario is
+            expected to have a `.controls` iterable with `.id`,
+            `.combined_reliability`, and `.affects` attributes.
+
+    Returns:
+        Mapping control_id -> {"reliability": float, "affects": str}.
+    """
     control_info: dict[str, dict[str, object]] = {}
     for sc in scenarios:
         for c in sc.controls:
@@ -58,6 +92,21 @@ def _collect_control_info(scenarios: list[object]) -> dict[str, dict[str, object
 
 
 def _extract_copula_targets(dependency: object) -> tuple[list[str], np.ndarray | None]:
+    """Extract control-state copula targets and correlation matrix.
+
+    The v1 portfolio dependency format allows specifying a Gaussian copula over
+    a list of references like `control:<id>:state`, together with a correlation
+    matrix.
+
+    Args:
+        dependency: Arbitrary dependency payload from the execution plan.
+
+    Returns:
+        (target_controls, corr)
+
+        - target_controls: list of control ids (strings).
+        - corr: correlation matrix as a float64 numpy array, or None.
+    """
     dep = dependency if isinstance(dependency, dict) else {}
     cop = (dep.get("copula") if isinstance(dep, dict) else None) or None
 
@@ -82,6 +131,24 @@ def _sample_control_state(
     n_runs: int,
     seed: int | None,
 ) -> dict[str, np.ndarray]:
+    """Sample per-run binary control states.
+
+    If a copula correlation matrix is provided and targets are specified, the
+    sampled states are correlated via a Gaussian copula.
+
+    Otherwise, each control is sampled independently as Bernoulli(reliability).
+
+    Args:
+        control_info: Mapping returned by `_collect_control_info()`.
+        target_controls: Control ids to correlate (order matters).
+        corr: Correlation matrix for the Gaussian copula (dim x dim).
+        n_runs: Number of Monte Carlo runs.
+        seed: Optional seed for reproducibility.
+
+    Returns:
+        Mapping control_id -> array of shape (n_runs,) with values {0.0, 1.0}.
+        A value of 1 means the control is "up" for that run.
+    """
     rng = np.random.default_rng(seed)
     control_state: dict[str, np.ndarray] = {}
 
@@ -99,11 +166,29 @@ def _sample_control_state(
 
 
 def _load_text_file(path: str) -> str:
+    """Read a UTF-8 text file into memory."""
     with open(path, "r", encoding="utf-8") as f:
         return f.read()
 
 
 def _control_multipliers_for_scenario(sc: object, control_state: dict[str, np.ndarray], n_runs: int) -> tuple[np.ndarray, np.ndarray]:
+    """Compute per-run frequency and severity multipliers for a planned scenario.
+
+    Each control contributes a multiplicative reduction of the form:
+
+    - reduction = effectiveness × coverage × state
+    - multiplier = 1 - reduction
+
+    where `state` is 1 when the control is functioning on that run, else 0.
+
+    Args:
+        sc: Planned scenario object with `.controls`.
+        control_state: Mapping control_id -> {0,1} array from `_sample_control_state()`.
+        n_runs: Number of Monte Carlo runs.
+
+    Returns:
+        (freq_mult, sev_mult) arrays of shape (n_runs,).
+    """
     freq_mult = np.ones(n_runs, dtype=np.float64)
     sev_mult = np.ones(n_runs, dtype=np.float64)
 
@@ -131,6 +216,23 @@ def _aggregate_portfolio_losses(
     n_runs: int,
     seed: int | None,
 ) -> np.ndarray:
+    """Aggregate scenario loss samples into a portfolio loss sample.
+
+    Args:
+        semantics: Aggregation method from the execution plan.
+            Supported: "sum", "max", "mixture", "choose_one".
+        scenario_losses: List of arrays of shape (n_runs,), one per scenario.
+        scenario_weights: Optional weights aligned with `scenario_losses`.
+            Only used for mixture/choose_one. NaNs are treated as unspecified.
+        n_runs: Number of Monte Carlo runs.
+        seed: Optional seed for reproducible mixture selection.
+
+    Returns:
+        Array of shape (n_runs,) representing portfolio annual loss samples.
+
+    Raises:
+        ValueError: If `semantics` is not recognized.
+    """
     stacked = np.vstack(scenario_losses)  # shape: (n_scen, n_runs)
 
     if semantics == "sum":
@@ -164,6 +266,29 @@ def _run_single_portfolio_scenario(
     seed: int | None,
     fx_config: FXConfig,
 ) -> tuple[np.ndarray, float]:
+    """Execute a single scenario referenced by a portfolio plan.
+
+    This loads the scenario document, applies per-run control multipliers,
+    and runs the core Monte Carlo engine.
+
+    Args:
+        sc: Planned scenario (resolved by `plan_portfolio()`).
+        idx: Scenario index in the plan (used to perturb the base seed).
+        control_state: Mapping control_id -> {0,1} array.
+        n_runs: Number of Monte Carlo runs.
+        seed: Optional base seed.
+        fx_config: FX configuration used for output currency conversion.
+
+    Returns:
+        (losses, weight)
+
+        - losses: array of shape (n_runs,) for this scenario.
+        - weight: float weight; may be NaN when not specified.
+
+    Raises:
+        ValueError: For missing/invalid scenario path or malformed outputs.
+        RuntimeError: If the scenario engine run fails.
+    """
     scenario_path = sc.resolved_path or sc.path
     if not scenario_path:
         raise ValueError(f"Scenario '{sc.id}' has no path")
@@ -206,6 +331,7 @@ def _run_portfolio_scenarios(
     seed: int | None,
     fx_config: FXConfig,
 ) -> tuple[list[np.ndarray], list[float]]:
+    """Run all scenarios in a portfolio plan and collect losses/weights."""
     scenario_losses: list[np.ndarray] = []
     scenario_weights: list[float] = []
 
@@ -225,6 +351,12 @@ def _run_portfolio_scenarios(
 
 
 def _compute_metrics_and_distribution(total: np.ndarray, *, bin_count: int = 50) -> tuple[Metrics, Distribution]:
+    """Compute summary metrics and a histogram distribution for loss samples.
+
+    Notes:
+        This portfolio helper intentionally truncates raw samples to 1000
+        elements for `Distribution.raw_data`.
+    """
     total = np.asarray(total, dtype=np.float64)
     metrics = Metrics(
         eal=float(np.mean(total)),
@@ -254,12 +386,42 @@ def run_portfolio_simulation(
     seed: int | None = None,
     fx_config: Optional[FXConfig] = None,
 ) -> SimulationResult:
-    """Run a CRML portfolio with optional copula-dependent control states.
+    """Run a CRML portfolio simulation.
 
-    This is a reference implementation intended to demonstrate the spec.
-    Portfolio semantics supported: sum, mixture, choose_one, max.
+    This function is a reference implementation demonstrating CRML portfolio
+    semantics and the optional dependency mechanism.
 
-    Copula support (v1): Gaussian copula over control:<id>:state targets.
+    High-level flow:
+        1. Plan/resolve the portfolio into executable scenarios via
+           `crml_engine.pipeline.plan_portfolio`.
+        2. Sample per-run control state (Bernoulli(reliability)), optionally
+           correlated using a Gaussian copula when the portfolio dependency
+           payload defines `portfolio.dependency.copula`.
+        3. Run each scenario through `run_monte_carlo()` with frequency/severity
+           multipliers derived from the sampled controls.
+        4. Aggregate scenario annual losses according to the portfolio
+           semantics method.
+
+    Args:
+        portfolio_source: Portfolio input. Interpretation depends on
+            `source_kind`.
+        source_kind: One of:
+            - "path": `portfolio_source` is a filesystem path to YAML.
+            - "yaml": `portfolio_source` is a YAML string.
+            - "data": `portfolio_source` is an already-parsed dict.
+        n_runs: Number of Monte Carlo iterations.
+        seed: Optional base seed. Used both for copula/control sampling and to
+            derive scenario-specific seeds.
+        fx_config: Optional FXConfig. If omitted, defaults are used.
+
+    Returns:
+        A `SimulationResult` with metrics/distribution in the configured output
+        currency.
+
+    Raises:
+        This function does not raise for most user errors; it returns
+        `success=False` with an error message. Internal helpers may raise, but
+        are caught and converted to failures.
     """
 
     fx_config = normalize_fx_config(fx_config)
@@ -332,11 +494,21 @@ def run_simulation(
     seed: int | None = None, 
     fx_config: Optional[FXConfig] = None
 ) -> SimulationResult:
-    """
-    Run a Monte Carlo simulation for a CRML scenario.
+    """Run a Monte Carlo simulation for a single CRML scenario.
 
-    This is a convenience wrapper around
+    This is a small convenience wrapper around
     `crml_engine.simulation.engine.run_monte_carlo`.
+
+    Args:
+        yaml_content: Scenario input as a YAML string, parsed dict, or a file
+            path to a YAML document.
+        n_runs: Number of Monte Carlo iterations.
+        seed: Optional RNG seed.
+        fx_config: Optional FX configuration (base/output currencies and rates).
+
+    Returns:
+        A `SimulationResult` containing summary metrics, distribution artifacts,
+        and metadata.
     """
     return run_monte_carlo(yaml_content, n_runs, seed, fx_config)
 
@@ -347,7 +519,21 @@ def run_simulation_envelope(
     seed: int | None = None,
     fx_config: Optional[FXConfig] = None,
 ) -> SimulationResultEnvelope:
-    """Runs a simulation and returns the engine-agnostic result envelope."""
+    """Run a simulation and return the engine-agnostic result envelope.
+
+    The envelope type is defined by `crml_lang` to provide a stable interchange
+    format across engines/implementations.
+
+    Args:
+        yaml_content: Scenario input (YAML string, dict, or file path).
+        n_runs: Number of Monte Carlo iterations.
+        seed: Optional RNG seed.
+        fx_config: Optional FX configuration.
+
+    Returns:
+        A `SimulationResultEnvelope` with engine info, run info, measures, and
+        artifacts.
+    """
 
     result = run_simulation(yaml_content, n_runs=n_runs, seed=seed, fx_config=fx_config)
 
@@ -469,16 +655,42 @@ def calibrate_lognormal_from_single_losses(
     base_currency: str,
     fx_config: FXConfig,
 ) -> tuple[float, float]:
-    """
-    Convenience wrapper for severity calibration.
+    """Calibrate lognormal parameters from single-event losses.
+
+    This is a convenience wrapper around
+    `crml_engine.simulation.severity.SeverityEngine.calibrate_lognormal_from_single_losses`.
+
+    Args:
+        single_losses: Sequence of single-event losses. Values may be numeric
+            or string-like (see severity implementation for parsing).
+        currency: Currency code/symbol used by `single_losses` (optional).
+        base_currency: Base currency code to calibrate in.
+        fx_config: FX rates/config used for currency conversion.
+
+    Returns:
+        (mu, sigma) parameters for a lognormal distribution in log-space.
     """
     return SeverityEngine.calibrate_lognormal_from_single_losses(
         single_losses, currency, base_currency, fx_config
     )
 
 def run_simulation_cli(file_path: str, n_runs: int = 10000, output_format: str = 'text', fx_config_path: Optional[str] = None):
-    """
-    CLI wrapper for run_simulation that prints results.
+    """CLI-friendly wrapper to run a scenario or portfolio and print results.
+
+    Behavior:
+        - Detects portfolio vs scenario by checking for a `crml_portfolio` key
+          in the parsed YAML.
+        - Loads FX config from `fx_config_path` (or uses defaults).
+        - Prints results to stdout in either text or JSON form.
+
+    Args:
+        file_path: Path to a CRML scenario or portfolio YAML file.
+        n_runs: Number of Monte Carlo iterations.
+        output_format: "text" (pretty console output) or "json".
+        fx_config_path: Optional path to an FX config YAML document.
+
+    Returns:
+        True on success, False on failure.
     """
     # Load FX config
     fx_config = load_fx_config(fx_config_path)
