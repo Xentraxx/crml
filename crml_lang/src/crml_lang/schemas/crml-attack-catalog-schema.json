@@ -1,27 +1,15 @@
 {
   "$defs": {
-    "ControlCatalogEntry": {
-      "description": "Portable metadata about a control id.\n\nImportant: do not embed copyrighted standard text here.\nKeep this to identifiers and tool-friendly metadata.",
+    "AttackCatalogEntry": {
+      "description": "Portable metadata about an ATT&CK (or similar) attack-pattern id.\n\nImportant: do not embed copyrighted framework text here.\nKeep this to identifiers and tool-friendly metadata.",
       "properties": {
         "id": {
-          "description": "Canonical unique control id present in this catalog.",
+          "description": "Canonical unique attack pattern id present in this catalog.",
           "maxLength": 256,
           "minLength": 1,
           "pattern": "^[a-z][a-z0-9_-]{0,31}:[^\\s]{1,223}$",
           "title": "Id",
           "type": "string"
-        },
-        "ref": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ControlStructuredRef"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Optional structured locator to map the id to an external standard."
         },
         "title": {
           "anyOf": [
@@ -33,7 +21,7 @@
             }
           ],
           "default": null,
-          "description": "Optional short human-readable title for the control.",
+          "description": "Optional short human-readable title for the attack pattern.",
           "title": "Title"
         },
         "url": {
@@ -64,37 +52,15 @@
           "default": null,
           "description": "Optional list of tags for grouping/filtering.",
           "title": "Tags"
-        },
-        "defense_in_depth_layers": {
-          "anyOf": [
-            {
-              "items": {
-                "enum": [
-                  "prevent",
-                  "detect",
-                  "respond",
-                  "recover"
-                ],
-                "type": "string"
-              },
-              "type": "array"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Optional defense-in-depth layer tags. Allowed values: prevent, detect, respond, recover.",
-          "title": "Defense In Depth Layers"
         }
       },
       "required": [
         "id"
       ],
-      "title": "ControlCatalogEntry",
+      "title": "AttackCatalogEntry",
       "type": "object"
     },
-    "ControlCataloge": {
+    "AttackCataloge": {
       "properties": {
         "id": {
           "anyOf": [
@@ -110,58 +76,24 @@
           "title": "Id"
         },
         "framework": {
-          "description": "Free-form framework label for humans/tools.",
+          "description": "Free-form framework label for humans/tools. Example: 'MITRE ATT&CK Enterprise'.",
           "title": "Framework",
           "type": "string"
         },
-        "controls": {
-          "description": "List of catalog entries.",
+        "attacks": {
+          "description": "List of attack pattern catalog entries.",
           "items": {
-            "$ref": "#/$defs/ControlCatalogEntry"
+            "$ref": "#/$defs/AttackCatalogEntry"
           },
-          "title": "Controls",
+          "title": "Attacks",
           "type": "array"
         }
       },
       "required": [
         "framework",
-        "controls"
+        "attacks"
       ],
-      "title": "ControlCataloge",
-      "type": "object"
-    },
-    "ControlStructuredRef": {
-      "description": "Standard-independent structured control locator.\n\nThis is optional metadata that can be used by tools/UI to help users map\ncontrols, but *referencing* in scenarios/portfolios should be done via\n`ControlId`.\n\nExample:\n    {standard: \"CIS\", control: \"2\", requirement: \"Ensure X is implemented\"}",
-      "properties": {
-        "standard": {
-          "description": "Standard identifier (e.g. CISv8, ISO27001).",
-          "title": "Standard",
-          "type": "string"
-        },
-        "control": {
-          "description": "Control identifier within the referenced standard.",
-          "title": "Control",
-          "type": "string"
-        },
-        "requirement": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Optional requirement text (what the requirement specifies) within the referenced standard (if applicable and not copyrighted).",
-          "title": "Requirement"
-        }
-      },
-      "required": [
-        "standard",
-        "control"
-      ],
-      "title": "ControlStructuredRef",
+      "title": "AttackCataloge",
       "type": "object"
     },
     "Meta": {
@@ -322,10 +254,10 @@
     }
   },
   "properties": {
-    "crml_control_catalog": {
+    "crml_attack_catalog": {
       "const": "1.0",
-      "description": "Control catalog document version identifier.",
-      "title": "Crml Control Catalog",
+      "description": "Attack catalog document version identifier.",
+      "title": "Crml Attack Catalog",
       "type": "string"
     },
     "meta": {
@@ -333,15 +265,15 @@
       "description": "Document metadata (name, description, tags, etc.)."
     },
     "catalog": {
-      "$ref": "#/$defs/ControlCataloge",
-      "description": "The control cataloge payload."
+      "$ref": "#/$defs/AttackCataloge",
+      "description": "The attack cataloge payload."
     }
   },
   "required": [
-    "crml_control_catalog",
+    "crml_attack_catalog",
     "meta",
     "catalog"
   ],
-  "title": "CRControlCatalogSchema",
+  "title": "CRAttackCatalogSchema",
   "type": "object"
 }

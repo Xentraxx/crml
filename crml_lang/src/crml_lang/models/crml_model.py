@@ -14,13 +14,27 @@ Consequences:
     defined in a separate portfolio schema/model.
 """
 
-from typing import Any, Dict, List, Literal, Optional, Union
+from typing import Annotated, Any, Dict, List, Literal, Optional, Union
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from .numberish import parse_floatish, parse_float_list
 from .control_ref import ControlId
 from .coverage_model import Coverage
+
+
+AttckId = Annotated[
+    str,
+    Field(
+        min_length=1,
+        max_length=256,
+        pattern=r"^[a-z][a-z0-9_-]{0,31}:[^\s]{1,223}$",
+        description=(
+            "ATT&CK identifier in canonical namespaced form 'namespace:key' (no whitespace). "
+            "Recommended namespace is 'attck'. Examples: attck:TA0001, attck:T1059, attck:T1059.003"
+        ),
+    ),
+]
 
 
 # --- $defs ---
@@ -44,6 +58,14 @@ class Meta(BaseModel):
         None, description="Optional list of regulatory frameworks relevant to this document."
     )
     tags: Optional[List[str]] = Field(None, description="Optional list of user-defined tags.")
+
+    attck: Optional[List[AttckId]] = Field(
+        None,
+        description=(
+            "Optional list of ATT&CK tactic/technique/sub-technique identifiers relevant to this document, "
+            "expressed as namespaced ids (e.g. 'attck:T1059.003')."
+        ),
+    )
 
 # --- Data ---
 class DataSource(BaseModel):
@@ -170,26 +192,15 @@ class ScenarioControl(BaseModel):
     """
 
     id: ControlId = Field(..., description="Canonical unique control id referenced by this scenario.")
-    implementation_effectiveness: Optional[float] = Field(
-        None,
-        ge=0.0,
-        le=1.0,
-        description="Scenario-scoped implementation effectiveness override (0..1).",
-    )
-
-    potency: Optional[float] = Field(
+    effectiveness_against_threat: Optional[float] = Field(
         None,
         ge=0.0,
         le=1.0,
         description=(
-            "Scenario-scoped potency factor for this control against this specific threat (0..1). "
-            "This represents how strong the control is against the scenario if implemented and applied; "
-            "it is multiplied with portfolio/assessment posture values during planning."
+            "Threat-specific effectiveness factor for this control against this scenario (0..1). "
+            "Recommended semantics: engines combine this with organization-specific inventory/assessment posture (e.g. "
+            "inventory implementation effectiveness and coverage) when planning."
         ),
-    )
-    coverage: Optional[Coverage] = Field(
-        None,
-        description="Scenario-scoped coverage override (breadth of deployment/application).",
     )
     notes: Optional[str] = Field(None, description="Free-form notes about this scenario control reference.")
 

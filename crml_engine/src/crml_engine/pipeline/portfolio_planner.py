@@ -46,24 +46,11 @@ class ResolvedScenarioControl(BaseModel):
     )
 
     # Scenario-scoped factors (optional)
-    scenario_implementation_effectiveness_factor: Optional[float] = Field(
-        None, ge=0.0, le=1.0, description="Scenario-scoped multiplier for implementation effectiveness (0..1)."
-    )
-    scenario_coverage_factor: Optional[float] = Field(
-        None, ge=0.0, le=1.0, description="Scenario-scoped multiplier for coverage (0..1)."
-    )
-    scenario_coverage_basis: Optional[str] = Field(
-        None, description="Scenario-scoped coverage basis override (if applicable)."
-    )
-
-    scenario_potency_factor: Optional[float] = Field(
+    scenario_effectiveness_against_threat_factor: Optional[float] = Field(
         None,
         ge=0.0,
         le=1.0,
-        description=(
-            "Scenario-scoped potency factor for this control against this specific threat (0..1). "
-            "This multiplies inventory implementation effectiveness when deriving combined values."
-        ),
+        description="Threat-specific effectiveness factor for this control against the scenario (0..1).",
     )
 
     # Combined values (what the engine should apply)
@@ -212,10 +199,11 @@ def _resolve_path(base_dir: str | None, p: str) -> str:
 
 def _scenario_controls_to_objects(
     controls_any: list[Any],
-) -> list[tuple[str, Optional[float], Optional[tuple[float, str]], Optional[float]]]:
-    """Normalize scenario.controls into (id, eff_factor, coverage_factor(value,basis), potency_factor)."""
 
-    out: list[tuple[str, Optional[float], Optional[tuple[float, str]], Optional[float]]] = []
+) -> list[tuple[str, Optional[float]]]:
+    """Normalize scenario.controls into (id, effectiveness_factor)."""
+
+    out: list[tuple[str, Optional[float]]] = []
     for c in controls_any:
         item = _scenario_control_to_object(c)
         if item is not None:
@@ -226,15 +214,12 @@ def _scenario_controls_to_objects(
 
 def _scenario_control_to_object(
     c: Any,
-) -> Optional[tuple[str, Optional[float], Optional[tuple[float, str]], Optional[float]]]:
+) -> Optional[tuple[str, Optional[float]]]:
     if isinstance(c, str):
-        return (c, None, None, None)
+        return (c, None)
 
     if isinstance(c, ScenarioControlModel):
-        cov = None
-        if c.coverage is not None:
-            cov = (float(c.coverage.value), str(c.coverage.basis))
-        return (c.id, c.implementation_effectiveness, cov, getattr(c, "potency", None))
+        return (c.id, c.effectiveness_against_threat)
 
     if isinstance(c, dict):
         return _scenario_control_from_dict(c)
@@ -244,22 +229,14 @@ def _scenario_control_to_object(
 
 def _scenario_control_from_dict(
     value: dict[str, Any],
-) -> Optional[tuple[str, Optional[float], Optional[tuple[float, str]], Optional[float]]]:
+) -> Optional[tuple[str, Optional[float]]]:
     cid = value.get("id")
     if not isinstance(cid, str):
         return None
 
-    eff = value.get("implementation_effectiveness")
+    eff = value.get("effectiveness_against_threat")
     eff_f = float(eff) if eff is not None else None
-    pot = value.get("potency")
-    pot_f = float(pot) if pot is not None else None
-
-    cov_obj = value.get("coverage")
-    cov: Optional[tuple[float, str]] = None
-    if isinstance(cov_obj, dict) and cov_obj.get("value") is not None and cov_obj.get("basis") is not None:
-        cov = (float(cov_obj["value"]), str(cov_obj["basis"]))
-
-    return (cid, eff_f, cov, pot_f)
+    return (cid, eff_f)
 
 
 def _clamp01(x: float) -> float:
@@ -568,7 +545,7 @@ def plan_portfolio(  # NOSONAR
         controls_norm = _scenario_controls_to_objects(list(controls_any))
         resolved_controls: list[ResolvedScenarioControl] = []
 
-        for (cid, scenario_eff_factor, scenario_cov_factor, scenario_potency_factor) in controls_norm:
+        for (cid, scenario_eff_factor) in controls_norm:
             inventory_eff: Optional[float] = None
             inventory_cov_val: Optional[float] = None
             inventory_cov_basis: Optional[str] = None
@@ -609,26 +586,18 @@ def plan_portfolio(  # NOSONAR
                 )
                 continue
 
-            # Scenario values are interpreted as *multiplicative applicability factors*.
+            # Scenario values are interpreted as a *threat-specific effectiveness factor*.
+            # Organization-specific deployment (coverage) remains an inventory/assessment concern.
             eff_factor = float(scenario_eff_factor) if scenario_eff_factor is not None else None
-            pot_factor = float(scenario_potency_factor) if scenario_potency_factor is not None else None
-            cov_factor_val: Optional[float] = None
-            cov_factor_basis: Optional[str] = None
-            if scenario_cov_factor is not None:
-                cov_factor_val = float(scenario_cov_factor[0])
-                cov_factor_basis = str(scenario_cov_factor[1])
 
             combined_eff = None
             if inventory_eff is not None:
                 combined_eff = _clamp01(
                     inventory_eff
                     * (eff_factor if eff_factor is not None else 1.0)
-                    * (pot_factor if pot_factor is not None else 1.0)
                 )
 
-            combined_cov = None
-            if inventory_cov_val is not None:
-                combined_cov = _clamp01(inventory_cov_val * (cov_factor_val if cov_factor_val is not None else 1.0))
+            combined_cov = _clamp01(inventory_cov_val) if inventory_cov_val is not None else None
 
             combined_rel = _clamp01(inventory_rel if inventory_rel is not None else 1.0)
 
@@ -641,26 +610,11 @@ def plan_portfolio(  # NOSONAR
                     inventory_reliability=inventory_rel,
                     affects=affects,
                     scenario_implementation_effectiveness_factor=eff_factor,
-                    scenario_coverage_factor=cov_factor_val,
-                    scenario_coverage_basis=cov_factor_basis,
-                    scenario_potency_factor=pot_factor,
                     combined_implementation_effectiveness=combined_eff,
                     combined_coverage_value=combined_cov,
                     combined_reliability=combined_rel,
                 )
             )
-
-            if inventory_cov_basis and cov_factor_basis and inventory_cov_basis != cov_factor_basis:
-                warnings.append(
-                    PlanMessage(
-                        level="warning",
-                        path=f"portfolio.scenarios[{idx}].path",
-                        message=(
-                            f"Control '{cid}' combines coverage with different bases: inventory='{inventory_cov_basis}', scenario='{cov_factor_basis}'. "
-                            "Treating scenario coverage as a pure factor."
-                        ),
-                    )
-                )
 
         resolved_scenarios.append(
             ResolvedScenario(
@@ -877,7 +831,7 @@ def plan_bundle(bundle: CRPortfolioBundle) -> PlanReport:  # NOSONAR
         controls_norm = _scenario_controls_to_objects(list(controls_any))
         resolved_controls: list[ResolvedScenarioControl] = []
 
-        for (cid, scenario_eff_factor, scenario_cov_factor, scenario_potency_factor) in controls_norm:
+        for (cid, scenario_eff_factor) in controls_norm:
             inventory_eff: Optional[float] = None
             inventory_cov_val: Optional[float] = None
             inventory_cov_basis: Optional[str] = None
@@ -919,24 +873,15 @@ def plan_bundle(bundle: CRPortfolioBundle) -> PlanReport:  # NOSONAR
                 continue
 
             eff_factor = float(scenario_eff_factor) if scenario_eff_factor is not None else None
-            pot_factor = float(scenario_potency_factor) if scenario_potency_factor is not None else None
-            cov_factor_val: Optional[float] = None
-            cov_factor_basis: Optional[str] = None
-            if scenario_cov_factor is not None:
-                cov_factor_val = float(scenario_cov_factor[0])
-                cov_factor_basis = str(scenario_cov_factor[1])
 
             combined_eff = None
             if inventory_eff is not None:
                 combined_eff = _clamp01(
                     inventory_eff
                     * (eff_factor if eff_factor is not None else 1.0)
-                    * (pot_factor if pot_factor is not None else 1.0)
                 )
 
-            combined_cov = None
-            if inventory_cov_val is not None:
-                combined_cov = _clamp01(inventory_cov_val * (cov_factor_val if cov_factor_val is not None else 1.0))
+            combined_cov = _clamp01(inventory_cov_val) if inventory_cov_val is not None else None
 
             combined_rel = _clamp01(inventory_rel if inventory_rel is not None else 1.0)
 
@@ -949,26 +894,11 @@ def plan_bundle(bundle: CRPortfolioBundle) -> PlanReport:  # NOSONAR
                     inventory_reliability=inventory_rel,
                     affects=affects,
                     scenario_implementation_effectiveness_factor=eff_factor,
-                    scenario_coverage_factor=cov_factor_val,
-                    scenario_coverage_basis=cov_factor_basis,
-                    scenario_potency_factor=pot_factor,
                     combined_implementation_effectiveness=combined_eff,
                     combined_coverage_value=combined_cov,
                     combined_reliability=combined_rel,
                 )
             )
-
-            if inventory_cov_basis and cov_factor_basis and inventory_cov_basis != cov_factor_basis:
-                warnings.append(
-                    PlanMessage(
-                        level="warning",
-                        path=f"portfolio.scenarios[{idx}].id",
-                        message=(
-                            f"Control '{cid}' combines coverage with different bases: inventory='{inventory_cov_basis}', scenario='{cov_factor_basis}'. "
-                            "Treating scenario coverage as a pure factor."
-                        ),
-                    )
-                )
 
         resolved_scenarios.append(
             ResolvedScenario(

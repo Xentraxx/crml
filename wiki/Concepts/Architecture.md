@@ -20,6 +20,7 @@ For the detailed architecture, see:
 - Scenario documents: `crml_scenario: "1.0"` (top-level `scenario:`)
 - Portfolio documents: `crml_portfolio: "1.0"` (top-level `portfolio:`; if `portfolio.assessments` is used, `portfolio.control_catalogs` must also be provided)
 - Control cataloges documents: `crml_control_catalog: "1.0"` (top-level `catalog:`)
+- Attack cataloges documents: `crml_attack_catalog: "1.0"` (top-level `catalog:`)
 - Assessment documents: `crml_assessment: "1.0"` (top-level `assessment:`)
 - Control relationships documents: `crml_control_relationships: "1.0"` (top-level `relationships:`; control-to-control mappings with overlap metadata)
 - FX config documents: `crml_fx_config: "1.0"` (top-level `base_currency`, `output_currency`, `rates`, optional `as_of`; engine-owned config document)
@@ -75,6 +76,7 @@ In practice:
 - **Organization evidence** (incident logs, internal loss data, telemetry) can be used by *calibration tools* to fit scenario parameters and reduce reliance on purely external priors.
 - **Portfolios** describe the organization's relatively stable assets, business units, and exposure structure. They can be updated via internal tooling (e.g., CMDB/asset inventory imports), but the portfolio document remains the central reference.
 - **Control catalogs** come from recognized authorities and frameworks (e.g., NIS, CIS) or can be commonly defined by the community. These catalogs define the canonical control set and their semantics.
+- **Attack catalogs** list attack-pattern identifiers (e.g., ATT&CK tactics/techniques) with metadata-only fields (title/url/tags) for UI/tools.
 - **Assessments** come from assessment/scan tools and audits. They capture which controls exist, how effective they are, and can optionally be used to populate or update the portfolio's control mapping.
 - **Mappings** (control-to-control relationships) can come from public sources (e.g., Secure Controls Framework) and from community or organization-specific mapping work.
 

@@ -35,10 +35,12 @@ from typing import Any, Mapping
 from .models.crml_model import CRScenarioSchema as _CRScenarioSchema
 from .models.assessment_model import CRAssessmentSchema as _CRAssessmentSchema
 from .models.control_catalog_model import CRControlCatalogSchema as _CRControlCatalogSchema
+from .models.attack_catalog_model import CRAttackCatalogSchema as _CRAttackCatalogSchema
 from .models.control_relationships_model import CRControlRelationshipsSchema as _CRControlRelationshipsSchema
 from .models.portfolio_model import CRPortfolioSchema as _CRPortfolioSchema
 from .models.portfolio_bundle import CRPortfolioBundle as _CRPortfolioBundle
 from .validators import ValidationMessage, ValidationReport, validate, validate_portfolio
+from .validators import validate_attack_catalog
 
 
 _ERR_PYYAML_LOAD_FILE = "PyYAML is required to load YAML files: pip install pyyaml"
@@ -269,6 +271,50 @@ class CRControlCatalog(_CRControlCatalogSchema):
         return yaml.safe_dump(data, sort_keys=sort_keys, allow_unicode=True)
 
 
+class CRAttackCatalog(_CRAttackCatalogSchema):
+    """Root CRML Attack Catalog document model."""
+
+    @classmethod
+    def load_from_yaml(cls, path: str) -> "CRAttackCatalog":
+        try:
+            import yaml
+        except Exception as e:
+            raise ImportError(_ERR_PYYAML_LOAD_FILE) from e
+
+        with open(path, "r", encoding="utf-8") as f:
+            data = yaml.safe_load(f)
+        return cls.model_validate(data)
+
+    @classmethod
+    def load_from_yaml_str(cls, yaml_text: str) -> "CRAttackCatalog":
+        try:
+            import yaml
+        except Exception as e:
+            raise ImportError(_ERR_PYYAML_LOAD_STR) from e
+
+        data = yaml.safe_load(yaml_text)
+        return cls.model_validate(data)
+
+    def dump_to_yaml(self, path: str, *, sort_keys: bool = False, exclude_none: bool = True) -> None:
+        try:
+            import yaml
+        except Exception as e:
+            raise ImportError(_ERR_PYYAML_WRITE_FILE) from e
+
+        data = self.model_dump(by_alias=True, exclude_none=exclude_none)
+        with open(path, "w", encoding="utf-8") as f:
+            yaml.safe_dump(data, f, sort_keys=sort_keys, allow_unicode=True)
+
+    def dump_to_yaml_str(self, *, sort_keys: bool = False, exclude_none: bool = True) -> str:
+        try:
+            import yaml
+        except Exception as e:
+            raise ImportError(_ERR_PYYAML_WRITE_STR) from e
+
+        data = self.model_dump(by_alias=True, exclude_none=exclude_none)
+        return yaml.safe_dump(data, sort_keys=sort_keys, allow_unicode=True)
+
+
 class CRAssessment(_CRAssessmentSchema):
     """Root CRML Assessment document model."""
 
@@ -365,6 +411,7 @@ __all__ = [
     "CRPortfolio",
     "CRPortfolioBundle",
     "CRControlCatalog",
+    "CRAttackCatalog",
     "CRAssessment",
     "CRControlAssessment",
     "CRControlRelationships",
@@ -374,6 +421,7 @@ __all__ = [
     "dump_to_yaml_str",
     "validate",
     "validate_portfolio",
+    "validate_attack_catalog",
     "ValidationMessage",
     "ValidationReport",
 ]
