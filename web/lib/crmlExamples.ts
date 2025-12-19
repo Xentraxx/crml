@@ -164,7 +164,8 @@ portfolio_bundle:
             implementation_effectiveness: 0.75
             coverage:
               value: 0.6
-              basis: "% of workforce accounts enforced"
+              basis: employees
+              notes: "Percent of workforce accounts enforced (approx)."
             reliability: 0.98
             affects: frequency
             notes: "Rollout in progress; some service accounts excluded."

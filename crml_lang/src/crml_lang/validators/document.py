@@ -10,6 +10,7 @@ from .assessment import validate_assessment
 from .control_relationships import validate_control_relationships
 from .attack_catalog import validate_attack_catalog
 from .attack_control_relationships import validate_attack_control_relationships
+from .portfolio_bundle import validate_portfolio_bundle
 
 
 def _detect_kind(data: dict[str, Any]) -> str | None:
@@ -32,6 +33,8 @@ def _detect_kind(data: dict[str, Any]) -> str | None:
         return "control_relationships"
     if "crml_attack_control_relationships" in data:
         return "attack_control_relationships"
+    if "crml_portfolio_bundle" in data:
+        return "portfolio_bundle"
 
     return None
 
@@ -65,7 +68,7 @@ def validate_document(
                     message=(
                         "Unknown CRML document type. Expected one of: crml_scenario, crml_portfolio, "
                         "crml_control_catalog, crml_attack_catalog, crml_assessment, crml_control_relationships, "
-                        "crml_attack_control_relationships."
+                        "crml_attack_control_relationships, crml_portfolio_bundle."
                     ),
                 )
             ],
@@ -87,6 +90,8 @@ def validate_document(
         return validate_control_relationships(source, source_kind=source_kind, strict_model=strict_model)
     if kind == "attack_control_relationships":
         return validate_attack_control_relationships(source, source_kind=source_kind, strict_model=strict_model)
+    if kind == "portfolio_bundle":
+        return validate_portfolio_bundle(source, source_kind=source_kind, strict_model=strict_model)
 
     return ValidationReport(
         ok=False,
