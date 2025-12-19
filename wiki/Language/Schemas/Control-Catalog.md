@@ -3,7 +3,7 @@
 This page documents the CRML **Control Catalog** document shape and how to use it.
 
 - JSON Schema: `crml_lang/src/crml_lang/schemas/crml-control-catalog-schema.json`
-- Pydantic model: `crml_lang/src/crml_lang/models/control_catalog_model.py` (`CRControlCatalogSchema`)
+- Pydantic model: `crml_lang/src/crml_lang/models/control_catalog_model.py` (`CRControlCatalog`)
 
 ---
 
@@ -49,7 +49,7 @@ catalog:
       tags: ["endpoint", "detection"]
 ```
 
-See also: `examples/control_cataloges/control-catalog.yaml`.
+See also: `examples/control_catalogs/control-catalog.yaml`.
 
 ---
 
@@ -107,10 +107,16 @@ Notes:
 
 ## Validation
 
+## Excel (XLSX) authoring
+
+If you prefer maintaining control definitions in Excel, CRML supports a strict XLSX workbook workflow and round-tripping to YAML:
+
+- Guide: [Excel Controls & Mappings](../../Guides/Excel-Controls-and-Mappings.md)
+
 Python:
 
 ```python
 from crml_lang import validate_control_catalog
-report = validate_control_catalog("examples/control_cataloges/control-catalog.yaml", source_kind="path")
+report = validate_control_catalog("examples/control_catalogs/control-catalog.yaml", source_kind="path")
 assert report.ok
 ```

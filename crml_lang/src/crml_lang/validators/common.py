@@ -17,6 +17,7 @@ ROOT_PATH = "(root)"
 
 SCENARIO_SCHEMA_PATH = str(_SCHEMA_DIR / "crml-scenario-schema.json")
 PORTFOLIO_SCHEMA_PATH = str(_SCHEMA_DIR / "crml-portfolio-schema.json")
+PORTFOLIO_BUNDLE_SCHEMA_PATH = str(_SCHEMA_DIR / "crml-portfolio-bundle-schema.json")
 ASSESSMENT_SCHEMA_PATH = str(_SCHEMA_DIR / "crml-assessment-schema.json")
 CONTROL_CATALOG_SCHEMA_PATH = str(_SCHEMA_DIR / "crml-control-catalog-schema.json")
 ATTACK_CATALOG_SCHEMA_PATH = str(_SCHEMA_DIR / "crml-attack-catalog-schema.json")
@@ -79,6 +80,11 @@ def _load_scenario_schema() -> dict[str, Any]:
 def _load_portfolio_schema() -> dict[str, Any]:
     """Load the CRML Portfolio JSON schema as a dict."""
     return _load_schema(PORTFOLIO_SCHEMA_PATH)
+
+
+def _load_portfolio_bundle_schema() -> dict[str, Any]:
+    """Load the CRML Portfolio Bundle JSON schema as a dict."""
+    return _load_schema(PORTFOLIO_BUNDLE_SCHEMA_PATH)
 
 
 def _load_assessment_schema() -> dict[str, Any]:

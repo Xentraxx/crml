@@ -76,8 +76,9 @@ def parse_intish(value) -> int:
         return value
 
     # Strict: floats are not accepted even if integer-like (e.g. 10.0).
+    # Raise ValueError so downstream validators (e.g., Pydantic) treat this as a data-validation failure.
     if isinstance(value, float):
-        raise TypeError("expected an integer, got float")
+        raise ValueError("expected an integer")
 
     if isinstance(value, str):
         s = _clean_numeric_string(value)

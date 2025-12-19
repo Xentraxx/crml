@@ -1,5 +1,41 @@
 {
   "$defs": {
+    "AttackCatalog": {
+      "properties": {
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional identifier for this catalog (organization-owned).",
+          "title": "Id"
+        },
+        "framework": {
+          "description": "Free-form framework label for humans/tools. Example: 'MITRE ATT&CK Enterprise'.",
+          "title": "Framework",
+          "type": "string"
+        },
+        "attacks": {
+          "description": "List of attack pattern catalog entries.",
+          "items": {
+            "$ref": "#/$defs/AttackCatalogEntry"
+          },
+          "title": "Attacks",
+          "type": "array"
+        }
+      },
+      "required": [
+        "framework",
+        "attacks"
+      ],
+      "title": "AttackCatalog",
+      "type": "object"
+    },
     "AttackCatalogEntry": {
       "description": "Portable metadata about an ATT&CK (or similar) attack-pattern id.\n\nImportant: do not embed copyrighted framework text here.\nKeep this to identifiers and tool-friendly metadata.",
       "properties": {
@@ -74,42 +110,6 @@
         "id"
       ],
       "title": "AttackCatalogEntry",
-      "type": "object"
-    },
-    "AttackCataloge": {
-      "properties": {
-        "id": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Optional identifier for this cataloge (organization-owned).",
-          "title": "Id"
-        },
-        "framework": {
-          "description": "Free-form framework label for humans/tools. Example: 'MITRE ATT&CK Enterprise'.",
-          "title": "Framework",
-          "type": "string"
-        },
-        "attacks": {
-          "description": "List of attack pattern catalog entries.",
-          "items": {
-            "$ref": "#/$defs/AttackCatalogEntry"
-          },
-          "title": "Attacks",
-          "type": "array"
-        }
-      },
-      "required": [
-        "framework",
-        "attacks"
-      ],
-      "title": "AttackCataloge",
       "type": "object"
     },
     "Meta": {
@@ -281,8 +281,8 @@
       "description": "Document metadata (name, description, tags, etc.)."
     },
     "catalog": {
-      "$ref": "#/$defs/AttackCataloge",
-      "description": "The attack cataloge payload."
+      "$ref": "#/$defs/AttackCatalog",
+      "description": "The attack catalog payload."
     }
   },
   "required": [
@@ -290,6 +290,6 @@
     "meta",
     "catalog"
   ],
-  "title": "CRAttackCatalogSchema",
+  "title": "CRAttackCatalog",
   "type": "object"
 }

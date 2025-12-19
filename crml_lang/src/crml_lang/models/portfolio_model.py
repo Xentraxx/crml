@@ -203,10 +203,10 @@ class Portfolio(BaseModel):
         None, description="Optional list of controls present in the organization/portfolio."
     )
 
-    # Optional cataloge references (paths). These allow portfolios to point at
+    # Optional catalog references (paths). These allow portfolios to point at
     # portable catalogs/assessments without duplicating their contents.
     control_catalogs: Optional[List[str]] = Field(
-        None, description="Optional list of file paths to referenced control cataloges."
+        None, description="Optional list of file paths to referenced control catalogs."
     )
 
     attack_catalogs: Optional[List[str]] = Field(
@@ -220,7 +220,7 @@ class Portfolio(BaseModel):
         None,
         validation_alias=AliasChoices("assessments", "control_assessments"),
         serialization_alias="assessments",
-        description="Optional list of file paths to referenced assessment cataloges.",
+        description="Optional list of file paths to referenced assessment catalogs.",
     )
 
     control_relationships: Optional[List[str]] = Field(
@@ -253,7 +253,7 @@ class Portfolio(BaseModel):
     )
 
 
-class CRPortfolioSchema(BaseModel):
+class CRPortfolio(BaseModel):
     crml_portfolio: Literal["1.0"] = Field(..., description="Portfolio document version identifier.")
     meta: Meta = Field(..., description="Document metadata (name, description, tags, etc.).")
     portfolio: Portfolio = Field(..., description="The portfolio payload.")

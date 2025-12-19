@@ -1,7 +1,7 @@
 from crml_lang import validate_assessment
 
 
-def test_validate_assessment_cataloge_valid() -> None:
+def test_validate_assessment_catalog_valid() -> None:
     yaml_text = """
 crml_assessment: "1.0"
 meta:
@@ -20,7 +20,7 @@ assessment:
     assert report.ok, report.render_text(source_label="inline")
 
 
-def test_validate_assessment_cataloge_accepts_quantitative_posture_fields() -> None:
+def test_validate_assessment_catalog_accepts_quantitative_posture_fields() -> None:
     yaml_text = """
 crml_assessment: "1.0"
 meta:
@@ -38,7 +38,7 @@ assessment:
     assert report.ok, report.render_text(source_label="inline")
 
 
-def test_validate_assessment_cataloge_rejects_mixed_quantitative_and_cmm() -> None:
+def test_validate_assessment_catalog_rejects_mixed_quantitative_and_cmm() -> None:
     yaml_text = """
 crml_assessment: "1.0"
 meta:
@@ -56,7 +56,7 @@ assessment:
     assert any("either scf_cmm_level" in e.message for e in report.errors)
 
 
-def test_validate_assessment_cataloge_rejects_entry_with_no_answers() -> None:
+def test_validate_assessment_catalog_rejects_entry_with_no_answers() -> None:
     yaml_text = """
 crml_assessment: "1.0"
 meta:

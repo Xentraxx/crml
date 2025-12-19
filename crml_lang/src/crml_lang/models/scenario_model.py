@@ -17,6 +17,7 @@ Consequences:
 from typing import Annotated, Any, Dict, List, Literal, Optional, Union
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic.json_schema import WithJsonSchema
 
 from .numberish import parse_floatish, parse_float_list
 from .control_ref import ControlId
@@ -243,8 +244,25 @@ class Frequency(BaseModel):
 DISTRIBUTION_PARAM_DESC = "Distribution parameter (model-specific)."
 
 
+FloatishNoPercent = Annotated[
+    float,
+    WithJsonSchema(
+        {
+            "anyOf": [
+                {"type": "number"},
+                {
+                    "type": "string",
+                    "description": "A numeric string. Readability separators (spaces, thin spaces, underscores, commas) are allowed.",
+                },
+            ]
+        },
+        mode="validation",
+    ),
+]
+
+
 class SeverityParameters(BaseModel):
-    median: Optional[float] = Field(
+    median: Optional[FloatishNoPercent] = Field(
         None,
         description=(
             "Median loss value (distribution-dependent). Interpreted as threat impact (monetary loss per event). "
@@ -333,8 +351,8 @@ class Scenario(BaseModel):
     )
 
 
-# --- Root CRML Scenario Schema ---
-class CRScenarioSchema(BaseModel):
+# --- Root CRML Scenario document ---
+class CRScenario(BaseModel):
     # Scenario document version.
     crml_scenario: Literal["1.0"] = Field(..., description="Scenario document version identifier.")
     meta: Meta = Field(..., description="Document metadata (name, description, tags, etc.).")
@@ -359,10 +377,10 @@ class CRScenarioSchema(BaseModel):
         return v
 
 
-# Usage: CRScenarioSchema.model_validate(your_json_dict)
+# Usage: CRScenario.model_validate(your_json_dict)
 
 
-def load_crml_from_yaml(path: str) -> CRScenarioSchema:
+def load_crml_from_yaml(path: str) -> CRScenario:
     """Load a CRML Scenario YAML file from `path` and validate it.
 
     Requires PyYAML (`pip install pyyaml`).
@@ -372,13 +390,13 @@ def load_crml_from_yaml(path: str) -> CRScenarioSchema:
 
     data = load_yaml_mapping_from_path(path)
 
-    return CRScenarioSchema.model_validate(data)
+    return CRScenario.model_validate(data)
 
 
-def load_crml_from_yaml_str(yaml_text: str) -> CRScenarioSchema:
+def load_crml_from_yaml_str(yaml_text: str) -> CRScenario:
     """Load a CRML Scenario document from a YAML string and validate."""
 
     from ..yamlio import load_yaml_mapping_from_str
 
     data = load_yaml_mapping_from_str(yaml_text)
-    return CRScenarioSchema.model_validate(data)
+    return CRScenario.model_validate(data)

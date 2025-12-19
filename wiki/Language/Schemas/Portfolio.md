@@ -3,7 +3,7 @@
 This page documents the CRML **Portfolio** document shape and how to use it.
 
 - JSON Schema: `crml_lang/src/crml_lang/schemas/crml-portfolio-schema.json`
-- Pydantic model: `crml_lang/src/crml_lang/models/portfolio_model.py` (`CRPortfolioSchema`)
+- Pydantic model: `crml_lang/src/crml_lang/models/portfolio_model.py` (`CRPortfolio`)
 
 ---
 

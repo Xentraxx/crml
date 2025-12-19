@@ -91,9 +91,9 @@ def _semantic_attack_id_errors(data: dict[str, Any]) -> list[ValidationMessage]:
 def _pydantic_strict_errors(data: dict[str, Any]) -> list[ValidationMessage]:
     """Validate using the Pydantic model (strict mode)."""
     try:
-        from ..models.attack_catalog_model import CRAttackCatalogSchema
+        from ..models.attack_catalog_model import CRAttackCatalog
 
-        CRAttackCatalogSchema.model_validate(data)
+        CRAttackCatalog.model_validate(data)
         return []
     except Exception as e:
         return [
@@ -113,7 +113,7 @@ def validate_attack_catalog(
     source_kind: Literal["path", "yaml", "data"] | None = None,
     strict_model: bool = False,
 ) -> ValidationReport:
-    """Validate a CRML Attack Cataloge document."""
+    """Validate a CRML Attack Catalog document."""
 
     data, io_errors = _load_input(source, source_kind=source_kind)
     if io_errors:

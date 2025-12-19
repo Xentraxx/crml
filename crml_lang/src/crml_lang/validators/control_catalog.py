@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any, Literal
 
 from jsonschema import Draft202012Validator
+from pydantic import ValidationError
 
 from .common import (
     ValidationMessage,
@@ -15,36 +16,11 @@ from .common import (
 )
 
 
-def validate_control_catalog(
-    source: str | dict[str, Any],
-    *,
-    source_kind: Literal["path", "yaml", "data"] | None = None,
-    strict_model: bool = False,
-) -> ValidationReport:
-    """Validate a CRML Control Cataloge document."""
+ROOT_PATH = "(root)"
 
-    data, io_errors = _load_input(source, source_kind=source_kind)
-    if io_errors:
-        return ValidationReport(ok=False, errors=io_errors, warnings=[])
-    assert data is not None
 
-    try:
-        schema = _load_control_catalog_schema()
-    except FileNotFoundError:
-        return ValidationReport(
-            ok=False,
-            errors=[
-                ValidationMessage(
-                    level="error",
-                    source="io",
-                    path="(root)",
-                    message=f"Schema file not found at {CONTROL_CATALOG_SCHEMA_PATH}",
-                )
-            ],
-            warnings=[],
-        )
-
-    validator = Draft202012Validator(schema)
+def _validate_control_catalog_schema(data: dict[str, Any]) -> list[ValidationMessage]:
+    validator = Draft202012Validator(_load_control_catalog_schema())
     errors: list[ValidationMessage] = []
     for err in validator.iter_errors(data):
         errors.append(
@@ -56,55 +32,112 @@ def validate_control_catalog(
                 validator=getattr(err, "validator", None),
             )
         )
+    return errors
 
-    warnings: list[ValidationMessage] = []
 
-    # Semantic checks
-    if not errors:
-        catalog = data.get("catalog")
-        controls = catalog.get("controls") if isinstance(catalog, dict) else None
-        if isinstance(controls, list):
-            ids: list[str] = []
-            for idx, c in enumerate(controls):
-                if not isinstance(c, dict):
-                    continue
-                cid = c.get("id")
-                if isinstance(cid, str):
-                    ids.append(cid)
-                else:
-                    errors.append(
-                        ValidationMessage(
-                            level="error",
-                            source="semantic",
-                            path=f"catalog -> controls -> {idx} -> id",
-                            message="Control catalog entry 'id' must be a string.",
-                        )
-                    )
+def _semantic_validate_control_catalog(data: dict[str, Any]) -> list[ValidationMessage]:
+    catalog = data.get("catalog")
+    controls = catalog.get("controls") if isinstance(catalog, dict) else None
+    if not isinstance(controls, list):
+        return []
 
-            if len(ids) != len(set(ids)):
-                errors.append(
-                    ValidationMessage(
-                        level="error",
-                        source="semantic",
-                        path="catalog -> controls",
-                        message="Control catalog contains duplicate control ids.",
-                    )
-                )
+    ids: list[str] = []
+    errors: list[ValidationMessage] = []
 
-    if strict_model and not errors:
-        try:
-            from ..models.control_catalog_model import CRControlCatalogSchema
+    for idx, control in enumerate(controls):
+        if not isinstance(control, dict):
+            continue
+        cid = control.get("id")
+        if isinstance(cid, str):
+            ids.append(cid)
+            continue
 
-            CRControlCatalogSchema.model_validate(data)
-        except Exception as e:
-            errors.append(
+        errors.append(
+            ValidationMessage(
+                level="error",
+                source="semantic",
+                path=f"catalog -> controls -> {idx} -> id",
+                message="Control catalog entry 'id' must be a string.",
+            )
+        )
+
+    if len(ids) != len(set(ids)):
+        errors.append(
+            ValidationMessage(
+                level="error",
+                source="semantic",
+                path="catalog -> controls",
+                message="Control catalog contains duplicate control ids.",
+            )
+        )
+
+    return errors
+
+
+def _strict_pydantic_validate(data: dict[str, Any]) -> list[ValidationMessage]:
+    try:
+        from ..models.control_catalog_model import CRControlCatalog
+
+        CRControlCatalog.model_validate(data)
+    except ValidationError as e:
+        return [
+            ValidationMessage(
+                level="error",
+                source="pydantic",
+                path=ROOT_PATH,
+                message=f"Pydantic validation failed: {e}",
+                validator="pydantic",
+            )
+        ]
+    return []
+
+
+def validate_control_catalog(
+    source: str | dict[str, Any],
+    *,
+    source_kind: Literal["path", "yaml", "data"] | None = None,
+    strict_model: bool = False,
+) -> ValidationReport:
+    """Validate a CRML Control Catalog document."""
+
+    data, io_errors = _load_input(source, source_kind=source_kind)
+    if io_errors:
+        return ValidationReport(ok=False, errors=io_errors, warnings=[])
+    if data is None:
+        return ValidationReport(
+            ok=False,
+            errors=[
                 ValidationMessage(
                     level="error",
-                    source="pydantic",
-                    path="(root)",
-                    message=f"Pydantic validation failed: {e}",
-                    validator="pydantic",
+                    source="io",
+                    path=ROOT_PATH,
+                    message="No input data loaded.",
                 )
-            )
+            ],
+            warnings=[],
+        )
 
-    return ValidationReport(ok=(len(errors) == 0), errors=errors, warnings=warnings)
+    try:
+        errors = _validate_control_catalog_schema(data)
+    except FileNotFoundError:
+        return ValidationReport(
+            ok=False,
+            errors=[
+                ValidationMessage(
+                    level="error",
+                    source="io",
+                    path=ROOT_PATH,
+                    message=f"Schema file not found at {CONTROL_CATALOG_SCHEMA_PATH}",
+                )
+            ],
+            warnings=[],
+        )
+    warnings: list[ValidationMessage] = []
+
+    if not errors:
+        errors.extend(_semantic_validate_control_catalog(data))
+
+    if strict_model and not errors:
+        errors.extend(_strict_pydantic_validate(data))
+
+    return ValidationReport(ok=not errors, errors=errors, warnings=warnings)

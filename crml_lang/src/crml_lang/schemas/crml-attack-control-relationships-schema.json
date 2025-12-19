@@ -411,6 +411,6 @@
     "meta",
     "relationships"
   ],
-  "title": "CRAttackControlRelationshipsSchema",
+  "title": "CRAttackControlRelationships",
   "type": "object"
 }

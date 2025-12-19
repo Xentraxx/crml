@@ -12,7 +12,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import CodeEditor from "@/components/CodeEditor";
 import ValidationResults, { ValidationResult } from "@/components/ValidationResults";
-import SimulationResults, { SimulationResultEnvelope } from "@/components/SimulationResults";
+import SimulationResults, { CRSimulationResult } from "@/components/SimulationResults";
+import { PORTFOLIO_BUNDLE_DOCUMENTED_YAML } from "@/lib/crmlExamples";
 import {
     Download,
     FileText,
@@ -34,24 +35,7 @@ interface Example {
     content: string;
 }
 
-const DEFAULT_YAML = `crml: "1.1"
-meta:
-  name: "my-risk-model"
-  description: "A simple cyber risk model"
-model:
-  assets:
-    - name: "PIIdatabase"
-      cardinality: 50  # 50 databases with PII
-  frequency:
-    model: poisson
-    parameters:
-      lambda: 0.1
-  severity:
-    model: lognormal
-    parameters:
-      mu: 10.0
-      sigma: 1.0
-`;
+const DEFAULT_YAML = PORTFOLIO_BUNDLE_DOCUMENTED_YAML;
 
 const OUTPUT_CURRENCIES = {
     USD: { symbol: "$", name: "US Dollar" },
@@ -77,7 +61,7 @@ export default function PlaygroundClient() {
     const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
     const [isValidating, setIsValidating] = useState(false);
 
-    const [simulationResult, setSimulationResult] = useState<SimulationResultEnvelope | null>(null);
+    const [simulationResult, setSimulationResult] = useState<CRSimulationResult | null>(null);
     const [isSimulating, setIsSimulating] = useState(false);
     const [runs, setRuns] = useState("10000");
     const [seed, setSeed] = useState("");
@@ -155,18 +139,19 @@ export default function PlaygroundClient() {
             });
 
             const result = await response.json();
-            setSimulationResult(result as SimulationResultEnvelope);
+            setSimulationResult(result as CRSimulationResult);
         } catch (error) {
             setSimulationResult({
-                schema_id: "crml.simulation.result",
-                schema_version: "1.0.0",
-                success: false,
-                errors: ["Failed to run simulation: " + (error as Error).message],
-                warnings: [],
-                engine: { name: "web", version: undefined },
-                run: { runs: Number.parseInt(runs, 10) || 10000, seed: seed ? Number.parseInt(seed, 10) : undefined },
-                inputs: {},
-                results: { measures: [], artifacts: [] },
+                crml_simulation_result: "1.0",
+                result: {
+                    success: false,
+                    errors: ["Failed to run simulation: " + (error as Error).message],
+                    warnings: [],
+                    engine: { name: "web", version: undefined },
+                    run: { runs: Number.parseInt(runs, 10) || 10000, seed: seed ? Number.parseInt(seed, 10) : undefined },
+                    inputs: {},
+                    results: { measures: [], artifacts: [] },
+                },
             });
         } finally {
             setIsSimulating(false);

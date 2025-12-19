@@ -22,7 +22,7 @@ Assume **CRML Studio** can be used to manage the documents, run validation, and 
 
 ### Control catalogs and assessments
 
-- [examples/control_cataloges/control-catalog.yaml](../../examples/control_cataloges/control-catalog.yaml)
+- [examples/control_catalogs/control-catalog.yaml](../../examples/control_catalogs/control-catalog.yaml)
 - [examples/control_assessments/control-assessment.yaml](../../examples/control_assessments/control-assessment.yaml) (Assessment pack)
 
 ### FX config (execution-time)

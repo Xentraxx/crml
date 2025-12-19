@@ -65,9 +65,9 @@ def _validate_against_schema(data: dict[str, Any]) -> list[ValidationMessage]:
 def _strict_validate_model(data: dict[str, Any]) -> Optional[ValidationMessage]:
     """Validate against the Pydantic model and return a single error (if any)."""
     try:
-        from ..models.assessment_model import CRAssessmentSchema
+        from ..models.assessment_model import CRAssessment
 
-        CRAssessmentSchema.model_validate(data)
+        CRAssessment.model_validate(data)
         return None
     except Exception as e:
         return ValidationMessage(
@@ -165,7 +165,7 @@ def _check_ids_in_catalogs(ids: list[str], catalog_ids: set[str]) -> list[Valida
                 source="semantic",
                 path="assessment -> assessments -> id",
                 message=(
-                    f"Assessment references unknown control id '{cid}' (not found in provided control cataloge(s))."
+                    f"Assessment references unknown control id '{cid}' (not found in provided control catalog(s))."
                 ),
             )
         )
@@ -180,7 +180,7 @@ def validate_assessment(
     control_catalogs_source_kind: Literal["path", "yaml", "data"] | None = None,
     strict_model: bool = False,
 ) -> ValidationReport:
-    """Validate a CRML Assessment Cataloge document."""
+    """Validate a CRML Assessment Catalog document."""
 
     data, io_errors = _load_input(source, source_kind=source_kind)
     if io_errors:

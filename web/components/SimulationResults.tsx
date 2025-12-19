@@ -5,7 +5,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Download, TrendingUp, AlertCircle, BarChart3, HelpCircle, Info, DollarSign } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 
 export interface SimulationMetrics {
     eal: number;
@@ -58,17 +58,21 @@ export interface CrmlResultPayload {
     artifacts: CrmlArtifact[];
 }
 
-export interface SimulationResultEnvelope {
-    schema_id: "crml.simulation.result";
-    schema_version: string;
+export interface CRSimulationResultInner {
     success: boolean;
     errors?: string[];
     warnings?: string[];
-    engine: { name: string; version?: string };
+    engine?: { name: string; version?: string };
     run?: { runs?: number; seed?: number; runtime_ms?: number; started_at?: string };
     inputs?: { model_name?: string; model_version?: string; description?: string };
     units?: { currency: CrmlCurrencyUnit; horizon?: string };
-    results: CrmlResultPayload;
+    results?: CrmlResultPayload;
+}
+
+// Canonical CRML-Lang envelope returned by the Python engine.
+export interface CRSimulationResult {
+    crml_simulation_result: "1.0";
+    result: CRSimulationResultInner;
 }
 
 export interface SimulationDistribution {
@@ -105,7 +109,7 @@ export interface SimulationMetadata {
     }>;
 }
 
-export type SimulationResult = SimulationResultEnvelope;
+export type SimulationResult = CRSimulationResult;
 
 interface SimulationResultsProps {
     readonly result: SimulationResult | null;
@@ -157,7 +161,9 @@ export default function SimulationResults({ result, isSimulating }: SimulationRe
         );
     }
 
-    if (!result.success) {
+    const inner = result.result;
+
+    if (!inner.success) {
         const errorKeyCounts = new Map<string, number>();
         return (
             <Card className="h-full border-destructive">
@@ -171,7 +177,7 @@ export default function SimulationResults({ result, isSimulating }: SimulationRe
                     <Alert variant="destructive">
                         <AlertDescription>
                             <ul className="list-disc space-y-1 pl-4">
-                                {result.errors?.map((error) => {
+                                {inner.errors?.map((error) => {
                                     const count = errorKeyCounts.get(error) ?? 0;
                                     errorKeyCounts.set(error, count + 1);
                                     return <li key={`${error}::${count}`}>{error}</li>;
@@ -184,10 +190,10 @@ export default function SimulationResults({ result, isSimulating }: SimulationRe
         );
     }
 
-    const measures = result.results?.measures ?? [];
-    const artifacts = result.results?.artifacts ?? [];
+    const measures = inner.results?.measures ?? [];
+    const artifacts = inner.results?.artifacts ?? [];
 
-    const currency = result.units?.currency?.symbol || result.units?.currency?.code || '$';
+    const currency = inner.units?.currency?.symbol || inner.units?.currency?.code || '$';
 
     const getMeasure = (id: string) => measures.find(m => m.id === id);
     const getVar = (level: number) => measures.find((m) => {
@@ -210,12 +216,12 @@ export default function SimulationResults({ result, isSimulating }: SimulationRe
     };
 
     const metadata: SimulationMetadata = {
-        runs: result.run?.runs || 0,
-        runtime_ms: result.run?.runtime_ms || 0,
-        model_name: result.inputs?.model_name || "",
-        model_version: result.inputs?.model_version,
-        description: result.inputs?.description,
-        seed: result.run?.seed,
+        runs: inner.run?.runs || 0,
+        runtime_ms: inner.run?.runtime_ms || 0,
+        model_name: inner.inputs?.model_name || "",
+        model_version: inner.inputs?.model_version,
+        description: inner.inputs?.description,
+        seed: inner.run?.seed,
         currency,
     };
 
@@ -227,21 +233,71 @@ export default function SimulationResults({ result, isSimulating }: SimulationRe
         }
         : undefined;
 
-    // Prepare chart data
-    const chartData = distribution?.bins && distribution?.frequencies
-        ? distribution.bins.slice(0, -1).map((bin, idx) => ({
-            range: `${currency}${(bin / 1000).toFixed(0)}K`,
-            frequency: distribution.frequencies[idx],
-            binStart: bin
-        }))
-        : [];
-
     const formatCurrency = (value: number) => {
-        if (value >= 1000000) {
+        if (!Number.isFinite(value)) return `${currency}0`;
+        const abs = Math.abs(value);
+        if (abs >= 1000000) {
             return `${currency}${(value / 1000000).toFixed(2)}M`;
         }
-        return `${currency}${(value / 1000).toFixed(0)}K`;
+        if (abs >= 1000) {
+            return `${currency}${(value / 1000).toFixed(0)}K`;
+        }
+        return `${currency}${value.toFixed(0)}`;
     };
+
+    // Prepare chart data (numeric axis to avoid duplicate categorical labels)
+    const chartData = distribution?.bins && distribution?.frequencies
+        ? distribution.bins.slice(0, -1).map((binStart, idx) => {
+            const binEnd = distribution.bins[idx + 1];
+            const x = (binStart + binEnd) / 2;
+            return {
+                x,
+                frequency: distribution.frequencies[idx],
+                binStart,
+                binEnd,
+            };
+        })
+        : [];
+
+    // Staged x-axis scaling for heavy-tailed distributions.
+    // If the max is much larger than a percentile metric (VaR), use that VaR
+    // as the display cap (with slight headroom) so the left cluster is readable.
+    const toPositiveFinite = (v: unknown): number | null => {
+        if (typeof v !== "number") return null;
+        if (!Number.isFinite(v) || v <= 0) return null;
+        return v;
+    };
+
+    const maxEdge = distribution?.bins?.length ? (distribution.bins.at(-1) ?? null) : null;
+    const maxX = toPositiveFinite(maxEdge ?? metrics.max) ?? 0;
+
+    const STAGE_RATIO_TRIGGER = 1.8;
+    const STAGE_HEADROOM = 1.05;
+
+    const var95 = toPositiveFinite(metrics.var_95);
+    const var99 = toPositiveFinite(metrics.var_99);
+    const var999 = toPositiveFinite(metrics.var_999);
+
+    const pickDomainMax = (): number => {
+        if (maxX <= 0) return 0;
+
+        if (var999 && maxX / var999 >= STAGE_RATIO_TRIGGER) {
+            return Math.min(maxX, var999 * STAGE_HEADROOM);
+        }
+        if (var99 && maxX / var99 >= STAGE_RATIO_TRIGGER) {
+            return Math.min(maxX, var99 * STAGE_HEADROOM);
+        }
+        if (var95 && maxX / var95 >= STAGE_RATIO_TRIGGER) {
+            return Math.min(maxX, var95 * STAGE_HEADROOM);
+        }
+
+        return maxX;
+    };
+
+    const domainMax = pickDomainMax();
+    const displayChartData = domainMax > 0
+        ? chartData.filter((d) => typeof d.x === "number" && d.x >= 0 && d.x <= domainMax)
+        : chartData;
 
     const handleDownloadJSON = () => {
         const blob = new Blob([JSON.stringify(result, null, 2)], { type: 'application/json' });
@@ -502,23 +558,34 @@ export default function SimulationResults({ result, isSimulating }: SimulationRe
                     <CardContent>
                         <div className="h-[250px]">
                             <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={chartData}>
+                                <AreaChart data={displayChartData}>
                                     <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                                     <XAxis
-                                        dataKey="range"
+                                        dataKey="x"
+                                        type="number"
+                                        scale="linear"
+                                        domain={[0, domainMax > 0 ? domainMax : 'auto']}
+                                        tickFormatter={(v: number) => formatCurrency(v)}
                                         angle={-45}
                                         textAnchor="end"
                                         height={70}
-                                        interval={Math.floor(chartData.length / 8)}
+                                        tickCount={7}
+                                        interval={0}
                                         className="text-xs"
                                     />
                                     <YAxis className="text-xs" />
                                     <RechartsTooltip
                                         formatter={(value: number) => [value, 'Occurrences']}
-                                        labelFormatter={(label) => `Loss: ${label}`}
+                                        labelFormatter={(label) => `Loss: ${formatCurrency(Number(label))}`}
                                     />
-                                    <Bar dataKey="frequency" fill="hsl(var(--primary))" />
-                                </BarChart>
+                                    <Area
+                                        type="stepAfter"
+                                        dataKey="frequency"
+                                        stroke="hsl(var(--primary))"
+                                        fill="hsl(var(--primary))"
+                                        fillOpacity={0.25}
+                                    />
+                                </AreaChart>
                             </ResponsiveContainer>
                         </div>
                     </CardContent>

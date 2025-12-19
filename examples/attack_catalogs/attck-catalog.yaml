@@ -1,7 +1,7 @@
 crml_attack_catalog: "1.0"
 meta:
-  name: "ATT&CK cataloge (example)"
-  description: "Example attack cataloge for ATT&CK tactics and (sub-)techniques. Metadata only; no framework text."
+  name: "ATT&CK catalog (example)"
+  description: "Example attack catalog for ATT&CK tactics and (sub-)techniques. Metadata only; no framework text."
   tags:
     - example
     - attck

@@ -513,7 +513,7 @@
             }
           ],
           "default": null,
-          "description": "Optional list of file paths to referenced control cataloges.",
+          "description": "Optional list of file paths to referenced control catalogs.",
           "title": "Control Catalogs"
         },
         "attack_catalogs": {
@@ -545,7 +545,7 @@
             }
           ],
           "default": null,
-          "description": "Optional list of file paths to referenced assessment cataloges.",
+          "description": "Optional list of file paths to referenced assessment catalogs.",
           "title": "Assessments"
         },
         "control_relationships": {
@@ -894,6 +894,6 @@
     "meta",
     "portfolio"
   ],
-  "title": "CRPortfolioSchema",
+  "title": "CRPortfolio",
   "type": "object"
 }

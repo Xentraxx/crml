@@ -6,10 +6,10 @@ import os
 from pydantic import BaseModel, Field
 
 from crml_lang.models.portfolio_bundle import CRPortfolioBundle
-from crml_lang.models.portfolio_model import CRPortfolioSchema, Portfolio, ScenarioRef
-from crml_lang.models.scenario_model import CRScenarioSchema, ScenarioControl as ScenarioControlModel
-from crml_lang.models.assessment_model import CRAssessmentSchema, Assessment
-from crml_lang.models.control_catalog_model import CRControlCatalogSchema
+from crml_lang.models.portfolio_model import CRPortfolio, Portfolio, ScenarioRef
+from crml_lang.models.scenario_model import CRScenario, ScenarioControl as ScenarioControlModel
+from crml_lang.models.assessment_model import CRAssessment, Assessment
+from crml_lang.models.control_catalog_model import CRControlCatalog
 
 
 CONTROL_STATE_PREFIX = "control:"
@@ -99,7 +99,7 @@ class ResolvedScenario(BaseModel):
     resolved_path: Optional[str] = Field(None, description="Resolved absolute path for loading the scenario.")
     weight: Optional[float] = Field(None, description="Optional scenario weight (portfolio semantics dependent).")
 
-    scenario: Optional[CRScenarioSchema] = Field(
+    scenario: Optional[CRScenario] = Field(
         None,
         description=(
             "Optional inlined scenario document. When present, runtimes should prefer this "
@@ -378,7 +378,7 @@ def plan_portfolio(  # NOSONAR
     This is intentionally *not* a simulator. It resolves:
     - portfolio asset bindings (applies_to_assets -> concrete exposures)
     - referenced scenario documents
-    - referenced control cataloges (catalogs/assessments)
+    - referenced control catalogs (catalogs/assessments)
     - scenario control refs -> resolved, combined control effects
 
     The resulting plan is designed to be consumed by `crml_engine`.
@@ -412,7 +412,7 @@ def plan_portfolio(  # NOSONAR
         data = source
 
     try:
-        doc = CRPortfolioSchema.model_validate(data)
+        doc = CRPortfolio.model_validate(data)
     except Exception as e:
         return PlanReport(ok=False, errors=[PlanMessage(level="error", path="(schema)", message=str(e))])
 
@@ -420,7 +420,7 @@ def plan_portfolio(  # NOSONAR
 
     assets_by_name: dict[str, Any] = {a.name: a for a in portfolio.assets}
 
-    # --- Load cataloges (optional) ---
+    # --- Load catalogs (optional) ---
     catalog_ids: set[str] = set()
     assessment_by_id: dict[str, Assessment] = {}
 
@@ -440,30 +440,30 @@ def plan_portfolio(  # NOSONAR
             errors.append(PlanMessage(level="error", path=f"portfolio.control_catalogs[{idx}]", message=f"File not found: {p}"))
             continue
         try:
-            cat_doc = CRControlCatalogSchema.model_validate(_load_yaml_file(p))
+            cat_doc = CRControlCatalog.model_validate(_load_yaml_file(p))
             for entry in cat_doc.catalog.controls:
                 catalog_ids.add(entry.id)
         except Exception as e:
-            errors.append(PlanMessage(level="error", path=f"portfolio.control_catalogs[{idx}]", message=f"Invalid control cataloge: {e}"))
+            errors.append(PlanMessage(level="error", path=f"portfolio.control_catalogs[{idx}]", message=f"Invalid control catalog: {e}"))
 
     for idx, p in enumerate(assessment_paths):
         if not os.path.exists(p):
             errors.append(PlanMessage(level="error", path=f"portfolio.assessments[{idx}]", message=f"File not found: {p}"))
             continue
         try:
-            assess_doc = CRAssessmentSchema.model_validate(_load_yaml_file(p))
+            assess_doc = CRAssessment.model_validate(_load_yaml_file(p))
             for a in assess_doc.assessment.assessments:
                 if a.id in assessment_by_id:
                     warnings.append(
                         PlanMessage(
                             level="warning",
                             path=f"portfolio.assessments[{idx}]",
-                            message=f"Duplicate assessment for control id '{a.id}' across cataloges; last one wins.",
+                            message=f"Duplicate assessment for control id '{a.id}' across catalogs; last one wins.",
                         )
                     )
                 assessment_by_id[a.id] = a
         except Exception as e:
-            errors.append(PlanMessage(level="error", path=f"portfolio.assessments[{idx}]", message=f"Invalid assessment cataloge: {e}"))
+            errors.append(PlanMessage(level="error", path=f"portfolio.assessments[{idx}]", message=f"Invalid assessment catalog: {e}"))
 
     # --- Build portfolio inventory (highest precedence) ---
     portfolio_controls_by_id: dict[str, Any] = {}
@@ -474,7 +474,7 @@ def plan_portfolio(  # NOSONAR
                 PlanMessage(
                     level="error",
                     path=f"portfolio.controls[{idx}].id",
-                    message=f"Unknown control id '{c.id}' (not present in referenced cataloge(s)).",
+                    message=f"Unknown control id '{c.id}' (not present in referenced catalog(s)).",
                 )
             )
 
@@ -497,7 +497,7 @@ def plan_portfolio(  # NOSONAR
             )
         else:
             target_control_ids = [_extract_control_id_from_state_ref(t) for t in targets]
-            # Ensure targets exist in inventory or assessment cataloges (since scenario controls must resolve).
+            # Ensure targets exist in inventory or assessment catalogs (since scenario controls must resolve).
             for t in target_control_ids:
                 if t not in portfolio_controls_by_id and t not in assessment_by_id:
                     errors.append(
@@ -565,7 +565,7 @@ def plan_portfolio(  # NOSONAR
             continue
 
         try:
-            scenario_doc = CRScenarioSchema.model_validate(_load_yaml_file(scenario_path))
+            scenario_doc = CRScenario.model_validate(_load_yaml_file(scenario_path))
         except Exception as e:
             errors.append(
                 PlanMessage(
@@ -897,7 +897,7 @@ def plan_bundle(bundle: CRPortfolioBundle) -> PlanReport:  # NOSONAR
                     }
 
     # Scenario lookup by id (bundle payload holds the inlined scenarios)
-    scenario_by_id: dict[str, CRScenarioSchema] = {s.id: s.scenario for s in (payload.scenarios or [])}
+    scenario_by_id: dict[str, CRScenario] = {s.id: s.scenario for s in (payload.scenarios or [])}
 
     resolved_scenarios: list[ResolvedScenario] = []
     for idx, sref in enumerate(portfolio.scenarios):

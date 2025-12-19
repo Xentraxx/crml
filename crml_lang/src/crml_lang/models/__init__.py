@@ -1,4 +1,4 @@
-from .result_envelope import (
+from .simulation_result import (
 	Artifact,
 	CurrencyUnit,
 	EngineInfo,
@@ -8,16 +8,16 @@ from .result_envelope import (
 	ResultPayload,
 	RunInfo,
 	SamplesArtifact,
-	SimulationResultEnvelope,
+	CRSimulationResult,
 	Units,
 )
 
-from .scenario_model import CRScenarioSchema
-from .assessment_model import CRAssessmentSchema
-from .control_catalog_model import CRControlCatalogSchema
-from .attack_catalog_model import CRAttackCatalogSchema
-from .control_relationships_model import CRControlRelationshipsSchema
-from .portfolio_model import CRPortfolioSchema
+from .scenario_model import CRScenario
+from .assessment_model import CRAssessment
+from .control_catalog_model import CRControlCatalog
+from .attack_catalog_model import CRAttackCatalog
+from .control_relationships_model import CRControlRelationships
+from .portfolio_model import CRPortfolio
 
 __all__ = [
 	"Artifact",
@@ -29,12 +29,12 @@ __all__ = [
 	"ResultPayload",
 	"RunInfo",
 	"SamplesArtifact",
-	"SimulationResultEnvelope",
+	"CRSimulationResult",
 	"Units",
-	"CRScenarioSchema",
-	"CRPortfolioSchema",
-	"CRAssessmentSchema",
-	"CRControlCatalogSchema",
-	"CRAttackCatalogSchema",
-	"CRControlRelationshipsSchema",
+	"CRScenario",
+	"CRPortfolio",
+	"CRAssessment",
+	"CRControlCatalog",
+	"CRAttackCatalog",
+	"CRControlRelationships",
 ]

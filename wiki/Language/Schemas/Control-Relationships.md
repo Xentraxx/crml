@@ -3,7 +3,7 @@
 This page documents the CRML **Control Relationships** document shape and how to use it.
 
 - JSON Schema: `crml_lang/src/crml_lang/schemas/crml-control-relationships-schema.json`
-- Pydantic model: `crml_lang/src/crml_lang/models/control_relationships_model.py` (`CRControlRelationshipsSchema`)
+- Pydantic model: `crml_lang/src/crml_lang/models/control_relationships_model.py` (`CRControlRelationships`)
 
 ---
 
@@ -104,6 +104,12 @@ Engines/tools may use these packs to resolve scenario controls to portfolio cont
 ---
 
 ## Validation
+
+## Excel (XLSX) authoring
+
+If you prefer maintaining control mappings in Excel, CRML supports a strict XLSX workbook workflow and round-tripping to YAML:
+
+- Guide: [Excel Controls & Mappings](../../Guides/Excel-Controls-and-Mappings.md)
 
 Python:
 

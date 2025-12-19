@@ -1,9 +1,9 @@
-# CRML Portfolio Bundle (`crml_portfolio_bundle: "1.0"`)
+export const PORTFOLIO_BUNDLE_DOCUMENTED_YAML = `# CRML Portfolio Bundle (crml_portfolio_bundle: "1.0")
 #
 # Goal
 # ----
-# A *portfolio bundle* is a single, self-contained artifact intended to be the
-# contract between `crml_lang` and engines:
+# A portfolio bundle is a single, self-contained artifact intended to be the
+# contract between crml_lang and engines:
 #
 # - It contains a full CRML Portfolio document.
 # - It inlines the referenced Scenario documents.
@@ -12,14 +12,13 @@
 #
 # Important design principle:
 # - Engines SHOULD NOT require filesystem access when executing a bundle.
-#   `source_path` fields are traceability only.
+#   source_path fields are traceability only.
 #
 # Notes
 # -----
 # - This file is intentionally heavily documented inline.
-# - The reference engine CLI may not execute portfolio bundles directly yet.
-#   The bundle is still useful for validation, exchange, and as a future
-#   engine-agnostic execution input.
+#
+# (This example is based on examples/portfolio_bundles/portfolio-bundle-documented.yaml)
 
 crml_portfolio_bundle: "1.0"
 
@@ -27,7 +26,6 @@ portfolio_bundle:
   # ---------------------------------------------------------------------------
   # 1) Portfolio (required)
   # ---------------------------------------------------------------------------
-  # This is the normal CRML portfolio document, embedded in the bundle.
   portfolio:
     crml_portfolio: "1.0"
     meta:
@@ -42,30 +40,14 @@ portfolio_bundle:
       tags: ["example", "bundle", "portfolio"]
 
     portfolio:
-      # ---------------------------------------------------------------------
       # Portfolio semantics
-      # ---------------------------------------------------------------------
-      # `method` describes how scenario losses are aggregated across the
-      # portfolio.
-      # - sum: independent scenarios accumulate (default portfolio view)
-      # - max: worst-case across scenarios (stress view)
-      # - mixture/choose_one: stochastic selection (useful for mutually exclusive
-      #   pathways)
       semantics:
         method: sum
         constraints:
-          # In a bundle, engines should not require paths to exist.
-          # Leave these false for maximum portability.
           require_paths_exist: false
           validate_scenarios: false
 
-      # ---------------------------------------------------------------------
       # Assets / exposure surface
-      # ---------------------------------------------------------------------
-      # Assets allow scenarios to specify frequency on different bases.
-      # Example:
-      # - per_organization_per_year: no asset scaling
-      # - per_asset_unit_per_year: scaled by asset cardinality
       assets:
         - name: "employees"
           cardinality: 250
@@ -74,14 +56,7 @@ portfolio_bundle:
           cardinality: 450
           tags: ["it", "endpoint"]
 
-      # ---------------------------------------------------------------------
       # Optional referenced packs (paths)
-      # ---------------------------------------------------------------------
-      # These are path references in the portfolio document.
-      # In a bundle, the *same content* is also inlined below under
-      # `portfolio_bundle.<section>`. Tools/engines may:
-      # - prefer inlined content, or
-      # - treat these as provenance pointers.
       control_catalogs:
         - ../control_catalogs/control-catalog.yaml
       assessments:
@@ -93,11 +68,7 @@ portfolio_bundle:
       attack_control_relationships:
         - ../attack_control_relationships/attck-to-cisv8-mappings.yaml
 
-      # ---------------------------------------------------------------------
       # Dependency modeling (copula example)
-      # ---------------------------------------------------------------------
-      # Dependency is optional, but can change tail risk materially.
-      # Here we correlate the *runtime state* (up/down) of two controls.
       dependency:
         copula:
           type: gaussian
@@ -107,12 +78,9 @@ portfolio_bundle:
           structure: toeplitz
           rho: 0.35
 
-      # ---------------------------------------------------------------------
       # Scenarios referenced by this portfolio
-      # ---------------------------------------------------------------------
       scenarios:
         - id: phishing
-          # Path is informational in a bundle; scenario is inlined below.
           path: ../scenarios/scenario-phishing.yaml
 
   # ---------------------------------------------------------------------------
@@ -129,9 +97,6 @@ portfolio_bundle:
           description: |
             Minimal phishing scenario to demonstrate how a bundle carries
             executable scenario inputs alongside a portfolio.
-
-            The `meta.attck` list is *metadata only* (classification/reporting),
-            but can be used by mapping tools.
           tags: ["example", "phishing"]
           attck:
             - "attck:TA0001"
@@ -139,14 +104,12 @@ portfolio_bundle:
             - "attck:T1566.001"
 
         scenario:
-          # Frequency models the baseline threat landscape.
           frequency:
             basis: per_organization_per_year
             model: poisson
             parameters:
               lambda: 0.8
 
-          # Severity models the loss distribution conditional on occurrence.
           severity:
             model: lognormal
             parameters:
@@ -154,9 +117,6 @@ portfolio_bundle:
               median: "250 000"
               sigma: 1.1
 
-          # Controls referenced by id.
-          # Engines combine scenario-specific control *factors* with portfolio
-          # assessment posture (implementation/coverage/reliability).
           controls:
             - id: "org:iam.mfa"
               affects: frequency
@@ -170,9 +130,6 @@ portfolio_bundle:
   # ---------------------------------------------------------------------------
   # 3) Optional inlined control catalog(s)
   # ---------------------------------------------------------------------------
-  # A control catalog is the dictionary for control ids used in scenarios and
-  # assessments. Titles should be short identifiers; avoid embedding standard
-  # copyrighted text.
   control_catalogs:
     - crml_control_catalog: "1.0"
       meta:
@@ -192,11 +149,6 @@ portfolio_bundle:
   # ---------------------------------------------------------------------------
   # 4) Optional inlined assessment(s)
   # ---------------------------------------------------------------------------
-  # Assessments provide *posture* for controls.
-  # Each per-control entry must be either:
-  # - quantitative posture fields (implementation_effectiveness/coverage/reliability)
-  # OR
-  # - scf_cmm_level (0..5)
   assessments:
     - crml_assessment: "1.0"
       meta:
@@ -208,7 +160,6 @@ portfolio_bundle:
         framework: "Org"
         assessed_at: "2025-12-18T10:00:00Z"
         assessments:
-          # Quantitative posture style
           - id: "org:iam.mfa"
             implementation_effectiveness: 0.75
             coverage:
@@ -219,7 +170,6 @@ portfolio_bundle:
             affects: frequency
             notes: "Rollout in progress; some service accounts excluded."
 
-          # SCF CMM posture style
           - id: "org:edr"
             scf_cmm_level: 3
             affects: severity
@@ -228,9 +178,6 @@ portfolio_bundle:
   # ---------------------------------------------------------------------------
   # 5) Optional inlined control-to-control relationships
   # ---------------------------------------------------------------------------
-  # Control relationships are used by planners/tools to connect framework control
-  # ids (e.g., CIS/NIST) to capability control ids (org controls), and to model
-  # overlap/coverage.
   control_relationships:
     - crml_control_relationships: "1.0"
       meta:
@@ -251,8 +198,6 @@ portfolio_bundle:
   # ---------------------------------------------------------------------------
   # 6) Optional inlined attack catalog(s)
   # ---------------------------------------------------------------------------
-  # Attack catalogs are metadata-only packs (ids + optional titles/urls/tags).
-  # The `kill_chain_phases` array optionally carries STIX-style phases.
   attack_catalogs:
     - crml_attack_catalog: "1.0"
       meta:
@@ -281,10 +226,6 @@ portfolio_bundle:
   # ---------------------------------------------------------------------------
   # 7) Optional inlined attack-to-control relationships
   # ---------------------------------------------------------------------------
-  # This mapping layer is where you connect threat technique ids to control ids.
-  # Tools and engines can use it to:
-  # - infer which controls are relevant to a scenario (via `meta.attck`)
-  # - quantify coverage (strength/confidence)
   attack_control_relationships:
     - crml_attack_control_relationships: "1.0"
       meta:
@@ -310,8 +251,6 @@ portfolio_bundle:
   # ---------------------------------------------------------------------------
   # 8) Optional bundle messages + metadata
   # ---------------------------------------------------------------------------
-  # These are usually produced by a bundler (language tooling). They are not
-  # interpreted by engines, but are useful for auditability.
   warnings: []
 
   metadata:
@@ -320,3 +259,4 @@ portfolio_bundle:
     notes: |
       This bundle is intentionally small. Real bundles would inline all referenced
       scenarios and packs and may be used as the engine input contract.
+`; 
