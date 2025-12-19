@@ -1,4 +1,4 @@
-from .result_envelope import (
+from .simulation_result import (
 	Artifact,
 	CurrencyUnit,
 	EngineInfo,

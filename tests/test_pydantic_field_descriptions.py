@@ -16,7 +16,7 @@ _MODULES_TO_CHECK = [
     "crml_lang.models.control_relationships_model",
     "crml_lang.models.control_ref",
     "crml_lang.models.coverage_model",
-    "crml_lang.models.result_envelope",
+    "crml_lang.models.simulation_result",
     "crml_engine.pipeline.portfolio_planner",
     "crml_engine.models.fx_model",
     "crml_engine.models.result_model",

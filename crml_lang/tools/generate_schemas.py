@@ -11,7 +11,7 @@ from crml_lang.models.attack_control_relationships_model import CRAttackControlR
 from crml_lang.models.control_relationships_model import CRControlRelationshipsSchema
 from crml_lang.models.portfolio_model import CRPortfolioSchema
 from crml_lang.models.portfolio_bundle import CRPortfolioBundle
-from crml_lang.models.result_envelope import CRSimulationResult
+from crml_lang.models.simulation_result import CRSimulationResult
 
 
 def main() -> None:

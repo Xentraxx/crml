@@ -18,7 +18,7 @@ from crml_engine.pipeline import plan_bundle, plan_portfolio
 import numpy as np
 
 from .models.result_model import SimulationResult, Metrics, Distribution, Metadata, print_result
-from crml_lang.models.result_envelope import (
+from crml_lang.models.simulation_result import (
     CurrencyUnit,
     EngineInfo,
     HistogramArtifact,
@@ -32,10 +32,13 @@ from crml_lang.models.result_envelope import (
 )
 from .models.fx_model import (
     FXConfig,
+    convert_currency,
     load_fx_config,
     normalize_fx_config,
     get_currency_symbol
 )
+
+from .models.constants import DEFAULT_FX_RATES
 from .simulation.engine import run_monte_carlo
 from .simulation.severity import SeverityEngine
 from .copula import gaussian_copula_uniforms

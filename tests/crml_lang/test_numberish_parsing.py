@@ -1,3 +1,6 @@
+import pytest
+from pydantic import ValidationError
+
 from crml_lang import CRPortfolio, CRScenario
 
 
@@ -22,13 +25,13 @@ scenario:
     scenario = CRScenario.load_from_yaml_str(yaml_text)
 
     assert isinstance(scenario.scenario.frequency.parameters.lambda_, float)
-    assert scenario.scenario.frequency.parameters.lambda_ == 0.5
+    assert scenario.scenario.frequency.parameters.lambda_ == pytest.approx(0.5)
 
     assert isinstance(scenario.scenario.severity.parameters.mu, float)
-    assert scenario.scenario.severity.parameters.mu == 10.0
+    assert scenario.scenario.severity.parameters.mu == pytest.approx(10.0)
 
     assert isinstance(scenario.scenario.severity.parameters.sigma, float)
-    assert scenario.scenario.severity.parameters.sigma == 1234.5
+    assert scenario.scenario.severity.parameters.sigma == pytest.approx(1234.5)
 
 
 def test_cardinality_must_be_natural_integer():
@@ -47,11 +50,8 @@ portfolio:
   semantics:
     method: sum
 """
-    try:
-        CRPortfolio.load_from_yaml_str(yaml_zero)
-        assert False, "expected cardinality=0 to be rejected"
-    except Exception:
-        pass
+    with pytest.raises(ValidationError):
+      CRPortfolio.load_from_yaml_str(yaml_zero)
 
     # Floats are not allowed
     yaml_float = """
@@ -68,11 +68,8 @@ portfolio:
   semantics:
     method: sum
 """
-    try:
-        CRPortfolio.load_from_yaml_str(yaml_float)
-        assert False, "expected float cardinality to be rejected"
-    except Exception:
-        pass
+    with pytest.raises(ValidationError):
+      CRPortfolio.load_from_yaml_str(yaml_float)
 
     # Decimal-looking strings are not allowed
     yaml_decimal_str = """
@@ -89,11 +86,8 @@ portfolio:
   semantics:
     method: sum
 """
-    try:
-        CRPortfolio.load_from_yaml_str(yaml_decimal_str)
-        assert False, "expected decimal string cardinality to be rejected"
-    except Exception:
-        pass
+    with pytest.raises(ValidationError):
+      CRPortfolio.load_from_yaml_str(yaml_decimal_str)
 
 
 def test_percent_strings_allowed_only_for_probability_like_fields():
@@ -116,7 +110,7 @@ scenario:
       sigma: 1
 """
     scenario = CRScenario.load_from_yaml_str(yaml_ok)
-    assert scenario.scenario.frequency.parameters.p == 0.25
+    assert scenario.scenario.frequency.parameters.p == pytest.approx(0.25)
 
     # median should NOT accept percent strings (absolute value field)
     yaml_bad = """
@@ -136,8 +130,5 @@ scenario:
       sigma: 1
 """
 
-    try:
+    with pytest.raises(ValidationError):
       CRScenario.load_from_yaml_str(yaml_bad)
-        assert False, "expected percent string in severity.median to be rejected"
-    except Exception:
-        pass
