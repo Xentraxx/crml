@@ -5,8 +5,12 @@
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+> **Upstream / Original repository (main development):** https://github.com/Faux16/crml
+
 > **Status:** Draft. This project is under heavy development and may change without notice.
 > We welcome input, issues, and contributions.
+
+
 
 **Maintained by:** Zeron Research Labs and CyberSec Consulting LLC
 
