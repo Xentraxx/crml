@@ -149,7 +149,7 @@ def _inline_control_catalogs(
         model_mode_warning_path_prefix="portfolio.control_catalogs",
         model_mode_warning_message=(
             "Portfolio references a control catalog path, but bundling is in model-mode; "
-            "provide `control_catalogs` to inline cataloge content."
+            "provide `control_catalogs` to inline catalog content."
         ),
     )
 
@@ -189,7 +189,7 @@ def _inline_assessments(
         model_mode_warning_path_prefix="portfolio.assessments",
         model_mode_warning_message=(
             "Portfolio references an assessment path, but bundling is in model-mode; "
-            "provide `assessments` to inline cataloge content."
+            "provide `assessments` to inline catalog content."
         ),
     )
 

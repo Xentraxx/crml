@@ -17,7 +17,7 @@ portfolio:
       tags: ["it", "endpoint"]
 
   control_catalogs:
-    - ../control_cataloges/control-catalog.yaml
+    - ../control_catalogs/control-catalog.yaml
     - ../../datasets/cisv8-control-catalog.yaml
   assessments:
     - ../assessments/assessment.yaml

@@ -40,7 +40,7 @@ portfolio_bundle:
 
 ### `portfolio_bundle.portfolio`
 
-The full inlined portfolio document (`CRPortfolioSchema`).
+The full inlined portfolio document (`CRPortfolio`).
 
 ### `portfolio_bundle.scenarios`
 

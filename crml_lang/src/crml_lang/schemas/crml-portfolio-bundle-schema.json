@@ -144,7 +144,7 @@
       "title": "Assessment",
       "type": "object"
     },
-    "AssessmentCataloge": {
+    "AssessmentCatalog": {
       "additionalProperties": false,
       "properties": {
         "id": {
@@ -157,7 +157,7 @@
             }
           ],
           "default": null,
-          "description": "Optional identifier for this assessment cataloge (organization-owned).",
+          "description": "Optional identifier for this assessment catalog (organization-owned).",
           "title": "Id"
         },
         "framework": {
@@ -176,7 +176,7 @@
             }
           ],
           "default": null,
-          "description": "When this assessment cataloge was performed/recorded (ISO 8601 date-time). Example: '2025-12-17T10:15:30Z'.",
+          "description": "When this assessment catalog was performed/recorded (ISO 8601 date-time). Example: '2025-12-17T10:15:30Z'.",
           "title": "Assessed At"
         },
         "assessments": {
@@ -192,7 +192,7 @@
         "framework",
         "assessments"
       ],
-      "title": "AssessmentCataloge",
+      "title": "AssessmentCatalog",
       "type": "object"
     },
     "Asset": {
@@ -242,6 +242,42 @@
         "cardinality"
       ],
       "title": "Asset",
+      "type": "object"
+    },
+    "AttackCatalog": {
+      "properties": {
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional identifier for this catalog (organization-owned).",
+          "title": "Id"
+        },
+        "framework": {
+          "description": "Free-form framework label for humans/tools. Example: 'MITRE ATT&CK Enterprise'.",
+          "title": "Framework",
+          "type": "string"
+        },
+        "attacks": {
+          "description": "List of attack pattern catalog entries.",
+          "items": {
+            "$ref": "#/$defs/AttackCatalogEntry"
+          },
+          "title": "Attacks",
+          "type": "array"
+        }
+      },
+      "required": [
+        "framework",
+        "attacks"
+      ],
+      "title": "AttackCatalog",
       "type": "object"
     },
     "AttackCatalogEntry": {
@@ -318,42 +354,6 @@
         "id"
       ],
       "title": "AttackCatalogEntry",
-      "type": "object"
-    },
-    "AttackCataloge": {
-      "properties": {
-        "id": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Optional identifier for this cataloge (organization-owned).",
-          "title": "Id"
-        },
-        "framework": {
-          "description": "Free-form framework label for humans/tools. Example: 'MITRE ATT&CK Enterprise'.",
-          "title": "Framework",
-          "type": "string"
-        },
-        "attacks": {
-          "description": "List of attack pattern catalog entries.",
-          "items": {
-            "$ref": "#/$defs/AttackCatalogEntry"
-          },
-          "title": "Attacks",
-          "type": "array"
-        }
-      },
-      "required": [
-        "framework",
-        "attacks"
-      ],
-      "title": "AttackCataloge",
       "type": "object"
     },
     "AttackControlRelationship": {
@@ -599,7 +599,7 @@
           "title": "Source Path"
         },
         "scenario": {
-          "$ref": "#/$defs/CRScenarioSchema",
+          "$ref": "#/$defs/CRScenario",
           "description": "Inlined, validated CRML scenario document."
         }
       },
@@ -610,7 +610,7 @@
       "title": "BundledScenario",
       "type": "object"
     },
-    "CRAssessmentSchema": {
+    "CRAssessment": {
       "additionalProperties": false,
       "properties": {
         "crml_assessment": {
@@ -624,8 +624,8 @@
           "description": "Document metadata (name, description, tags, etc.)."
         },
         "assessment": {
-          "$ref": "#/$defs/AssessmentCataloge",
-          "description": "The assessment cataloge payload."
+          "$ref": "#/$defs/AssessmentCatalog",
+          "description": "The assessment catalog payload."
         }
       },
       "required": [
@@ -633,10 +633,10 @@
         "meta",
         "assessment"
       ],
-      "title": "CRAssessmentSchema",
+      "title": "CRAssessment",
       "type": "object"
     },
-    "CRAttackCatalogSchema": {
+    "CRAttackCatalog": {
       "properties": {
         "crml_attack_catalog": {
           "const": "1.0",
@@ -649,8 +649,8 @@
           "description": "Document metadata (name, description, tags, etc.)."
         },
         "catalog": {
-          "$ref": "#/$defs/AttackCataloge",
-          "description": "The attack cataloge payload."
+          "$ref": "#/$defs/AttackCatalog",
+          "description": "The attack catalog payload."
         }
       },
       "required": [
@@ -658,10 +658,10 @@
         "meta",
         "catalog"
       ],
-      "title": "CRAttackCatalogSchema",
+      "title": "CRAttackCatalog",
       "type": "object"
     },
-    "CRAttackControlRelationshipsSchema": {
+    "CRAttackControlRelationships": {
       "properties": {
         "crml_attack_control_relationships": {
           "const": "1.0",
@@ -683,10 +683,10 @@
         "meta",
         "relationships"
       ],
-      "title": "CRAttackControlRelationshipsSchema",
+      "title": "CRAttackControlRelationships",
       "type": "object"
     },
-    "CRControlCatalogSchema": {
+    "CRControlCatalog": {
       "properties": {
         "crml_control_catalog": {
           "const": "1.0",
@@ -699,8 +699,8 @@
           "description": "Document metadata (name, description, tags, etc.)."
         },
         "catalog": {
-          "$ref": "#/$defs/ControlCataloge",
-          "description": "The control cataloge payload."
+          "$ref": "#/$defs/ControlCatalog",
+          "description": "The control catalog payload."
         }
       },
       "required": [
@@ -708,10 +708,10 @@
         "meta",
         "catalog"
       ],
-      "title": "CRControlCatalogSchema",
+      "title": "CRControlCatalog",
       "type": "object"
     },
-    "CRControlRelationshipsSchema": {
+    "CRControlRelationships": {
       "properties": {
         "crml_control_relationships": {
           "const": "1.0",
@@ -733,10 +733,10 @@
         "meta",
         "relationships"
       ],
-      "title": "CRControlRelationshipsSchema",
+      "title": "CRControlRelationships",
       "type": "object"
     },
-    "CRPortfolioSchema": {
+    "CRPortfolio": {
       "properties": {
         "crml_portfolio": {
           "const": "1.0",
@@ -758,10 +758,10 @@
         "meta",
         "portfolio"
       ],
-      "title": "CRPortfolioSchema",
+      "title": "CRPortfolio",
       "type": "object"
     },
-    "CRScenarioSchema": {
+    "CRScenario": {
       "additionalProperties": false,
       "properties": {
         "crml_scenario": {
@@ -808,7 +808,7 @@
         "meta",
         "scenario"
       ],
-      "title": "CRScenarioSchema",
+      "title": "CRScenario",
       "type": "object"
     },
     "ConditionalRelationship": {
@@ -844,6 +844,42 @@
         "probability"
       ],
       "title": "ConditionalRelationship",
+      "type": "object"
+    },
+    "ControlCatalog": {
+      "properties": {
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional identifier for this catalog (organization-owned).",
+          "title": "Id"
+        },
+        "framework": {
+          "description": "Free-form framework label for humans/tools.",
+          "title": "Framework",
+          "type": "string"
+        },
+        "controls": {
+          "description": "List of catalog entries.",
+          "items": {
+            "$ref": "#/$defs/ControlCatalogEntry"
+          },
+          "title": "Controls",
+          "type": "array"
+        }
+      },
+      "required": [
+        "framework",
+        "controls"
+      ],
+      "title": "ControlCatalog",
       "type": "object"
     },
     "ControlCatalogEntry": {
@@ -938,42 +974,6 @@
         "id"
       ],
       "title": "ControlCatalogEntry",
-      "type": "object"
-    },
-    "ControlCataloge": {
-      "properties": {
-        "id": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Optional identifier for this cataloge (organization-owned).",
-          "title": "Id"
-        },
-        "framework": {
-          "description": "Free-form framework label for humans/tools.",
-          "title": "Framework",
-          "type": "string"
-        },
-        "controls": {
-          "description": "List of catalog entries.",
-          "items": {
-            "$ref": "#/$defs/ControlCatalogEntry"
-          },
-          "title": "Controls",
-          "type": "array"
-        }
-      },
-      "required": [
-        "framework",
-        "controls"
-      ],
-      "title": "ControlCataloge",
       "type": "object"
     },
     "ControlRelationship": {
@@ -2033,7 +2033,7 @@
             }
           ],
           "default": null,
-          "description": "Optional list of file paths to referenced control cataloges.",
+          "description": "Optional list of file paths to referenced control catalogs.",
           "title": "Control Catalogs"
         },
         "attack_catalogs": {
@@ -2065,7 +2065,7 @@
             }
           ],
           "default": null,
-          "description": "Optional list of file paths to referenced assessment cataloges.",
+          "description": "Optional list of file paths to referenced assessment catalogs.",
           "title": "Assessments"
         },
         "control_relationships": {
@@ -2165,7 +2165,7 @@
       "description": "Portfolio bundle payload for `CRPortfolioBundle`.\n\nThis is intentionally the inlined artifact content; engines should not require filesystem access.",
       "properties": {
         "portfolio": {
-          "$ref": "#/$defs/CRPortfolioSchema",
+          "$ref": "#/$defs/CRPortfolio",
           "description": "The CRML portfolio document."
         },
         "scenarios": {
@@ -2179,7 +2179,7 @@
         "control_catalogs": {
           "description": "Optional inlined control catalog packs referenced by the portfolio.",
           "items": {
-            "$ref": "#/$defs/CRControlCatalogSchema"
+            "$ref": "#/$defs/CRControlCatalog"
           },
           "title": "Control Catalogs",
           "type": "array"
@@ -2187,7 +2187,7 @@
         "assessments": {
           "description": "Optional inlined assessment packs referenced by the portfolio.",
           "items": {
-            "$ref": "#/$defs/CRAssessmentSchema"
+            "$ref": "#/$defs/CRAssessment"
           },
           "title": "Assessments",
           "type": "array"
@@ -2195,7 +2195,7 @@
         "control_relationships": {
           "description": "Optional inlined control relationships packs referenced by the portfolio.",
           "items": {
-            "$ref": "#/$defs/CRControlRelationshipsSchema"
+            "$ref": "#/$defs/CRControlRelationships"
           },
           "title": "Control Relationships",
           "type": "array"
@@ -2203,7 +2203,7 @@
         "attack_catalogs": {
           "description": "Optional inlined attack catalogs (e.g., MITRE ATT&CK) referenced by the portfolio.",
           "items": {
-            "$ref": "#/$defs/CRAttackCatalogSchema"
+            "$ref": "#/$defs/CRAttackCatalog"
           },
           "title": "Attack Catalogs",
           "type": "array"
@@ -2211,7 +2211,7 @@
         "attack_control_relationships": {
           "description": "Optional inlined attack-to-control relationships mappings referenced by the portfolio.",
           "items": {
-            "$ref": "#/$defs/CRAttackControlRelationshipsSchema"
+            "$ref": "#/$defs/CRAttackControlRelationships"
           },
           "title": "Attack Control Relationships",
           "type": "array"

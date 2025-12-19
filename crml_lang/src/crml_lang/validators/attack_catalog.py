@@ -113,7 +113,7 @@ def validate_attack_catalog(
     source_kind: Literal["path", "yaml", "data"] | None = None,
     strict_model: bool = False,
 ) -> ValidationReport:
-    """Validate a CRML Attack Cataloge document."""
+    """Validate a CRML Attack Catalog document."""
 
     data, io_errors = _load_input(source, source_kind=source_kind)
     if io_errors:

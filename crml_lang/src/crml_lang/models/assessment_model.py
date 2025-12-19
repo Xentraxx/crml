@@ -114,9 +114,9 @@ class Assessment(BaseModel):
     model_config: ConfigDict = ConfigDict(extra="forbid")
 
 
-class AssessmentCataloge(BaseModel):
+class AssessmentCatalog(BaseModel):
     id: Optional[str] = Field(
-        None, description="Optional identifier for this assessment cataloge (organization-owned)."
+        None, description="Optional identifier for this assessment catalog (organization-owned)."
     )
     framework: str = Field(
         ..., description="Free-form framework label for humans/tools (e.g. 'CISv8', 'ISO27001:2022')."
@@ -124,7 +124,7 @@ class AssessmentCataloge(BaseModel):
     assessed_at: Optional[datetime] = Field(
         None,
         description=(
-            "When this assessment cataloge was performed/recorded (ISO 8601 date-time). "
+            "When this assessment catalog was performed/recorded (ISO 8601 date-time). "
             "Example: '2025-12-17T10:15:30Z'."
         ),
     )
@@ -139,6 +139,6 @@ class CRAssessment(BaseModel):
         description="Assessment document version identifier.",
     )
     meta: Meta = Field(..., description="Document metadata (name, description, tags, etc.).")
-    assessment: AssessmentCataloge = Field(..., description="The assessment cataloge payload.")
+    assessment: AssessmentCatalog = Field(..., description="The assessment catalog payload.")
 
     model_config: ConfigDict = ConfigDict(populate_by_name=True, extra="forbid")

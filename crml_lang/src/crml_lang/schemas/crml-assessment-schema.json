@@ -144,7 +144,7 @@
       "title": "Assessment",
       "type": "object"
     },
-    "AssessmentCataloge": {
+    "AssessmentCatalog": {
       "additionalProperties": false,
       "properties": {
         "id": {
@@ -157,7 +157,7 @@
             }
           ],
           "default": null,
-          "description": "Optional identifier for this assessment cataloge (organization-owned).",
+          "description": "Optional identifier for this assessment catalog (organization-owned).",
           "title": "Id"
         },
         "framework": {
@@ -176,7 +176,7 @@
             }
           ],
           "default": null,
-          "description": "When this assessment cataloge was performed/recorded (ISO 8601 date-time). Example: '2025-12-17T10:15:30Z'.",
+          "description": "When this assessment catalog was performed/recorded (ISO 8601 date-time). Example: '2025-12-17T10:15:30Z'.",
           "title": "Assessed At"
         },
         "assessments": {
@@ -192,7 +192,7 @@
         "framework",
         "assessments"
       ],
-      "title": "AssessmentCataloge",
+      "title": "AssessmentCatalog",
       "type": "object"
     },
     "ControlStructuredRef": {
@@ -444,8 +444,8 @@
       "description": "Document metadata (name, description, tags, etc.)."
     },
     "assessment": {
-      "$ref": "#/$defs/AssessmentCataloge",
-      "description": "The assessment cataloge payload."
+      "$ref": "#/$defs/AssessmentCatalog",
+      "description": "The assessment catalog payload."
     }
   },
   "required": [
@@ -453,6 +453,6 @@
     "meta",
     "assessment"
   ],
-  "title": "CRAssessmentSchema",
+  "title": "CRAssessment",
   "type": "object"
 }

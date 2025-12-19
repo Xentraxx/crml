@@ -3,7 +3,7 @@
 This page documents the CRML **Assessment** document shape and how to use it.
 
 - JSON Schema: `crml_lang/src/crml_lang/schemas/crml-assessment-schema.json`
-- Pydantic model: `crml_lang/src/crml_lang/models/assessment_model.py` (`CRAssessmentSchema`)
+- Pydantic model: `crml_lang/src/crml_lang/models/assessment_model.py` (`CRAssessment`)
 
 ---
 
@@ -94,7 +94,7 @@ A portfolio references assessments by path:
 ```yaml
 portfolio:
   control_catalogs:
-    - ../control_cataloges/control-catalog.yaml
+    - ../control_catalogs/control-catalog.yaml
   assessments:
     - ../control_assessments/control-assessment.yaml
 ```

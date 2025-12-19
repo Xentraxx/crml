@@ -911,6 +911,6 @@
     "meta",
     "scenario"
   ],
-  "title": "CRScenarioSchema",
+  "title": "CRScenario",
   "type": "object"
 }

@@ -378,7 +378,7 @@ def plan_portfolio(  # NOSONAR
     This is intentionally *not* a simulator. It resolves:
     - portfolio asset bindings (applies_to_assets -> concrete exposures)
     - referenced scenario documents
-    - referenced control cataloges (catalogs/assessments)
+    - referenced control catalogs (catalogs/assessments)
     - scenario control refs -> resolved, combined control effects
 
     The resulting plan is designed to be consumed by `crml_engine`.
@@ -420,7 +420,7 @@ def plan_portfolio(  # NOSONAR
 
     assets_by_name: dict[str, Any] = {a.name: a for a in portfolio.assets}
 
-    # --- Load cataloges (optional) ---
+    # --- Load catalogs (optional) ---
     catalog_ids: set[str] = set()
     assessment_by_id: dict[str, Assessment] = {}
 
@@ -444,7 +444,7 @@ def plan_portfolio(  # NOSONAR
             for entry in cat_doc.catalog.controls:
                 catalog_ids.add(entry.id)
         except Exception as e:
-            errors.append(PlanMessage(level="error", path=f"portfolio.control_catalogs[{idx}]", message=f"Invalid control cataloge: {e}"))
+            errors.append(PlanMessage(level="error", path=f"portfolio.control_catalogs[{idx}]", message=f"Invalid control catalog: {e}"))
 
     for idx, p in enumerate(assessment_paths):
         if not os.path.exists(p):
@@ -458,12 +458,12 @@ def plan_portfolio(  # NOSONAR
                         PlanMessage(
                             level="warning",
                             path=f"portfolio.assessments[{idx}]",
-                            message=f"Duplicate assessment for control id '{a.id}' across cataloges; last one wins.",
+                            message=f"Duplicate assessment for control id '{a.id}' across catalogs; last one wins.",
                         )
                     )
                 assessment_by_id[a.id] = a
         except Exception as e:
-            errors.append(PlanMessage(level="error", path=f"portfolio.assessments[{idx}]", message=f"Invalid assessment cataloge: {e}"))
+            errors.append(PlanMessage(level="error", path=f"portfolio.assessments[{idx}]", message=f"Invalid assessment catalog: {e}"))
 
     # --- Build portfolio inventory (highest precedence) ---
     portfolio_controls_by_id: dict[str, Any] = {}
@@ -474,7 +474,7 @@ def plan_portfolio(  # NOSONAR
                 PlanMessage(
                     level="error",
                     path=f"portfolio.controls[{idx}].id",
-                    message=f"Unknown control id '{c.id}' (not present in referenced cataloge(s)).",
+                    message=f"Unknown control id '{c.id}' (not present in referenced catalog(s)).",
                 )
             )
 
@@ -497,7 +497,7 @@ def plan_portfolio(  # NOSONAR
             )
         else:
             target_control_ids = [_extract_control_id_from_state_ref(t) for t in targets]
-            # Ensure targets exist in inventory or assessment cataloges (since scenario controls must resolve).
+            # Ensure targets exist in inventory or assessment catalogs (since scenario controls must resolve).
             for t in target_control_ids:
                 if t not in portfolio_controls_by_id and t not in assessment_by_id:
                     errors.append(

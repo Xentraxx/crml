@@ -207,7 +207,7 @@ def _controls_uniqueness_checks(portfolio: dict[str, Any]) -> list[ValidationMes
     return messages
 
 
-def _validate_cataloge_references(
+def _validate_catalog_and_assessment_references(
     *,
     portfolio: dict[str, Any],
     base_dir: str | None,
@@ -1032,7 +1032,7 @@ def _cross_document_checks(
                 level="warning",
                 source="semantic",
                 path=_PATH_PORTFOLIO_CONTROLS,
-                message="portfolio.controls is missing/empty; using control ids from referenced assessment cataloge(s) for scenario mapping.",
+                message="portfolio.controls is missing/empty; using control ids from referenced assessment catalog(s) for scenario mapping.",
             )
         )
 
@@ -1090,7 +1090,7 @@ def _validate_controls_exist_in_catalog(
             level="error",
             source="semantic",
             path=_PATH_PORTFOLIO_CONTROLS_ID,
-            message=f"Portfolio references unknown control id '{cid}' (not found in referenced control cataloge(s)).",
+            message=f"Portfolio references unknown control id '{cid}' (not found in referenced control catalog(s)).",
         )
         for cid in missing
     ]
@@ -1265,8 +1265,11 @@ def _portfolio_semantic_checks(data: dict[str, Any], *, base_dir: str | None = N
     require_paths_exist = isinstance(constraints, dict) and constraints.get("require_paths_exist") is True
     validate_relevance = isinstance(constraints, dict) and constraints.get("validate_relevance") is True
 
-    catalog_paths, assessment_paths, cataloge_messages = _validate_cataloge_references(portfolio=portfolio, base_dir=base_dir)
-    messages.extend(cataloge_messages)
+    catalog_paths, assessment_paths, catalog_messages = _validate_catalog_and_assessment_references(
+        portfolio=portfolio,
+        base_dir=base_dir,
+    )
+    messages.extend(catalog_messages)
 
     _, relationship_messages = _validate_control_relationships_references(
         portfolio=portfolio,

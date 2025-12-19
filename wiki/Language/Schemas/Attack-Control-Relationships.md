@@ -3,7 +3,7 @@
 This page documents the CRML **Attack→Control Relationships** document type.
 
 - JSON Schema: `crml_lang/src/crml_lang/schemas/crml-attack-control-relationships-schema.json`
-- Pydantic model: `crml_lang/src/crml_lang/models/attack_control_relationships_model.py` (`CRAttackControlRelationshipsSchema`)
+- Pydantic model: `crml_lang/src/crml_lang/models/attack_control_relationships_model.py` (`CRAttackControlRelationships`)
 
 ---
 

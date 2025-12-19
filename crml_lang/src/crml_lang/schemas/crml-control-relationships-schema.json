@@ -476,6 +476,6 @@
     "meta",
     "relationships"
   ],
-  "title": "CRControlRelationshipsSchema",
+  "title": "CRControlRelationships",
   "type": "object"
 }

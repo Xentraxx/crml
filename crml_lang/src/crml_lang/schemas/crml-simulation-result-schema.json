@@ -34,6 +34,40 @@
       "title": "CurrencyUnit",
       "type": "object"
     },
+    "DependencyStructure": {
+      "properties": {
+        "kind": {
+          "description": "Dependency structure kind (engine-defined). Examples: 'correlation_matrix', 'copula', 'bayesian_network', 'graph'.",
+          "title": "Kind",
+          "type": "string"
+        },
+        "targets": {
+          "description": "List of component ids this dependency structure applies to.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Targets",
+          "type": "array"
+        },
+        "structure": {
+          "additionalProperties": true,
+          "description": "Structural definition (e.g., matrix, graph edges), engine-defined.",
+          "title": "Structure",
+          "type": "object"
+        },
+        "parameters": {
+          "additionalProperties": true,
+          "description": "Optional dependency parameters (e.g., copula family), engine-defined.",
+          "title": "Parameters",
+          "type": "object"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "title": "DependencyStructure",
+      "type": "object"
+    },
     "EngineInfo": {
       "properties": {
         "name": {
@@ -161,6 +195,78 @@
       "title": "InputInfo",
       "type": "object"
     },
+    "InputReference": {
+      "properties": {
+        "type": {
+          "description": "Input document type identifier (engine/UI defined). Examples: 'scenario', 'portfolio', 'bundle', 'fx_config'.",
+          "title": "Type",
+          "type": "string"
+        },
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional stable identifier for the input (scenario id, portfolio scenario id, document id, etc.).",
+          "title": "Id"
+        },
+        "version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional input document version or revision identifier.",
+          "title": "Version"
+        },
+        "uri": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional URI or path reference used to load the input (if applicable).",
+          "title": "Uri"
+        },
+        "digest": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional integrity digest for the loaded input (e.g., 'sha256:<hex>'). Useful for auditability without embedding full documents.",
+          "title": "Digest"
+        },
+        "metadata": {
+          "additionalProperties": true,
+          "description": "Optional additional input metadata (engine-defined).",
+          "title": "Metadata",
+          "type": "object"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "title": "InputReference",
+      "type": "object"
+    },
     "Measure": {
       "properties": {
         "id": {
@@ -217,6 +323,119 @@
         "id"
       ],
       "title": "Measure",
+      "type": "object"
+    },
+    "ModelComponent": {
+      "properties": {
+        "id": {
+          "description": "Unique identifier for this model component within the run trace.",
+          "title": "Id",
+          "type": "string"
+        },
+        "role": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Component role/category (engine-defined). Examples: 'frequency', 'severity', 'exposure', 'control', 'dependency', 'prior', 'likelihood'.",
+          "title": "Role"
+        },
+        "model": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Distribution/model identifier (engine-defined). Examples: 'poisson', 'lognormal', 'bayesian_network', 'mcmc'.",
+          "title": "Model"
+        },
+        "parameters": {
+          "additionalProperties": true,
+          "description": "Resolved parameter values for this component (engine-defined, should be JSON/YAML-serializable).",
+          "title": "Parameters",
+          "type": "object"
+        },
+        "units": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Units"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional unit metadata relevant to this component (if any)."
+        },
+        "source_input_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional reference to an InputReference.id indicating where this component came from.",
+          "title": "Source Input Id"
+        },
+        "notes": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional free-form notes for audit/review (engine-defined).",
+          "title": "Notes"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "title": "ModelComponent",
+      "type": "object"
+    },
+    "Quantile": {
+      "properties": {
+        "p": {
+          "description": "Quantile probability level in [0,1]. Example: 0.95 for P95.",
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "P",
+          "type": "number"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Quantile value at probability level `p`.",
+          "title": "Value"
+        }
+      },
+      "required": [
+        "p"
+      ],
+      "title": "Quantile",
       "type": "object"
     },
     "ResultPayload": {
@@ -429,6 +648,26 @@
           "default": null,
           "description": "Optional unit metadata for values in this result."
         },
+        "summaries": {
+          "description": "Optional summary-statistics blocks for one or more target distributions. This provides a stable place for common analyst-facing statistics like P5/P50/P90/P95/P99, mean, std dev, and tail expectations.",
+          "items": {
+            "$ref": "#/$defs/SummaryBlock"
+          },
+          "title": "Summaries",
+          "type": "array"
+        },
+        "trace": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Traceability"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional traceability/provenance block capturing resolved inputs, distributions/parameters, and dependency structures for auditability."
+        },
         "results": {
           "$ref": "#/$defs/ResultPayload",
           "description": "The result payload (measures/artifacts)."
@@ -438,6 +677,298 @@
         "engine"
       ],
       "title": "SimulationResult",
+      "type": "object"
+    },
+    "SummaryBlock": {
+      "properties": {
+        "id": {
+          "description": "Identifier for the summarized target distribution. Should align with a measure/artifact id where possible (e.g., 'loss.annual').",
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional human-friendly label for the target distribution.",
+          "title": "Label"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CurrencyUnit"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional unit metadata for all values in this summary block."
+        },
+        "stats": {
+          "$ref": "#/$defs/SummaryStatistics",
+          "description": "Computed summary statistics for this target distribution."
+        },
+        "estimation": {
+          "$ref": "#/$defs/SummaryEstimation",
+          "description": "Optional metadata describing how the statistics were computed."
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "title": "SummaryBlock",
+      "type": "object"
+    },
+    "SummaryEstimation": {
+      "properties": {
+        "computed_from": {
+          "anyOf": [
+            {
+              "enum": [
+                "samples",
+                "histogram",
+                "analytic",
+                "hybrid",
+                "unknown"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "unknown",
+          "description": "How the summary statistics were computed (engine-defined).",
+          "title": "Computed From"
+        },
+        "sample_count_used": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Number of samples used to compute summary statistics (if applicable).",
+          "title": "Sample Count Used"
+        },
+        "histogram_bins_used": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Number of histogram bins used to compute summary statistics (if applicable).",
+          "title": "Histogram Bins Used"
+        },
+        "truncated": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Whether the underlying samples/histogram used for summary statistics were truncated.",
+          "title": "Truncated"
+        },
+        "method": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional method notes (e.g., quantile algorithm, KDE bandwidth), engine-defined.",
+          "title": "Method"
+        }
+      },
+      "title": "SummaryEstimation",
+      "type": "object"
+    },
+    "SummaryStatistics": {
+      "properties": {
+        "mean": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Mean of the target distribution.",
+          "title": "Mean"
+        },
+        "median": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Median (P50) of the target distribution.",
+          "title": "Median"
+        },
+        "mode": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Mode of the target distribution if well-defined/estimated (engine-defined).",
+          "title": "Mode"
+        },
+        "std_dev": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Standard deviation of the target distribution.",
+          "title": "Std Dev"
+        },
+        "quantiles": {
+          "description": "Requested/available quantiles (e.g., P5/P50/P90/P95/P99) as probability/value pairs.",
+          "items": {
+            "$ref": "#/$defs/Quantile"
+          },
+          "title": "Quantiles",
+          "type": "array"
+        },
+        "tail_expectations": {
+          "description": "Tail expectation measures such as CVaR/Expected Shortfall.",
+          "items": {
+            "$ref": "#/$defs/TailExpectation"
+          },
+          "title": "Tail Expectations",
+          "type": "array"
+        }
+      },
+      "title": "SummaryStatistics",
+      "type": "object"
+    },
+    "TailExpectation": {
+      "properties": {
+        "kind": {
+          "default": "cvar",
+          "description": "Tail expectation kind. 'cvar' is synonymous with Expected Shortfall in many contexts.",
+          "enum": [
+            "cvar",
+            "expected_shortfall"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "level": {
+          "description": "Confidence level for the tail expectation in [0,1]. Example: 0.95.",
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Level",
+          "type": "number"
+        },
+        "tail": {
+          "default": "right",
+          "description": "Which tail is considered extreme. For losses, this is typically the right tail.",
+          "enum": [
+            "right",
+            "left"
+          ],
+          "title": "Tail",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Tail expectation value at the given level.",
+          "title": "Value"
+        }
+      },
+      "required": [
+        "level"
+      ],
+      "title": "TailExpectation",
+      "type": "object"
+    },
+    "Traceability": {
+      "properties": {
+        "scenario_ids": {
+          "description": "Scenario identifiers in effect for this run (if applicable). For portfolios/bundles, this may include portfolio-local scenario ids.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Scenario Ids",
+          "type": "array"
+        },
+        "inputs": {
+          "description": "References and integrity metadata for input documents used in the run.",
+          "items": {
+            "$ref": "#/$defs/InputReference"
+          },
+          "title": "Inputs",
+          "type": "array"
+        },
+        "model_components": {
+          "description": "Resolved model components used by the engine (distributions, priors, controls, etc.).",
+          "items": {
+            "$ref": "#/$defs/ModelComponent"
+          },
+          "title": "Model Components",
+          "type": "array"
+        },
+        "dependencies": {
+          "description": "Dependency/coupling structures used by the run (copulas, correlations, graphs, etc.).",
+          "items": {
+            "$ref": "#/$defs/DependencyStructure"
+          },
+          "title": "Dependencies",
+          "type": "array"
+        },
+        "extra": {
+          "additionalProperties": true,
+          "description": "Optional additional trace/provenance details (engine-defined).",
+          "title": "Extra",
+          "type": "object"
+        }
+      },
+      "title": "Traceability",
       "type": "object"
     },
     "Units": {

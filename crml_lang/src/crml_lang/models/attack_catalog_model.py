@@ -27,8 +27,8 @@ class AttackCatalogEntry(BaseModel):
     )
 
 
-class AttackCataloge(BaseModel):
-    id: Optional[str] = Field(None, description="Optional identifier for this cataloge (organization-owned).")
+class AttackCatalog(BaseModel):
+    id: Optional[str] = Field(None, description="Optional identifier for this catalog (organization-owned).")
     framework: str = Field(
         ..., description="Free-form framework label for humans/tools. Example: 'MITRE ATT&CK Enterprise'."
     )
@@ -40,6 +40,6 @@ class CRAttackCatalog(BaseModel):
         ..., description="Attack catalog document version identifier."
     )
     meta: Meta = Field(..., description="Document metadata (name, description, tags, etc.).")
-    catalog: AttackCataloge = Field(..., description="The attack cataloge payload.")
+    catalog: AttackCatalog = Field(..., description="The attack catalog payload.")
 
     model_config: ConfigDict = ConfigDict(populate_by_name=True)

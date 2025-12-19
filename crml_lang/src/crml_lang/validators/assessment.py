@@ -165,7 +165,7 @@ def _check_ids_in_catalogs(ids: list[str], catalog_ids: set[str]) -> list[Valida
                 source="semantic",
                 path="assessment -> assessments -> id",
                 message=(
-                    f"Assessment references unknown control id '{cid}' (not found in provided control cataloge(s))."
+                    f"Assessment references unknown control id '{cid}' (not found in provided control catalog(s))."
                 ),
             )
         )
@@ -180,7 +180,7 @@ def validate_assessment(
     control_catalogs_source_kind: Literal["path", "yaml", "data"] | None = None,
     strict_model: bool = False,
 ) -> ValidationReport:
-    """Validate a CRML Assessment Cataloge document."""
+    """Validate a CRML Assessment Catalog document."""
 
     data, io_errors = _load_input(source, source_kind=source_kind)
     if io_errors:

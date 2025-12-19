@@ -3,7 +3,7 @@
 This page documents the CRML **Simulation Result** envelope shape and how to use it.
 
 - JSON Schema: `crml_lang/src/crml_lang/schemas/crml-simulation-result-schema.json`
-- Pydantic model: `crml_lang/src/crml_lang/models/result_envelope.py` (`CRSimulationResult`)
+- Pydantic model: `crml_lang/src/crml_lang/models/simulation_result.py` (`CRSimulationResult`)
 
 ---
 
@@ -92,6 +92,6 @@ Consumers (web UI, reporting, BI) should validate against the schema and then tr
 Python:
 
 ```python
-from crml_lang.models.result_envelope import CRSimulationResult
+from crml_lang.models.simulation_result import CRSimulationResult
 env = CRSimulationResult.model_validate(result_dict)
 ```

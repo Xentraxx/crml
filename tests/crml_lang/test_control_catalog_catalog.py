@@ -1,11 +1,11 @@
 from crml_lang import validate_control_catalog
 
 
-def test_validate_control_catalog_cataloge_valid() -> None:
+def test_validate_control_catalog_catalog_valid() -> None:
     yaml_text = """
 crml_control_catalog: "1.0"
 meta:
-  name: "cisv8-cataloge"
+  name: "cisv8-catalog"
 catalog:
   id: "cisv8-ids"
   framework: "CIS v8"
@@ -23,7 +23,7 @@ catalog:
     assert report.ok, report.render_text(source_label="inline")
 
 
-def test_validate_control_catalog_cataloge_rejects_duplicate_ids() -> None:
+def test_validate_control_catalog_catalog_rejects_duplicate_ids() -> None:
     yaml_text = """
 crml_control_catalog: "1.0"
 meta:

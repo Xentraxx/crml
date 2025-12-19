@@ -6,7 +6,7 @@ This page documents the CRML **Scenario** document shape and provides two author
 - **Profile B (Internal calibration):** calibrate/validate using internal incident and loss data.
 
 - JSON Schema: `crml_lang/src/crml_lang/schemas/crml-scenario-schema.json`
-- Pydantic model: `crml_lang/src/crml_lang/models/scenario_model.py` (`CRScenarioSchema`)
+- Pydantic model: `crml_lang/src/crml_lang/models/scenario_model.py` (`CRScenario`)
 
 ---
 

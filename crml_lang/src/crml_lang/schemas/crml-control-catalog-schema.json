@@ -1,5 +1,41 @@
 {
   "$defs": {
+    "ControlCatalog": {
+      "properties": {
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional identifier for this catalog (organization-owned).",
+          "title": "Id"
+        },
+        "framework": {
+          "description": "Free-form framework label for humans/tools.",
+          "title": "Framework",
+          "type": "string"
+        },
+        "controls": {
+          "description": "List of catalog entries.",
+          "items": {
+            "$ref": "#/$defs/ControlCatalogEntry"
+          },
+          "title": "Controls",
+          "type": "array"
+        }
+      },
+      "required": [
+        "framework",
+        "controls"
+      ],
+      "title": "ControlCatalog",
+      "type": "object"
+    },
     "ControlCatalogEntry": {
       "description": "Portable metadata about a control id.\n\nImportant: do not embed copyrighted standard text here.\nKeep this to identifiers and tool-friendly metadata.",
       "properties": {
@@ -92,42 +128,6 @@
         "id"
       ],
       "title": "ControlCatalogEntry",
-      "type": "object"
-    },
-    "ControlCataloge": {
-      "properties": {
-        "id": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Optional identifier for this cataloge (organization-owned).",
-          "title": "Id"
-        },
-        "framework": {
-          "description": "Free-form framework label for humans/tools.",
-          "title": "Framework",
-          "type": "string"
-        },
-        "controls": {
-          "description": "List of catalog entries.",
-          "items": {
-            "$ref": "#/$defs/ControlCatalogEntry"
-          },
-          "title": "Controls",
-          "type": "array"
-        }
-      },
-      "required": [
-        "framework",
-        "controls"
-      ],
-      "title": "ControlCataloge",
       "type": "object"
     },
     "ControlStructuredRef": {
@@ -333,8 +333,8 @@
       "description": "Document metadata (name, description, tags, etc.)."
     },
     "catalog": {
-      "$ref": "#/$defs/ControlCataloge",
-      "description": "The control cataloge payload."
+      "$ref": "#/$defs/ControlCatalog",
+      "description": "The control catalog payload."
     }
   },
   "required": [
@@ -342,6 +342,6 @@
     "meta",
     "catalog"
   ],
-  "title": "CRControlCatalogSchema",
+  "title": "CRControlCatalog",
   "type": "object"
 }

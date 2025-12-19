@@ -83,13 +83,13 @@ portfolio_bundle:
       # - prefer inlined content, or
       # - treat these as provenance pointers.
       control_catalogs:
-        - ../control_cataloges/control-catalog.yaml
+        - ../control_catalogs/control-catalog.yaml
       assessments:
         - ../control_assessments/control-assessment.yaml
       control_relationships:
         - ../control_relationships/cisv8-mappings.yaml
       attack_catalogs:
-        - ../attack_cataloges/attck-catalog.yaml
+        - ../attack_catalogs/attck-catalog.yaml
       attack_control_relationships:
         - ../attack_control_relationships/attck-to-cisv8-mappings.yaml
 

@@ -3,7 +3,7 @@
 This page documents the CRML **Attack Catalog** document shape and how to use it.
 
 - JSON Schema: `crml_lang/src/crml_lang/schemas/crml-attack-catalog-schema.json`
-- Pydantic model: `crml_lang/src/crml_lang/models/attack_catalog_model.py` (`CRAttackCatalogSchema`)
+- Pydantic model: `crml_lang/src/crml_lang/models/attack_catalog_model.py` (`CRAttackCatalog`)
 
 ---
 
